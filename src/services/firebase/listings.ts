@@ -34,13 +34,66 @@ const normalizeSubjectCode = (code: string): string => code.trim().toUpperCase()
 const TRANSACTIONS: TransactionType[] = ['sale', 'free', 'trade']
 const STATUSES: ListingStatus[] = ['active', 'reserved', 'sold']
 
+/** Stock photo for a category; unknown categories fall back to the generic
+ * 'Others' entry rather than borrowing another category's image. */
+const fallbackImageFor = (category: unknown): string =>
+  (typeof category === 'string' && Object.prototype.hasOwnProperty.call(CATEGORY_FALLBACK_IMAGES, category)
+    ? CATEGORY_FALLBACK_IMAGES[category as Category]
+    : undefined) ?? CATEGORY_FALLBACK_IMAGES.Others
+
+const asUrlList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return []
+  return value.filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+}
+
+/**
+ * Live documents sometimes store image_ids as a *stringified* array, e.g.
+ * `"[\"https://...\"]"`. Accepts an array, a JSON stringified array, or the
+ * bracketed-unquoted form (`[https://a, https://b]`). Never throws: anything
+ * unparseable degrades to an empty list so the caller can use its fallback.
+ */
+function parseImageList(value: unknown): string[] {
+  if (Array.isArray(value)) return asUrlList(value)
+  if (typeof value !== 'string') return []
+
+  const text = value.trim()
+  if (!text) return []
+
+  // A bare URL (or a single non-JSON string) is one image, not a list.
+  if (!text.startsWith('[')) return [text]
+
+  try {
+    const parsed: unknown = JSON.parse(text)
+    if (Array.isArray(parsed)) {
+      const urls = asUrlList(parsed)
+      if (urls.length > 0) return urls
+      if (parsed.length === 0) return []
+    }
+  } catch {
+    // Not valid JSON; try the unquoted bracketed form below.
+  }
+
+  // Unquoted form: strip the brackets and split on commas or whitespace.
+  return text
+    .replace(/^\[|\]$/g, '')
+    .split(/[,\s]+/)
+    .map((url) => url.trim().replace(/^["']|["']$/g, ''))
+    .filter((url) => url.length > 0)
+}
+
 /** Maps raw Firestore document data to the frontend Listing type. */
 function toListing(id: string, data: Record<string, any>): Listing {
   const rawStatus = STATUSES.includes(data.status) ? data.status : 'active'
   const campus: CampusId = data.campus === 'manila' || data.campus === 'qc' ? data.campus : 'qc'
-  const rawImages: unknown[] = Array.isArray(data.image_ids) ? data.image_ids : Array.isArray(data.imageUrls) ? data.imageUrls : []
-  const imageUrls = rawImages.filter((url): url is string => typeof url === 'string')
-  const cover = typeof data.imageUrl === 'string' ? data.imageUrl : imageUrls[0]
+  const category: Category = (data.category as Category) || 'Textbooks'
+  const parsedImages = parseImageList(data.image_ids)
+  const imageUrls = parsedImages.length > 0 ? parsedImages : parseImageList(data.imageUrls)
+  const cover = typeof data.imageUrl === 'string' && data.imageUrl ? data.imageUrl : imageUrls[0]
+  // A synthesized fallback must never be mistaken for a photo the seller chose;
+  // the edit form seeds from `imageUrls` only when the stock entry is not it.
+  const fallbackImage = fallbackImageFor(category)
+  const realImages = cover && !imageUrls.includes(cover) ? [cover, ...imageUrls] : imageUrls
+  const hasRealImage = realImages.length > 0
 
   return {
     id,
@@ -48,12 +101,12 @@ function toListing(id: string, data: Record<string, any>): Listing {
     price: typeof data.price === 'number' ? data.price : Number(data.price) || 0,
     transactionType: TRANSACTIONS.includes(data.transaction_type) ? data.transaction_type : 'sale',
     courseCode: data.subject_code || data.courseCode || '',
-    category: (data.category as Category) || 'Textbooks',
+    category,
     department: (data.department as Department) || departmentFor(data.subject_code || data.courseCode || ''),
     condition: (data.condition as Condition) || 'Good',
     description: data.description || '',
-    imageUrl: cover || CATEGORY_FALLBACK_IMAGES['Textbooks'],
-    imageUrls: imageUrls.length > 0 ? imageUrls : [cover ?? CATEGORY_FALLBACK_IMAGES['Textbooks']],
+    imageUrl: cover || fallbackImage,
+    imageUrls: hasRealImage ? realImages : [fallbackImage],
     sellerId: data.seller_id || data.sellerId || '',
     meetupSpot: data.meetup_spot || data.meetupSpot || 'Library Plaza',
     campus,
@@ -107,7 +160,7 @@ export function createFirebaseListings(): ListingService {
 
     async create(draft: ListingDraft, ctx: { userId: string; campus: CampusId }): Promise<Listing> {
       const listingId = createId('l')
-      let imageUrls = draft.imageUrls.length > 0 ? draft.imageUrls : [CATEGORY_FALLBACK_IMAGES[draft.category]]
+      let imageUrls = draft.imageUrls.length > 0 ? draft.imageUrls : [fallbackImageFor(draft.category)]
 
       // Local photos (data URLs) go to Cloud Storage; remote URLs stay as-is.
       const uploadDataUrl = async (url: string, index: number) => {

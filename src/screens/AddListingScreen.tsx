@@ -5,7 +5,7 @@ import FormField, { errorIdFor } from '../components/FormField'
 import ImageDropzone from '../components/ImageDropzone'
 import ScreenHeader from '../components/ScreenHeader'
 import Spinner from '../components/Spinner'
-import { CATEGORY_LIST, SUBJECT_CODES } from '../data/seed'
+import { CATEGORY_FALLBACK_IMAGES, CATEGORY_LIST, SUBJECT_CODES } from '../data/seed'
 import type { Category, Condition, ListingDraft, TransactionType } from '../services/types'
 
 const CONDITION_OPTIONS = [
@@ -22,6 +22,18 @@ const TRANSACTION_OPTIONS = [
 ] satisfies { value: TransactionType; label: string; description: string }[]
 
 const toOptions = (values: readonly string[]) => values.map((value) => ({ value, label: value }))
+
+const FALLBACK_IMAGES = new Set(Object.values(CATEGORY_FALLBACK_IMAGES))
+
+/**
+ * The listing adapter substitutes a stock category photo when a document has no
+ * stored images. That photo is not the seller's, so it must not be seeded into
+ * the form (or it would be saved back on the next edit). Real photos always win.
+ */
+const realPhotos = (urls: string[] | undefined): string[] => {
+  const photos = urls ?? []
+  return photos.some((url) => !FALLBACK_IMAGES.has(url)) ? photos : []
+}
 
 type FieldKey = 'title' | 'price' | 'category' | 'subject'
 type Errors = Partial<Record<FieldKey, string>>
@@ -73,7 +85,7 @@ export default function AddListingScreen({
 }: AddListingScreenProps) {
   const editing = mode === 'edit'
   const spotOptions = initial && !spots.includes(initial.meetupSpot) ? [initial.meetupSpot, ...spots] : spots
-  const [photoUrls, setPhotoUrls] = useState<string[]>(initial?.imageUrls ?? [])
+  const [photoUrls, setPhotoUrls] = useState<string[]>(() => realPhotos(initial?.imageUrls))
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [title, setTitle] = useState(initial?.title ?? '')
   const [price, setPrice] = useState(initial ? String(initial.price) : '')

@@ -4,6 +4,7 @@ import { isSuspended, roleForEmail } from './accounts'
 import { mockControls } from './controls'
 import { pickAccount } from './googleAccountPicker'
 import { delay } from './latency'
+import { createSignInProfile, loadProfiles, saveProfile } from './profiles'
 import { hasShape, read, remove, write } from './storage'
 
 // Client-side check for UX only. A real backend must verify the `hd` claim on the ID token.
@@ -54,6 +55,9 @@ export function createMockAuth({ onSignOut }: { onSignOut: () => void }): AuthSe
       const name = account.name.trim() || nameFromEmail(email)
       const userId = userIdFor(email)
       if (isSuspended(userId)) return { ok: false, reason: 'suspended', email }
+      // Mirrors the Firebase create on first sign-in: a stub profile with no
+      // campus, so the app routes straight into student onboarding.
+      if (!loadProfiles()[userId]) saveProfile(createSignInProfile(userId, name, email))
       const session: Session = {
         userId,
         email,

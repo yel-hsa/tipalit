@@ -5,6 +5,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  writeBatch,
   query,
   where,
   orderBy,
@@ -13,6 +14,7 @@ import {
 import { ADMIN_EMAILS, buildSeedAudit, buildSeedReports, campusLabel } from '../../data/seed'
 import { ServiceError } from '../errors'
 import { createId } from '../ids'
+import { MEETUP_SPOTS_DOC_ID, readMeetupSpots } from './settings'
 import type {
   AccountStatus,
   AdminService,
@@ -46,6 +48,9 @@ export function createFirebaseAdmin(): AdminService {
     return user
   }
 
+  // Moderation without Cloud Functions: a privileged action must never land
+  // without its audit trail, so a failed write is surfaced rather than
+  // swallowed. Callers fail the whole operation when this throws.
   const logAudit = async (action: AuditAction, summary: string, note?: string) => {
     const user = auth.currentUser
     const actorName = user?.displayName || user?.email || 'Admin Staff'
@@ -66,7 +71,11 @@ export function createFirebaseAdmin(): AdminService {
           server_timestamp: serverTimestamp(),
         })
       } catch (err) {
-        console.warn('[TIPalit Firebase Admin] Failed to log audit entry:', err)
+        console.error('[TIPalit Firebase Admin] Failed to log audit entry:', err)
+        throw new ServiceError(
+          'network',
+          "That action wasn't recorded, so it was stopped. Check your connection and try again.",
+        )
       }
     }
   }
@@ -129,54 +138,97 @@ export function createFirebaseAdmin(): AdminService {
           const snap = await getDoc(reportRef)
           if (snap.exists()) {
             const data = snap.data()
-            const targetKind = data.target_type || data.target?.kind
-            const targetId = data.target_id || data.target?.id
+            const targetKind: Report['target']['kind'] = data.target_type || data.target?.kind || 'listing'
+            const targetId: string = data.target_id || data.target?.id || ''
+            const subjectId: string = data.subjectId || data.subject_id || targetId
+            const targetLabel: string = data.target?.label || data.target_label || 'Item'
 
-            // Apply decision action
-            // Rules reserve 'hidden' for server-side moderation, so an admin
-            // takedown marks the listing 'removed' instead.
+            // 'removed' is the one moderated status (the rules allow an admin
+            // to write it and nothing else); 'hidden' is legacy.
             if (action === 'remove_listing' && targetKind === 'listing') {
               const listingRef = doc(db, 'listings', targetId)
               await updateDoc(listingRef, { status: 'removed', updated_at: nowIso })
-              await logAudit('listing_removed', `Removed listing "${data.target?.label}"`, note)
             } else if (action === 'suspend_member') {
-              const memberId = data.subjectId || targetId
-              const userRef = doc(db, 'users_profile', memberId)
+              const userRef = doc(db, 'users_profile', subjectId)
               await updateDoc(userRef, { status: 'suspended', updated_at: nowIso })
+            }
+
+            // Ordering: the audit entry is written BEFORE any report is marked
+            // resolved. `reports.status` is the system of record for "this
+            // decision happened", so if the audit write fails nothing claims
+            // the report was handled and the admin can safely retry. The
+            // listing/member mutation still precedes it (Firestore has no
+            // cross-collection transaction over a query here); re-running that
+            // mutation is idempotent — status is set to the same value. The
+            // previous order (mutate, mark resolved, audit) could leave a
+            // fully-applied moderation with a permanently missing log entry.
+            if (action === 'remove_listing') {
+              await logAudit('listing_removed', `Removed listing "${targetLabel}"`, note)
+            } else if (action === 'suspend_member') {
               await logAudit('member_suspended', `Suspended member ${data.subjectName}`, note)
-            } else if (action === 'dismiss') {
+            } else {
               await logAudit('report_dismissed', `Dismissed report #${id.slice(0, 6)}`, note)
             }
 
             const resolution = { action, note, byName: adminName, at: nowIso }
             const newStatus = action === 'dismiss' ? 'dismissed' : 'resolved'
-            await updateDoc(reportRef, {
+
+            // Cascade (client-side stand-in for the old resolveReport
+            // Function): closing a report on a target settles every other open
+            // report on that same target. Reports carry the target twice —
+            // nested target{kind,id} and flat target_type/target_id — so match
+            // on either id field. Siblings are closed with the same resolution;
+            // a dismissal cascades as 'dismissed', otherwise 'resolved'.
+            const siblingByNested = await getDocs(
+              query(collection(db, 'reports'), where('target.id', '==', targetId), where('status', '==', 'open')),
+            )
+            const siblingByFlat = await getDocs(
+              query(collection(db, 'reports'), where('target_id', '==', targetId), where('status', '==', 'open')),
+            )
+            const siblingIds = new Set<string>()
+            siblingByNested.forEach((sibling) => siblingIds.add(sibling.id))
+            siblingByFlat.forEach((sibling) => siblingIds.add(sibling.id))
+            siblingIds.delete(id)
+
+            // One atomic batch: the resolved report and all siblings flip
+            // together, so a failure cannot close some but not others.
+            const batch = writeBatch(db)
+            batch.update(reportRef, {
               status: newStatus,
               resolution,
               updated_at: serverTimestamp(),
             })
+            siblingIds.forEach((siblingId) => {
+              batch.update(doc(db, 'reports', siblingId), {
+                status: newStatus,
+                resolution,
+                updated_at: serverTimestamp(),
+              })
+            })
+            await batch.commit()
 
             report = {
               id,
               target: {
                 kind: targetKind,
                 id: targetId,
-                label: data.target?.label || 'Item',
+                label: targetLabel,
               },
-              subjectId: data.subjectId || targetId,
+              subjectId,
               subjectName: data.subjectName || 'Student',
               campus: data.campus || 'qc',
               reason: data.reason || 'Other',
               details: data.details || '',
-              reporterId: data.reporterId || '',
-              reporterName: data.reporterName || 'Reporter',
-              createdAt: data.createdAt || nowIso,
+              reporterId: data.reporter_id || data.reporterId || '',
+              reporterName: data.reporter_name || data.reporterName || 'Reporter',
+              createdAt: data.created_at || data.createdAt || nowIso,
               status: newStatus,
               resolution,
             }
           }
         } catch (err) {
           console.error('[TIPalit Firebase Admin] resolveReport error:', err)
+          if (err instanceof ServiceError) throw err
           throw new ServiceError('network', "Couldn't update report.")
         }
       }
@@ -289,17 +341,13 @@ export function createFirebaseAdmin(): AdminService {
 
     async saveMeetupSpots(campus: CampusId, spots: string[]): Promise<MeetupSpots> {
       checkAdmin()
-      const spotsDocRef = doc(db, 'settings', 'meetup_spots')
+      const spotsDocRef = doc(db, 'settings', MEETUP_SPOTS_DOC_ID)
 
       try {
         await setDoc(spotsDocRef, { [campus]: spots }, { merge: true })
         await logAudit('spots_updated', `Updated approved meetup spots for ${campusLabel(campus)}`)
         const snap = await getDoc(spotsDocRef)
-        const data = snap.data() || {}
-        return {
-          qc: data.qc || [],
-          manila: data.manila || [],
-        }
+        return readMeetupSpots(snap.data(), { qc: [], manila: [] })
       } catch (err) {
         console.error('[TIPalit Firebase Admin] saveMeetupSpots error:', err)
         throw new ServiceError('network', "Couldn't save meetup spots.")

@@ -148,8 +148,14 @@ On a person: the chat header flag → choose a reason (*Not a TIP student*, *Har
 
 The report goes to the admin queue. The reported person isn't told who reported them. If sending fails, the form stays open with your answers so you can try again.
 
+You can file one report per listing or person. Reporting the same thing again while it is still open does nothing new; reporting it again after it was closed re-opens that same report with your new details.
+
 ### Review a report (admin)
 Admin → **Reports** → open a report → check it with **View listing** / **View *member*** → choose **Remove listing**, **Suspend *member***, or **Dismiss report** → add a note (optional) → confirm. The report moves to **Closed** and the action appears in the **Log**.
+
+Deciding one report also closes every other open report on the same listing or person, with the same decision. If the action can't be written to the **Log**, nothing is marked as handled and you see an error, so you can try again.
+
+**How takedowns work.** Admin review is the only takedown mechanism. There is no automatic hiding: a listing is never pulled from the feed just because it was reported, however many times. It leaves the feed only when an admin chooses **Remove listing**, which marks it *removed* for good. The report counter on a listing (`report_count`) is maintained by the server only and is currently not writable by anyone, so it stays at zero; the open-report count in the Admin tab is the number to watch.
 
 ### Suspend or reinstate a member (admin)
 Admin → **Members** → search or filter → open the member → enter a reason → **Suspend**. Their listings leave the feed at once, and they can't sign in. To undo, open them again (the **Suspended** filter helps) → **Reinstate**.
@@ -206,6 +212,7 @@ The UI talks only to the service interfaces in `src/services/types.ts`: `AuthSer
 4. Deliver chat events (`typing`, `message`, `meetupUpdated`) through `ChatService.subscribe`, for example over a websocket or a realtime channel.
 5. Put the **admin role** on the session from the server, and **authorise every `AdminService` call on the server**. Hiding the Admin tab from members is not security.
 6. Enforce suspensions on the server: refuse sign-in, revoke existing sessions, and filter suspended sellers out of `ListingService.list`.
+7. Moderation runs entirely from the admin client today (no Cloud Functions on the current plan): resolving a report cascades to the other open reports on the same target and writes the audit entry. If you add Functions later, move `resolveReport` back to a callable so the cascade and the log are transactional.
 
 No screen code changes are needed. `README.md §4` lists the full contract.
 

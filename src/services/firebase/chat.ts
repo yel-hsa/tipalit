@@ -157,13 +157,11 @@ export function createFirebaseChat(): ChatService {
           items: [],
         }
       } catch (err) {
+        // A failed open leaves no thread behind; App.tsx needs the error to
+        // stop navigating and show its toast.
         console.error('[TIPalit Firebase Chat] Error opening thread:', err)
-        return {
-          id: threadId,
-          listingId: listing.id,
-          sellerId: listing.sellerId,
-          items: [],
-        }
+        if (err instanceof ServiceError) throw err
+        throw new ServiceError('network', "Couldn't open the chat.")
       }
     },
 
@@ -266,6 +264,8 @@ export function createFirebaseChat(): ChatService {
           await this.sendMessage(threadId, reply)
         } catch (err) {
           console.error('[TIPalit Firebase Chat] Respond to meetup error:', err)
+          if (err instanceof ServiceError) throw err
+          throw new ServiceError('network', "Couldn't send your response.")
         }
       }
     },
@@ -280,6 +280,8 @@ export function createFirebaseChat(): ChatService {
           })
         } catch (err) {
           console.error('[TIPalit Firebase Chat] Complete meetup error:', err)
+          if (err instanceof ServiceError) throw err
+          throw new ServiceError('network', "Couldn't mark the meetup done.")
         }
       }
     },
@@ -290,8 +292,13 @@ export function createFirebaseChat(): ChatService {
       rating: number,
       comment: string,
     ): Promise<void> {
-      const uid = getCurrentUserId()
+      // Review rules require a real signed-in reviewer; 'anonymous_user' can
+      // never satisfy them, so fail before writing half the exchange state.
+      const user = auth.currentUser
+      if (!user) throw new ServiceError('unauthenticated', 'Sign in to leave a review.')
+      const uid = user.uid
       if (isFirebaseConfigured()) {
+        let chatData: Record<string, any> = {}
         try {
           // Only the keys firestore.rules permits on a message update.
           const messageDocRef = doc(db, 'chats', threadId, 'messages', itemId)
@@ -304,13 +311,42 @@ export function createFirebaseChat(): ChatService {
 
           // Resolve the chat's listing so the review links to the exchange.
           const chatSnap = await getDoc(doc(db, 'chats', threadId))
-          const chatData = chatSnap.exists() ? chatSnap.data() : {}
-          const listingId = (chatData.listing_id || chatData.listingId || '') as string
-          const sellerId = (chatData.seller_id || chatData.sellerId || '') as string
-          const buyerId = (chatData.buyer_id || chatData.buyerId || '') as string
-          // The counterparty is whoever didn't write the review.
-          const revieweeId = uid === sellerId && sellerId ? buyerId : sellerId
+          chatData = chatSnap.exists() ? chatSnap.data() : {}
+        } catch (err) {
+          console.error('[TIPalit Firebase Chat] Rate review error:', err)
+          if (err instanceof ServiceError) throw err
+          throw new ServiceError('network', "Couldn't save your rating.")
+        }
 
+        const listingId = (chatData.listing_id || chatData.listingId || '') as string
+        const chatSellerId = (chatData.seller_id || chatData.sellerId || '') as string
+        const buyerId = (chatData.buyer_id || chatData.buyerId || '') as string
+
+        // Older chat docs may predate seller_id; fall back to the listing.
+        let sellerId = chatSellerId
+        if (!sellerId && listingId) {
+          try {
+            const listingSnap = await getDoc(doc(db, 'listings', listingId))
+            if (listingSnap.exists()) {
+              const listingData = listingSnap.data()
+              sellerId = (listingData.seller_id || listingData.sellerId || '') as string
+            }
+          } catch (err) {
+            console.warn('[TIPalit Firebase Chat] Could not resolve the listing seller:', err)
+          }
+        }
+
+        // The counterparty is whoever didn't write the review: a buyer rates
+        // the seller, and the seller (thread on their own listing) rates the
+        // buyer. Never review yourself.
+        let revieweeId = ''
+        if (uid && uid === sellerId) revieweeId = buyerId
+        else if (sellerId && sellerId !== uid) revieweeId = sellerId
+        if (!revieweeId || revieweeId === uid) {
+          throw new ServiceError('invalid', 'This exchange has no one left to review.')
+        }
+
+        try {
           // Save review in reviews collection per PRD Section 5.1 Collection 5.
           const reviewDocRef = doc(collection(db, 'reviews'))
           await setDoc(reviewDocRef, {
@@ -326,6 +362,8 @@ export function createFirebaseChat(): ChatService {
           })
         } catch (err) {
           console.error('[TIPalit Firebase Chat] Rate review error:', err)
+          if (err instanceof ServiceError) throw err
+          throw new ServiceError('network', "Couldn't save your rating.")
         }
       }
     },

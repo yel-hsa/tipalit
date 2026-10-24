@@ -1,7 +1,7 @@
 import { buildSeedAudit, campusLabel } from '../../data/seed'
 import { ServiceError } from '../errors'
 import { createId } from '../ids'
-import type { AdminService, AuditEntry, MemberSummary, Report, ReportAction } from '../types'
+import type { AdminService, AuditEntry, MemberSummary, Report } from '../types'
 import { loadStatuses, requireAdmin, roleForEmail, writeStatus } from './accounts'
 import { readSession } from './auth'
 import { consumeOnce } from './controls'
@@ -42,13 +42,16 @@ const summarize = (person: Person): MemberSummary => {
 const quoted = (report: Report) =>
   report.target.kind === 'listing' ? `\u201c${report.target.label}\u201d` : report.target.label
 
-/** Which other open reports the same decision settles. */
-const settles = (report: Report, action: ReportAction) => (other: Report) => {
-  if (other.id === report.id || other.status !== 'open') return false
-  if (action === 'remove_listing') return other.target.kind === 'listing' && other.target.id === report.target.id
-  if (action === 'suspend_member') return other.subjectId === report.subjectId
-  return false
-}
+/**
+ * Which other open reports the same decision settles: every open report on
+ * the same target, for every action (parity with the Firebase adapter, which
+ * cascades on target id). A dismissal cascades as a dismissal.
+ */
+const settles = (report: Report) => (other: Report) =>
+  other.id !== report.id &&
+  other.status === 'open' &&
+  other.target.kind === report.target.kind &&
+  other.target.id === report.target.id
 
 export function createMockAdmin(): AdminService {
   return {
@@ -82,7 +85,7 @@ export function createMockAdmin(): AdminService {
 
       const resolution = { action, note, byName: actor.name, at: new Date().toISOString() }
       const status: Report['status'] = action === 'dismiss' ? 'dismissed' : 'resolved'
-      const isSettled = settles(report, action)
+      const isSettled = settles(report)
       const next = reports.map((item) =>
         item.id === id || isSettled(item) ? { ...item, status, resolution } : item,
       )

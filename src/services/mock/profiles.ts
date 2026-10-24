@@ -9,9 +9,31 @@ const isProfiles = isRecordOf(hasShape<Profile>({ userId: 'string', name: 'strin
 
 const seedProfiles = () => Object.fromEntries(SEED_ADMIN_PROFILES().map((profile) => [profile.userId, profile]))
 
-/** Stored profiles, plus staff profiles that exist before their first sign-in. */
+/** Profiles saved by onboarding or edits, i.e. the writable half of the store. */
 const loadStored = () => read<Record<string, Profile>>('profiles', () => ({}), isProfiles)
+/** Stored profiles, plus staff profiles that exist before their first sign-in. */
 export const loadProfiles = (): Record<string, Profile> => ({ ...seedProfiles(), ...loadStored() })
+
+export const saveProfile = (profile: Profile): Profile => {
+  write('profiles', { ...loadStored(), [profile.userId]: profile })
+  return profile
+}
+
+/*
+ * First sign-in stub, mirroring the Firebase create: the required shape for
+ * hasShape (userId/name/program/year) but no campus, so isProfileComplete()
+ * stays false and onboarding runs. Roles are never stored here — the session
+ * derives them from the email.
+ */
+export const createSignInProfile = (userId: string, name: string, email: string): Profile => ({
+  userId,
+  name,
+  email,
+  campus: null,
+  program: '',
+  year: '',
+  joinedAt: new Date().toISOString(),
+})
 
 /** Average stars + count of reviews the given user has received. */
 const reputationFor = (userId: string): Pick<Seller, 'rating' | 'reviews'> | null => {
@@ -45,8 +67,7 @@ export function createMockProfiles(): ProfileService {
 
     async save(profile) {
       await delay()
-      write('profiles', { ...loadStored(), [profile.userId]: profile })
-      return profile
+      return saveProfile(profile)
     },
 
     async getSellers(ids) {

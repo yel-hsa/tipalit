@@ -36,7 +36,14 @@ export const listPeople = (): Person[] => {
     year: seller.year,
     joinedAt: null,
   }))
-  return [...seeded, ...Object.values(loadProfiles()).filter((profile) => profile.name.trim()).map(fromProfile)]
+  const signedIn = Object.values(loadProfiles())
+    .filter((profile) => profile.name.trim())
+    .map(fromProfile)
+  // Seeded sellers and profiles share ids: the profile copy is the live one,
+  // so it wins and each person appears once.
+  const byId = new Map<string, Person>()
+  for (const person of [...seeded, ...signedIn]) byId.set(person.userId, person)
+  return [...byId.values()]
 }
 
 export const findPerson = (userId: string) => listPeople().find((person) => person.userId === userId) ?? null
