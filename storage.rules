@@ -1,0 +1,39 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isTipStudent() {
+      return request.auth != null &&
+        request.auth.token.email.matches('.*@tip[.]edu[.]ph$') &&
+        request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isTipStudent() && (
+        request.auth.token.email in ['osa.admin@tip.edu.ph']
+      );
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/(jpeg|jpg|png|webp)') &&
+        request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // PRD Section 5.2: item_photos/{userId}/{listingId}/{fileName}
+    match /item_photos/{userId}/{listingId}/{fileName} {
+      allow read: if isTipStudent();
+      allow write: if isTipStudent() &&
+        request.auth.uid == userId &&
+        isImage();
+      allow delete: if isTipStudent() && (
+        request.auth.uid == userId || isAdmin()
+      );
+    }
+
+    // PRD Section 5.2: promo_assets/{fileName}
+    match /promo_assets/{fileName} {
+      allow read: if isTipStudent();
+      allow write: if isAdmin() && isImage();
+    }
+  }
+}

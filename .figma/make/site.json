@@ -1,0 +1,10 @@
+{
+  "description": "Enables users to upload and view Markdown files seamlessly, providing a clear and organized display for easy reading and editing.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

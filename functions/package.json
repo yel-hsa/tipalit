@@ -1,0 +1,32 @@
+{
+  "name": "tipalit-functions",
+  "description": "Cloud Functions for TIPalit — trusted report/rating aggregation and moderation",
+  "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions,firestore,storage",
+    "deploy": "firebase deploy --only functions",
+    "test": "npm run build && npx firebase-tools emulators:exec --only functions,firestore 'npm run mocha'",
+    "mocha": "nyc mocha --exit lib/**/*.spec.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.1.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "@types/chai": "^4.3.16",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^22.5.0",
+    "chai": "^4.4.1",
+    "firebase-functions-test": "^3.1.0",
+    "mocha": "^10.4.0",
+    "nyc": "^15.1.0",
+    "typescript": "^5.5.4"
+  }
+}
