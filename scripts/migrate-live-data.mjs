@@ -269,7 +269,10 @@ async function repairPrograms(db) {
 async function main() {
   const admin = loadAdmin()
   admin.initializeApp()
-  const db = admin.firestore()
+  // firebase-admin 14 dropped the namespaced `admin.firestore()`; the modular
+  // entry point is the supported path.
+  const { getFirestore } = createRequire(import.meta.url)('firebase-admin/firestore')
+  const db = getFirestore()
 
   console.log(`TIPalit live-data repair — ${APPLY ? 'APPLY (writes enabled)' : 'DRY RUN (no writes)'}`)
   console.log(`Project: ${process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || '(from credentials)'}`)
