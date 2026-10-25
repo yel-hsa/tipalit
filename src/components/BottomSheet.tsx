@@ -17,20 +17,13 @@ type BottomSheetProps = {
 export default function BottomSheet({ isOpen, onClose, title, subtitle, children, footer }: BottomSheetProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  const closeRef = useRef(onClose)
-  closeRef.current = onClose
 
-  useDialogFocus(isOpen, bodyRef)
+  useDialogFocus(isOpen, bodyRef, { onClose })
 
   useEffect(() => {
     if (!isOpen) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeRef.current()
-    }
-    document.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
-      document.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
     }
   }, [isOpen])

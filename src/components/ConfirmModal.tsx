@@ -27,7 +27,7 @@ export default function ConfirmModal({
   onClose,
 }: ConfirmModalProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
-  useDialogFocus(isOpen, bodyRef)
+  useDialogFocus(isOpen, bodyRef, { canClose: () => !pending, onClose })
 
   return (
     <Modal

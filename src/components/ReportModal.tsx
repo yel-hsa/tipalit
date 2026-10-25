@@ -31,7 +31,7 @@ export default function ReportModal({ isOpen, onClose, target, onSubmit }: Repor
   const [details, setDetails] = useState('')
   const [pending, setPending] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
-  useDialogFocus(isOpen, bodyRef)
+  useDialogFocus(isOpen, bodyRef, { canClose: () => !pending, onClose })
 
   const submit = async () => {
     if (!reason || pending) return

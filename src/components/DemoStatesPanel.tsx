@@ -64,7 +64,7 @@ type DemoStatesPanelProps = {
 export default function DemoStatesPanel({ isOpen, onClose, flags, version, onChange, onLaunch, onReset }: DemoStatesPanelProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
   const googleLabelId = useId()
-  useDialogFocus(isOpen, bodyRef)
+  useDialogFocus(isOpen, bodyRef, { onClose })
 
   return (
     <Modal

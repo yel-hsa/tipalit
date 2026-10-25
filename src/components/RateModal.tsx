@@ -19,7 +19,7 @@ export default function RateModal({ isOpen, onClose, seller, listingTitle, onSub
   const [comment, setComment] = useState('')
   const { pending, run } = usePendingAction()
   const bodyRef = useRef<HTMLDivElement>(null)
-  useDialogFocus(isOpen, bodyRef)
+  useDialogFocus(isOpen, bodyRef, { canClose: () => !pending, onClose })
 
   return (
     <Modal
