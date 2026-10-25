@@ -11,8 +11,8 @@ This file serves as the ground-truth state anchor across Claude Code sessions, r
 ---
 
 ## 2. Git & Branch State
-- **Primary Branch (`master`):** At commit `43bdcfa` (*"Record the rules-test pass in PROGRESS.md"*).
-- **Last Auto-Sync:** 2026-10-25 07:32:17
+- **Primary Branch (`master`):** At commit `9a84caa` (*"Add the Storage CORS policy for local dev and hosting origins"*).
+- **Last Auto-Sync:** 2026-10-25 07:35:37
 - **Working Tree:** Clean.
 - **Verification Status (re-run 2026-10-25 against `9963790`):**
   - `npm run typecheck` -> PASS (clean `tsc --noEmit`)
@@ -23,11 +23,11 @@ This file serves as the ground-truth state anchor across Claude Code sessions, r
 ---
 
 ### Recent Commits (Auto-Synced)
+- **9a84caa** *(2026-10-25 15:35)*: Add the Storage CORS policy for local dev and hosting origins
 - **43bdcfa** *(2026-10-25 15:32)*: Record the rules-test pass in PROGRESS.md
 - **64caa2c** *(2026-10-25 14:28)*: chore: automate PROGRESS.md updates via git hooks and sync-progress script
 - **9963790** *(2026-10-25 12:42)*: Fix the inert background: it was inerting the dialogs too
 - **166380e** *(2026-10-25 12:30)*: Wire up the reserved status, drop listReviews, add CI
-- **0a8f942** *(2026-10-25 12:29)*: Let the dialog hook own Escape, with a stack and an inert background
 
 ---
 
@@ -42,6 +42,6 @@ This file serves as the ground-truth state anchor across Claude Code sessions, r
 ---
 
 ## 4. Immediate Next Steps (To Execute on Resume)
-1. **Apply Firebase Storage CORS:** Apply `cors.json` to bucket `tipalit-firebase.firebasestorage.app` via GCS JSON API (allowing localhost:5301, localhost:8443, localhost:5173, and production web.app domains).
-2. **Deploy Firestore Rules:** Run `firebase deploy --only firestore:rules --project tipalit-firebase` to push the new feed listing rules to live production.
-3. **Verify Live App Flow:** Sign in as student, verify feed loads, upload product image, and test chat.
+1. **BLOCKED — Apply Firebase Storage CORS:** `cors.json` is committed (`9a84caa`), but the bucket does not exist under the active gcloud account. `tipalit-firebase.firebasestorage.app`, `tipalit-firebase.appspot.com`, `tipalit-campus.appspot.com`, and `tipalit-campus.firebasestorage.app` all return 404, and `leebonus2004@gmail.com` lacks `storage.buckets.list` on project `tipalit-firebase`. Firebase CLI is logged in as `yelhsasunob@gmail.com` (the project owner) but gcloud has no credentials for it. **Next action:** either `gcloud auth login yelhsasunob@gmail.com` then `gcloud storage buckets update gs://<bucket> --cors-file=cors.json`, or create the default bucket in the Firebase console (Storage → Get started), then re-run the update.
+2. **DONE — Deploy Firestore Rules:** `firebase deploy --only firestore:rules --project tipalit-firebase` succeeded; rules compiled and released to `cloud.firestore`.
+3. **Verify Live App Flow:** Sign in as student, verify feed loads, upload product image, and test chat. (Image upload depends on step 1.)
