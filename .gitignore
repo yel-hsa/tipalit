@@ -14,6 +14,10 @@ logs/
 .tmp-*
 /.figma/design-context/
 
+# Local Claude provider settings and credentials
+/.claude/
+/switch-provider.ps1
+
 # Playwright MCP screenshots and console logs
 .playwright-mcp/
 

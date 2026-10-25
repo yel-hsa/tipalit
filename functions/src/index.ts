@@ -1,6 +1,6 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import { onDocumentWritten } from 'firebase-functions/v2/firestore'
-import { FieldValue, getFirestore } from 'firebase-admin/firestore'
+import { getFirestore } from 'firebase-admin/firestore'
 import { initializeApp } from 'firebase-admin/app'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 

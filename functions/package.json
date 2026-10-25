@@ -8,6 +8,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions,firestore,storage",
     "deploy": "firebase deploy --only functions",

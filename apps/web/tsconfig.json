@@ -18,5 +18,6 @@
     "strict": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["dist", "node_modules"]
 }
