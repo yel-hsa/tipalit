@@ -39,9 +39,7 @@ export function createMockReports(): ReportService {
         subject = { label: person.name, subjectId: person.userId, subjectName: person.name, campus: person.campus ?? 'qc' }
       }
 
-      // Dedupe parity with the Firebase adapter (deterministic reporter+target
-      // id): a repeat while the report is open is a no-op; a repeat after it
-      // was closed re-opens the same report instead of filing a duplicate.
+      // repeat while open is a no-op; repeat after closing re-opens the same report
       const reports = loadReports()
       const existing = reports.find(
         (item) => item.reporterId === session.userId && item.target.kind === target.kind && item.target.id === target.id,

@@ -7,7 +7,7 @@ import { delay } from './latency'
 import { createSignInProfile, loadProfiles, saveProfile } from './profiles'
 import { hasShape, read, remove, write } from './storage'
 
-// Client-side check for UX only. A real backend must verify the `hd` claim on the ID token.
+// ux only; a real backend must verify the `hd` claim on the id token
 const TIP_DOMAIN = /@tip\.edu\.ph$/i
 
 const isSessionShape = hasShape<Session>({ userId: 'string', email: 'string', name: 'string', initials: 'string' })
@@ -31,7 +31,7 @@ export function createMockAuth({ onSignOut }: { onSignOut: () => void }): AuthSe
       await delay(300)
       const session = readSession()
       if (!session) return null
-      // A suspension takes effect on the next app start, like a revoked server session.
+      // suspension lands on the next app start, like a revoked server session
       if (isSuspended(session.userId)) {
         remove('session')
         return null
@@ -55,8 +55,7 @@ export function createMockAuth({ onSignOut }: { onSignOut: () => void }): AuthSe
       const name = account.name.trim() || nameFromEmail(email)
       const userId = userIdFor(email)
       if (isSuspended(userId)) return { ok: false, reason: 'suspended', email }
-      // Mirrors the Firebase create on first sign-in: a stub profile with no
-      // campus, so the app routes straight into student onboarding.
+      // stub profile with no campus, so first sign-in routes into onboarding
       if (!loadProfiles()[userId]) saveProfile(createSignInProfile(userId, name, email))
       const session: Session = {
         userId,

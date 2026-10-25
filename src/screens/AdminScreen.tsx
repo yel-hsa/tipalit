@@ -31,7 +31,7 @@ type AdminScreenProps = {
   members: MemberSummary[]
   audit: AuditEntry[]
   spots: MeetupSpots
-  /** Marketplace totals from the analytics service; undefined while loading. */
+  // undefined while loading
   overview?: AnalyticsOverview
   loading: boolean
   error: boolean

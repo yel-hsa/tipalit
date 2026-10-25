@@ -4,7 +4,7 @@ A mobile-first campus marketplace for students of the Technological Institute of
 
 TIPalit ships with two swappable adapters behind the same service layer:
 
-- **Firebase adapter** (production): Google sign-in, Cloud Firestore, Cloud Storage for listings photos, and Cloud Functions for rating aggregates and report auto-flagging. Selected automatically when the Firebase env vars are set, or forced with `VITE_DATA_ADAPTER=firebase`.
+- **Firebase adapter** (production): Google sign-in, Cloud Firestore, and Cloud Functions for rating aggregates and report auto-flagging. Listing photos are downscaled in the browser and stored inline on the listing document, so no Storage bucket is required. Selected automatically when the Firebase env vars are set, or forced with `VITE_DATA_ADAPTER=firebase`.
 - **Mock adapter** (demo): everything saves to `localStorage`, so sessions, listings, chats, and the theme are still there after a refresh. Forced with `VITE_DATA_ADAPTER=mock`.
 
 See section 5 for backend setup and env vars.
@@ -61,7 +61,7 @@ src/
     errors.ts           ServiceError with a code: network | storage | not_found | unauthenticated
     ids.ts              Client-generated ids for optimistic items
     mock/               localStorage-backed adapter with simulated latency and seller activity
-    firebase/           Google Auth, Firestore, Cloud Storage, feature modules
+    firebase/           Google Auth, Firestore, feature modules
   screens/              One file per screen
   components/           Shared UI built from the Astra kit and tokens
   styles/global.css     Design tokens (the only place values live)
@@ -91,7 +91,7 @@ The Firebase adapter is implemented and selected automatically once the env vars
 | `VITE_FIREBASE_API_KEY` | Web SDK key (auto-selects the Firebase adapter) |
 | `VITE_FIREBASE_AUTH_DOMAIN` | `<project>.firebaseapp.com` |
 | `VITE_FIREBASE_PROJECT_ID` | Firestore / Functions project |
-| `VITE_FIREBASE_STORAGE_BUCKET` | Listing photos |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Optional; unused while photos are stored inline |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Sender id |
 | `VITE_FIREBASE_APP_ID` | Web app id |
 | `VITE_DATA_ADAPTER` | Force `firebase` or `mock` (overrides auto-detect) |
@@ -105,27 +105,23 @@ Everything needed on the Firebase side — Auth providers and authorized domains
 
 Prereqs: Node 22 + pnpm (see `.mise.toml`), a Firebase project with Blaze (Cloud Functions), and the CLI: `npm i -g firebase-tools` then `npx firebase login`.
 
-1. **Auth.** Console → Authentication → enable the **Google** provider. Add every preview domain (e.g. `localhost`, `<project>.web.app`, the Figma preview domain) to **Authorized domains** — sign-in fails with `auth/configuration-not-found` until this is done. Restrict the Google provider to `@tip.edu.ph` if you want console-side enforcement; the app also checks the domain.
+1. **Auth.** Console → Authentication → enable the **Google** provider. Add every preview domain (e.g. `localhost`, `<project>.web.app`) to **Authorized domains** — sign-in fails with `auth/configuration-not-found` until this is done. Restrict the Google provider to `@tip.edu.ph` if you want console-side enforcement; the app also checks the domain.
 2. **Firestore.** Console → Firestore Database → create it in production mode. Deploy rules and indexes:
    ```sh
    npx firebase deploy --only firestore:rules,firestore:indexes
    ```
-3. **Storage.** Console → Storage → create the default bucket, then:
-   ```sh
-   npx firebase deploy --only storage
-   ```
-4. **Functions.** The three triggers/callables above build from `functions/`:
+3. **Functions.** The three triggers/callables above build from `functions/`:
    ```sh
    npx firebase deploy --only functions
    ```
-5. **Seed.** Sign in once as each email in `ADMIN_EMAILS` (`data/seed.ts` — currently `osa.admin@tip.edu.ph`) so their profile and admin role exist; the app grants the role from that list at sign-in. Edit the first-run meetup spots, then let an admin save them once from the Admin → Spots tab to write `meetup_spots`. Promotions: add documents to the `promotions` collection (`type` `banner` | `perk`, `title`, `sponsorName`, `destinationUrl`, `campus` `manila` | `qc` | `all`, optional `imageUrl` and `description`; set `active: false` to pause one) — the feed banner, Profile perks, and click tracking pick them up with no code change. Until the collection has documents, both adapters fall back to the seeded sponsors in `data/seed.ts`.
-6. **Frontend.** Build and host:
+4. **Seed.** Sign in once as each email in `ADMIN_EMAILS` (`data/seed.ts` — currently `osa.admin@tip.edu.ph`) so their profile and admin role exist; the app grants the role from that list at sign-in. Edit the first-run meetup spots, then let an admin save them once from the Admin → Spots tab to write `meetup_spots`. Promotions: add documents to the `promotions` collection (`type` `banner` | `perk`, `title`, `sponsorName`, `destinationUrl`, `campus` `manila` | `qc` | `all`, optional `imageUrl` and `description`; set `active: false` to pause one) — the feed banner, Profile perks, and click tracking pick them up with no code change. Until the collection has documents, both adapters fall back to the seeded sponsors in `data/seed.ts`.
+5. **Frontend.** Build and host:
    ```sh
    corepack pnpm build
    npx firebase deploy --only hosting   # after enabling Hosting, or use any static host on dist/
    ```
 
-Local development without touching the live project: `VITE_DATA_ADAPTER=mock corepack pnpm dev`, or the Firebase emulator suite (`npx firebase emulators:start`; `firebase.json` already wires Functions, Firestore, and Storage ports).
+Local development without touching the live project: `VITE_DATA_ADAPTER=mock corepack pnpm dev`, or the Firebase emulator suite (`npx firebase emulators:start`; `firebase.json` already wires the Functions and Firestore ports).
 
 ## 6. Design system
 
@@ -143,7 +139,7 @@ Reviewer mode shows demo tooling. It is hidden from regular users. Any of these 
 
 - `VITE_REVIEWER_MODE=true` at build time
 - `?reviewer=1` in the URL. This lasts for the browser session; `?reviewer=0` turns it off.
-- Tapping **TIPalit v0.1.0** at the bottom of Profile seven times. This toggles it and shows a toast; use it in the Figma preview.
+- Tapping **TIPalit v0.1.0** at the bottom of Profile seven times. This toggles it and shows a toast.
 
 When it is on, Profile shows a **Reviewer tools** row, and the Google chooser adds a second TIP account and a personal Gmail account.
 
@@ -165,7 +161,7 @@ When it is on, Profile shows a **Reviewer tools** row, and the Google chooser ad
 | Report / Rate modal, Meetup picker | That overlay |
 | Replay intro / Replay onboarding | The first-run screens. Your session is kept. |
 
-**Reset demo data** clears every `tipalit.v1.*` record and restarts from the intro.
+**Reset demo data** clears every `tipalit.v2.*` record and restarts from the intro.
 
 ## 8. Accessibility
 
@@ -221,4 +217,4 @@ corepack pnpm format    # oxfmt
 corepack pnpm exec tsc --noEmit -p tsconfig.json   # Typecheck
 ```
 
-Validation status: `tsc --noEmit` and `pnpm build` pass; the full user journey (sign-in → onboarding → browse → chat → meetup accept/complete → rate → perks → admin console) was walked end-to-end in a browser with the mock adapter with zero console errors.
+Validation status: `tsc --noEmit`, `pnpm build`, the shape tests, and the Firestore rules suite all pass. The full user journey (sign-in → onboarding → browse → chat → meetup accept/complete → rate → perks → admin console) was walked end-to-end in a browser with the mock adapter with zero console errors.

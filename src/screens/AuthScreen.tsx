@@ -19,7 +19,7 @@ type AuthState =
 
 type AuthScreenProps = {
   onSignIn: () => Promise<AuthResult>
-  /** Demo launcher: open with the domain-rejected state already showing. */
+  // demo launcher: open with the domain-rejected state already showing
   initialRejectedEmail?: string
 }
 
@@ -47,7 +47,7 @@ export default function AuthScreen({ onSignIn, initialRejectedEmail }: AuthScree
     } catch {
       result = { ok: false, reason: 'network' }
     }
-    // On success App routes away and this screen unmounts.
+    // success unmounts this screen, so only failures need state
     if (result.ok || !mounted.current) return
     if (result.reason === 'domain') setState({ kind: 'domain', email: result.email ?? 'That account' })
     else if (result.reason === 'suspended') setState({ kind: 'suspended', email: result.email ?? 'This account' })

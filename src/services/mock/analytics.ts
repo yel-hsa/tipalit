@@ -1,7 +1,3 @@
-/*
- * Mock analytics. Events are logged to localStorage (a real backend would send
- * them to an analytics pipeline); the overview counts live store records.
- */
 import type { AnalyticsService } from '../types'
 import { delay } from './latency'
 import { loadListings } from './listings'

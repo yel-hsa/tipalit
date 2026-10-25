@@ -18,7 +18,7 @@ type OnboardingScreenProps = {
   step: OnboardingStep
   email: string
   initialDraft: ProfileDraft
-  /** Saves the partial profile so a refresh resumes at the pledge. */
+  // saved partial profile lets a refresh resume at the pledge
   onSaveProfile: (draft: ProfileDraft) => Promise<boolean>
   onFinish: () => Promise<boolean>
   onBack: () => void
@@ -49,7 +49,7 @@ export default function OnboardingScreen({
   const stepNumber = STEPS.indexOf(step) + 1
   const errors = submitted ? validateProfile(draft) : {}
 
-  // Screen readers land on the new step's heading.
+  // move focus so screen readers announce the new step
   useEffect(() => {
     headingRef.current?.focus()
   }, [step])
@@ -66,7 +66,7 @@ export default function OnboardingScreen({
     }
     setPending(true)
     await onSaveProfile({ ...draft, name: draft.name.trim() })
-    // This screen stays mounted for the pledge step, so clear pending on success too.
+    // screen stays mounted for the pledge step, so clear pending on success too
     setPending(false)
   }
 

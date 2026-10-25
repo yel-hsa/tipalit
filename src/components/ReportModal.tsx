@@ -4,14 +4,14 @@ import { useRef, useState } from 'react'
 import Spinner from './Spinner'
 import useDialogFocus from './useDialogFocus'
 
-/** `id` is the listing or member id; empty for the reviewer preview, which has nothing behind it. */
+// id is empty for the reviewer preview, which has nothing behind it
 export type ReportTarget = { kind: 'listing' | 'user'; id: string; name: string }
 
 type ReportModalProps = {
   isOpen: boolean
   onClose: () => void
   target: ReportTarget
-  /** Resolves true once the report is filed; false keeps the modal open so nothing is lost. */
+  // false keeps the modal open so nothing is lost
   onSubmit: (reason: string, details: string) => Promise<boolean>
 }
 

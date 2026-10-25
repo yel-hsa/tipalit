@@ -1,5 +1,5 @@
 {
-  "name": "figma-make-app",
+  "name": "tipalit",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -11,8 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test:shapes": "node --test functions/test/shapes.test.mjs",
     "test:rules": "node functions/test/run-rules.mjs",
-    "test": "npm run test:shapes && npm run test:rules",
-    "sync:progress": "node scripts/sync-progress.mjs"
+    "test": "npm run test:shapes && npm run test:rules"
   },
   "dependencies": {
     "@figma/astraui": "1.0.0",

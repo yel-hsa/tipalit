@@ -27,14 +27,13 @@ import type {
 } from '../types'
 import { getFirebaseDb, isFirebaseConfigured } from './config'
 
-/** Normalizes course code to uppercase per PRD Section 5.1 Collection 2. */
+// course codes are stored uppercase
 const normalizeSubjectCode = (code: string): string => code.trim().toUpperCase()
 
 const TRANSACTIONS: TransactionType[] = ['sale', 'free', 'trade']
 const STATUSES: ListingStatus[] = ['active', 'reserved', 'sold']
 
-/** Stock photo for a category; unknown categories fall back to the generic
- * 'Others' entry rather than borrowing another category's image. */
+// unknown categories get the generic 'Others' photo, never another category's
 const fallbackImageFor = (category: unknown): string =>
   (typeof category === 'string' && Object.prototype.hasOwnProperty.call(CATEGORY_FALLBACK_IMAGES, category)
     ? CATEGORY_FALLBACK_IMAGES[category as Category]
@@ -45,12 +44,7 @@ const asUrlList = (value: unknown): string[] => {
   return value.filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
 }
 
-/**
- * Live documents sometimes store image_ids as a *stringified* array, e.g.
- * `"[\"https://...\"]"`. Accepts an array, a JSON stringified array, or the
- * bracketed-unquoted form (`[https://a, https://b]`). Never throws: anything
- * unparseable degrades to an empty list so the caller can use its fallback.
- */
+// live docs store image_ids as an array, a json string, or a bare bracketed list
 function parseImageList(value: unknown): string[] {
   if (Array.isArray(value)) return asUrlList(value)
   if (typeof value !== 'string') return []
@@ -58,7 +52,6 @@ function parseImageList(value: unknown): string[] {
   const text = value.trim()
   if (!text) return []
 
-  // A bare URL (or a single non-JSON string) is one image, not a list.
   if (!text.startsWith('[')) return [text]
 
   try {
@@ -69,10 +62,9 @@ function parseImageList(value: unknown): string[] {
       if (parsed.length === 0) return []
     }
   } catch {
-    // Not valid JSON; try the unquoted bracketed form below.
+    // fall through to the unquoted bracketed form
   }
 
-  // Unquoted form: strip the brackets and split on commas or whitespace.
   return text
     .replace(/^\[|\]$/g, '')
     .split(/[,\s]+/)
@@ -80,7 +72,6 @@ function parseImageList(value: unknown): string[] {
     .filter((url) => url.length > 0)
 }
 
-/** Maps raw Firestore document data to the frontend Listing type. */
 function toListing(id: string, data: Record<string, any>): Listing {
   const rawStatus = STATUSES.includes(data.status) ? data.status : 'active'
   const campus: CampusId = data.campus === 'manila' || data.campus === 'qc' ? data.campus : 'qc'
@@ -88,8 +79,7 @@ function toListing(id: string, data: Record<string, any>): Listing {
   const parsedImages = parseImageList(data.image_ids)
   const imageUrls = parsedImages.length > 0 ? parsedImages : parseImageList(data.imageUrls)
   const cover = typeof data.imageUrl === 'string' && data.imageUrl ? data.imageUrl : imageUrls[0]
-  // A synthesized fallback must never be mistaken for a photo the seller chose;
-  // the edit form seeds from `imageUrls` only when the stock entry is not it.
+  // the edit form seeds from imageUrls, so a stock fallback must not land there
   const fallbackImage = fallbackImageFor(category)
   const realImages = cover && !imageUrls.includes(cover) ? [cover, ...imageUrls] : imageUrls
   const hasRealImage = realImages.length > 0
@@ -120,8 +110,7 @@ export function createFirebaseListings(): ListingService {
 
   return {
     async list({ campus }: { campus: CampusId }): Promise<Listing[]> {
-      // Rules require the exclusion to be provable by the query itself;
-      // moderated listings ('hidden', 'removed') never reach the feed.
+      // rules require the exclusion to be provable by the query itself
       const q = query(
         listingsCol,
         where('campus', '==', campus),
@@ -147,7 +136,7 @@ export function createFirebaseListings(): ListingService {
     async getMany(ids: string[]): Promise<Listing[]> {
       if (ids.length === 0) return []
       const found: Listing[] = []
-      // Firestore 'in' queries are capped at 30 ids.
+      // firestore 'in' queries are capped at 30 ids
       const batchSize = 30
       for (let i = 0; i < ids.length; i += batchSize) {
         const q = query(listingsCol, where(documentId(), 'in', ids.slice(i, i + batchSize)))
@@ -159,16 +148,13 @@ export function createFirebaseListings(): ListingService {
 
     async create(draft: ListingDraft, ctx: { userId: string; campus: CampusId }): Promise<Listing> {
       const listingId = createId('l')
-      // Photos stay as downscaled JPEG data URLs (~60-120 KB each, max 5) and
-      // ride along in the listing document. Cloud Storage needs the Blaze plan,
-      // which this project is not on, so there is no bucket to upload to.
+      // photos ride in the doc as data urls; cloud storage needs the blaze plan
       const imageUrls = draft.imageUrls.length > 0 ? draft.imageUrls : [fallbackImageFor(draft.category)]
 
       const subjectCode = normalizeSubjectCode(draft.courseCode)
       const department = departmentFor(subjectCode)
       const nowIso = new Date().toISOString()
 
-      // PRD Section 5.1 Collection 2: listings document specification.
       const firestoreDoc: Record<string, unknown> = {
         seller_id: ctx.userId,
         title: draft.title.trim().slice(0, 100),
@@ -248,9 +234,7 @@ export function createFirebaseListings(): ListingService {
     },
 
     async remove(id: string): Promise<void> {
-      // The update rule forbids clients writing status 'hidden' (that belongs to
-      // server moderation), so a seller delete must remove the document itself.
-      // Rules allow delete for the owner and for admins.
+      // clients cannot write status 'hidden', so a seller delete removes the doc
       try {
         await deleteDoc(doc(listingsCol, id))
       } catch (err) {

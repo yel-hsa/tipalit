@@ -20,18 +20,11 @@ const toSeller = (profile: Profile): Seller | null =>
       }
     : null
 
-/**
- * Ratings are aggregated on read. The project is on the Spark plan, so the
- * onReviewWritten Cloud Function that used to maintain average_rating and
- * total_reviews never runs; those profile fields are stale or absent.
- */
-
-/** Reviews actually written for these users, summed and counted. */
+// spark plan: no cloud function maintains average_rating, so ratings are aggregated on read
 const fetchReputation = async (db: ReturnType<typeof getFirebaseDb>, ids: string[]) => {
   const aggregation = new Map<string, { total: number; count: number }>()
 
-  // One query per seller: getSellers is called once per seller id (App.tsx
-  // caches cards by id), so the cost is bounded by the number of sellers seen.
+  // one query per seller; App.tsx caches cards by id, so cost is bounded
   const perSeller = await Promise.all(
     ids.map(async (id) => {
       try {
@@ -55,13 +48,13 @@ const fetchReputation = async (db: ReturnType<typeof getFirebaseDb>, ids: string
   return aggregation
 }
 
-/** Overlays reviews actually written; without any, the base card (seed aggregate or none) stands. */
+// no reviews means the base card (seed aggregate or none) stands
 const withReputation = (
   seller: Seller,
   reputation: { total: number; count: number } | undefined,
 ): Seller => {
   if (!reputation || reputation.count <= 0) return seller
-  // One decimal place, the same rounding the mock adapter applies.
+  // one decimal, matching the mock adapter
   const rating = Math.round((reputation.total / reputation.count) * 10) / 10
   return { ...seller, rating, reviews: reputation.count }
 }
@@ -93,7 +86,7 @@ export function createFirebaseProfiles(): ProfileService {
           }
         }
 
-        // Fall back to seed admin profiles if applicable
+        // seed admins have no users_profile doc
         return seedProfilesMap()[userId] ?? null
       } catch (err) {
         console.warn(`[TIPalit Firebase Profiles] Error getting profile for ${userId}:`, err)
@@ -104,9 +97,7 @@ export function createFirebaseProfiles(): ProfileService {
     async save(profile: Profile): Promise<Profile> {
       try {
         const docRef = doc(db, 'users_profile', profile.userId)
-        // Firestore rules: identity fields (user_id, email, is_verified) and
-        // privileged fields (role, status) may only be set on create; updates
-        // are restricted to the editable profile keys, verbatim.
+        // rules only allow identity and role fields on create, so updates send base alone
         const base = {
           full_name: profile.name,
           campus: profile.campus,
@@ -145,16 +136,14 @@ export function createFirebaseProfiles(): ProfileService {
     async getSellers(ids: string[]): Promise<Seller[]> {
       if (ids.length === 0) return []
 
-      // Ratings come from the reviews themselves, never from the profile's
-      // stale aggregate (no Cloud Function maintains it on the Spark plan).
+      // ratings come from reviews, never the stale profile aggregate
       const reputation = await fetchReputation(db, ids)
       const reputationOf = (id: string) => reputation.get(id)
 
       const result: Seller[] = []
       const missingIds: string[] = []
 
-      // 1. Seed sellers have no users_profile doc, so they are built from
-      //    SELLERS and still pick up any reviews actually written for them.
+      // seed sellers have no users_profile doc
       for (const id of ids) {
         const seedSeller = SELLERS.find((s) => s.id === id)
         if (seedSeller) {
@@ -167,7 +156,7 @@ export function createFirebaseProfiles(): ProfileService {
       if (missingIds.length === 0) return result
 
       try {
-        // 2. Fetch missing sellers from Firestore in batches of 10 (Firestore 'in' query limit is 30)
+        // firestore 'in' queries are capped at 30 ids
         const batchSize = 10
         for (let i = 0; i < missingIds.length; i += batchSize) {
           const slice = missingIds.slice(i, i + batchSize)

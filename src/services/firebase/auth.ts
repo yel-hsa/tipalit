@@ -29,9 +29,6 @@ const nameFromUser = (user: User): string => {
   )
 }
 
-/**
- * Builds a Session from a Firebase User and an optional role override.
- */
 function sessionFromUser(user: User, roleOverride?: Role): Session {
   const email = user.email || ''
   const name = nameFromUser(user)
@@ -55,7 +52,6 @@ export function createFirebaseAuth(): AuthService {
         return null
       }
 
-      // Wait for auth to resolve current user
       const currentUser = await new Promise<User | null>((resolve) => {
         const unsubscribe = onAuthStateChanged(
           auth,
@@ -72,14 +68,12 @@ export function createFirebaseAuth(): AuthService {
 
       if (!currentUser || !currentUser.email) return null
 
-      // Strict @tip.edu.ph domain check
       if (!TIP_DOMAIN.test(currentUser.email)) {
         await firebaseSignOut(auth).catch(() => {})
         return null
       }
 
-      // Google reports school-managed accounts as verified. Never create an app
-      // session for an unverified token: Firestore and Storage enforce the same boundary.
+      // firestore and storage enforce the same verified-email boundary
       if (!currentUser.emailVerified) {
         await firebaseSignOut(auth).catch(() => {})
         return null
@@ -122,7 +116,6 @@ export function createFirebaseAuth(): AuthService {
         const user = result.user
         const email = (user.email || '').trim().toLowerCase()
 
-        // FR-1.2: Must strictly reject any email that does not end with @tip.edu.ph
         if (!TIP_DOMAIN.test(email)) {
           await firebaseSignOut(auth).catch(() => {})
           return { ok: false, reason: 'domain', email }
@@ -133,7 +126,6 @@ export function createFirebaseAuth(): AuthService {
           return { ok: false, reason: 'unverified', email }
         }
 
-        // Check if user is suspended in Firestore
         const userDocRef = doc(db, 'users_profile', user.uid)
         const userSnapshot = await getDoc(userDocRef)
 
@@ -148,11 +140,7 @@ export function createFirebaseAuth(): AuthService {
             role = 'admin'
           }
         } else {
-          // Initialize base user profile document per PRD Section 5.1 Collection 1: users_profile.
-          // firestore.rules pins create to role == 'member' (admin-ness comes from the token
-          // email), and campus/program/year are deliberately left unset so
-          // isProfileComplete() stays false and onboarding still runs. The rules' create
-          // clause rejects average_rating/total_reviews, so those wait for the server.
+          // rules pin create to role 'member'; leaving campus unset keeps onboarding running
           await setDoc(userDocRef, {
             user_id: user.uid,
             email,

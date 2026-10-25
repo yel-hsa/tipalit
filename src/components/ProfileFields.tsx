@@ -28,7 +28,7 @@ export const validateProfile = (draft: ProfileDraft): ProfileErrors => {
   return errors
 }
 
-/** Scrolls to and focuses the first invalid field. */
+// scrolls to and focuses the first invalid field
 export const focusProfileField = (idPrefix: string, key: ProfileFieldKey) => {
   const wrapper = document.getElementById(`${idPrefix}-${key}-field`)
   const control = wrapper?.querySelector<HTMLElement>('input, button')
@@ -39,7 +39,7 @@ export const focusProfileField = (idPrefix: string, key: ProfileFieldKey) => {
 const toOptions = (values: readonly string[]) => values.map((value) => ({ value, label: value }))
 
 type ProfileFieldsProps = {
-  /** Keeps ids unique between the onboarding form and the edit sheet. */
+  // keeps ids unique between the onboarding form and the edit sheet
   idPrefix: string
   value: ProfileDraft
   errors: ProfileErrors

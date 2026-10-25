@@ -8,7 +8,6 @@ export const KIND_LABEL: Record<Report['target']['kind'], string> = {
   user: 'Member',
 }
 
-/** The badge a report row shows, based on where it ended up. */
 export const reportBadge = (report: Report): { label: string; variant: BadgeVariant } => {
   if (report.status === 'open') return { label: 'Open', variant: 'warning' }
   switch (report.resolution?.action) {

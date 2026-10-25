@@ -2,7 +2,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { getFirebaseStorage } from './config'
 import { ServiceError } from '../errors'
 
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB per PRD Section 5.2
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export function validateImage(blob: Blob) {
@@ -14,9 +14,6 @@ export function validateImage(blob: Blob) {
   }
 }
 
-/**
- * Converts a data URL to a Blob.
- */
 export function dataUrlToBlob(dataUrl: string): Blob {
   const parts = dataUrl.split(',')
   const mimeMatch = parts[0].match(/:(.*?);/)
@@ -29,10 +26,6 @@ export function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([array], { type: mime })
 }
 
-/**
- * Uploads an item image to Firebase Cloud Storage under:
- * item_photos/{userId}/{listingId}/{fileName} per PRD Section 5.2
- */
 export async function uploadListingImage(
   userId: string,
   listingId: string,
@@ -46,7 +39,6 @@ export async function uploadListingImage(
     if (imageInput.startsWith('data:')) {
       blob = dataUrlToBlob(imageInput)
     } else if (imageInput.startsWith('http')) {
-      // Already a remote URL
       return imageInput
     } else {
       throw new ServiceError('storage', 'Invalid image data.')
@@ -76,9 +68,6 @@ export async function uploadListingImage(
   }
 }
 
-/**
- * Deletes an item image from Firebase Cloud Storage.
- */
 export async function deleteListingImage(photoUrlOrPath: string): Promise<void> {
   if (!photoUrlOrPath.includes('firebase') && !photoUrlOrPath.startsWith('item_photos/')) {
     return

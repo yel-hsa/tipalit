@@ -18,7 +18,7 @@ type ProductDetailScreenProps = {
   onShare: () => void
   onReport: () => void
   onEdit: () => void
-  /** Owner status control; 'active' resets the listing to the feed. */
+  // 'active' resets the listing to the feed
   onSetStatus: (status: ListingStatus) => void
   onDelete: () => void
 }

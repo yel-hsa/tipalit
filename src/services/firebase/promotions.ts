@@ -6,7 +6,6 @@ import { getFirebaseDb, isFirebaseConfigured } from './config'
 const isCampus = (value: unknown): value is CampusId | 'all' =>
   value === 'manila' || value === 'qc' || value === 'all'
 
-/** Maps a raw promotions document to the frontend Promotion type. */
 function toPromotion(id: string, data: Record<string, any>): Promotion | null {
   if (!data.title || !data.sponsorName || !data.destinationUrl) return null
   const campus = isCampus(data.campus) ? data.campus : 'all'
@@ -35,7 +34,7 @@ export function createFirebasePromotions(): PromotionService {
       }
 
       try {
-        // Rules only expose active promos and require the filter in the query.
+        // rules only expose active promos and require the filter in the query
         const snapshot = await getDocs(query(collection(db, 'promotions'), where('active', '==', true)))
         const promotions: Promotion[] = []
         snapshot.forEach((docSnap) => {
@@ -44,7 +43,7 @@ export function createFirebasePromotions(): PromotionService {
             promotions.push(promotion)
           }
         })
-        // Fall back to seed sponsors when the collection has not been seeded yet.
+        // the collection may not be seeded yet
         if (promotions.length > 0) return promotions
         return structuredClone(SEED_PROMOTIONS).filter(
           (promotion) => promotion.active && (promotion.campus === 'all' || promotion.campus === campus),
@@ -60,7 +59,7 @@ export function createFirebasePromotions(): PromotionService {
     async trackClick(id: string): Promise<void> {
       if (!isFirebaseConfigured()) return
       try {
-        // Affiliate click tracking per PRD FR-7.4; failures never block navigation.
+        // tracking failures must never block navigation
         await addDoc(collection(db, 'promotion_clicks'), {
           promotion_id: id,
           created_at: new Date().toISOString(),

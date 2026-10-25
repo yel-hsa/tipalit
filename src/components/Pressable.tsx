@@ -5,8 +5,7 @@ type PressableProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
 }
 
-// Card-sized tap target for rich content (product cards, chat rows) that the kit's
-// Button can't lay out. Follows the kit's custom-interactive focus pattern.
+// kit Button can't lay out rich card content, so this follows its custom-interactive focus pattern
 export default function Pressable({ onPress, className = '', children, ...rest }: PressableProps) {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {

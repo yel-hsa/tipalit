@@ -40,7 +40,7 @@ export const getFirebaseApp = (): FirebaseApp => {
   }
 
   const config = getFirebaseConfig()
-  // If not configured, use a placeholder project config so app doesn't crash on load
+  // placeholder config keeps the app from crashing when env vars are missing
   const effectiveConfig = isFirebaseConfigured()
     ? config
     : {

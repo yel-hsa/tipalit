@@ -3,10 +3,7 @@ import { ServiceError } from '../errors'
 import type { AccountStatus, Role, Session } from '../types'
 import { isRecordOf, read, write } from './storage'
 
-/*
- * Account status lives server-side in production (with the role claim). The
- * mock keeps a userId -> status map; missing means active.
- */
+// status lives server-side in production; a missing userId means active
 const isStatus = (value: unknown): value is AccountStatus => value === 'active' || value === 'suspended'
 const isStatusMap = isRecordOf(isStatus)
 
@@ -25,7 +22,7 @@ export const writeStatus = (userId: string, status: AccountStatus) => {
 
 export const roleForEmail = (email: string): Role => (ADMIN_EMAILS.includes(email.toLowerCase()) ? 'admin' : 'member')
 
-/** Mirrors the server-side check every admin endpoint must make. */
+// mirrors the server-side check every admin endpoint must make
 export const requireAdmin = (session: Session | null): Session => {
   if (!session) throw new ServiceError('unauthenticated', 'Sign in again to continue.')
   if (session.role !== 'admin') throw new ServiceError('forbidden', 'Only admins can do that.')

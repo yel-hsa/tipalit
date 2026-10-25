@@ -16,7 +16,7 @@ type GoogleAccountChooserProps = {
 
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Mock stand-in for Google's account picker. It never talks to Google.
+// mock stand-in for Google's account picker; never talks to Google
 export default function GoogleAccountChooser({ isOpen, accounts, onSelect, onClose }: GoogleAccountChooserProps) {
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')

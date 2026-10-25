@@ -4,15 +4,12 @@ import type { Promotion } from '../services/types'
 
 type SponsorBannerProps = {
   promotions: Promotion[]
-  /** Which card is rendered when several are passed; falls back to the first. */
+  // which card renders when several are passed
   index?: number
   onOpen: (promotion: Promotion) => void
 }
 
-/**
- * Campus sponsor / perk banner (PRD monetization). Renders nothing without
- * an active promotion; clicks are tracked by the caller via `onOpen`.
- */
+// renders nothing without an active promotion; clicks are tracked by the caller
 export default function SponsorBanner({ promotions, index = 0, onOpen }: SponsorBannerProps) {
   const promotion = promotions[index]
   if (!promotion) return null

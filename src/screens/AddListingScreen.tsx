@@ -25,11 +25,7 @@ const toOptions = (values: readonly string[]) => values.map((value) => ({ value,
 
 const FALLBACK_IMAGES = new Set(Object.values(CATEGORY_FALLBACK_IMAGES))
 
-/**
- * The listing adapter substitutes a stock category photo when a document has no
- * stored images. That photo is not the seller's, so it must not be seeded into
- * the form (or it would be saved back on the next edit). Real photos always win.
- */
+// the adapter swaps in a stock photo when a doc has no images; seeding it would save it back on edit
 const realPhotos = (urls: string[] | undefined): string[] => {
   const photos = urls ?? []
   return photos.some((url) => !FALLBACK_IMAGES.has(url)) ? photos : []
@@ -42,7 +38,7 @@ const MAX_PRICE = 999999
 const MAX_PHOTO_EDGE = 900
 const MAX_PHOTOS = 5
 
-/** Downscales the photo to a JPEG data URL so it survives a refresh in local storage. */
+// downscale to a jpeg data url so photos survive a refresh in local storage
 const toDataUrl = async (file: File): Promise<string> => {
   const bitmap = await createImageBitmap(file)
   const scale = Math.min(1, MAX_PHOTO_EDGE / Math.max(bitmap.width, bitmap.height))
@@ -57,13 +53,13 @@ const toDataUrl = async (file: File): Promise<string> => {
 type AddListingScreenProps = {
   mode: 'create' | 'edit'
   initial?: ListingDraft
-  /** Campus-approved spots for the listing's campus. */
+  // campus-approved spots for the listing's campus
   spots: string[]
   campusLabel: string
-  /** Returns false when publishing failed, so the form keeps its values. */
+  // false keeps the form values on a failed publish
   onSubmit: (draft: ListingDraft) => Promise<boolean>
   onBack?: () => void
-  /** Demo hook: show validation errors immediately. */
+  // demo hook: show validation errors immediately
   autoValidate?: boolean
 }
 
@@ -119,7 +115,7 @@ export default function AddListingScreen({
     const trimmed = title.trim()
     if (!trimmed) next.title = 'Add a title'
     else if (trimmed.length < 3) next.title = 'Title must be at least 3 characters'
-    // Free and trade listings have no price; a sale needs a positive one.
+    // free and trade listings have no price; a sale needs a positive one
     if (transactionType === 'sale' && (!price || priceValue === 0)) next.price = 'Enter a price'
     else if (priceValue > MAX_PRICE) next.price = 'Max ₱999,999'
     if (!category) next.category = 'Choose a category'
@@ -127,7 +123,7 @@ export default function AddListingScreen({
     return next
   }, [title, price, priceValue, transactionType, category, subject])
 
-  // Errors only show after the first submit attempt, then update live.
+  // errors stay hidden until the first submit, then update live
   const shown = submitted ? errors : {}
   const errorCount = Object.keys(shown).length
 
@@ -140,7 +136,7 @@ export default function AddListingScreen({
 
   useEffect(() => {
     if (autoValidate) validate()
-    // Runs once on mount for the demo launcher.
+    // mount only: demo launcher
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -159,7 +155,7 @@ export default function AddListingScreen({
       description: description.trim(),
       imageUrls: photoUrls,
     })
-    // On success App navigates away; on failure the form keeps its values.
+    // success navigates away; failure keeps the form values
     if (!saved) setPending(false)
   }
 

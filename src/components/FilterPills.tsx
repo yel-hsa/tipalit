@@ -7,7 +7,6 @@ type FilterPillsProps<T extends string> = {
   onChange: (id: T) => void
 }
 
-/** Single-select toggle pills, the same pattern as the feed's category filter. */
 export default function FilterPills<T extends string>({ label, options, active, onChange }: FilterPillsProps<T>) {
   return (
     <div role="toolbar" aria-label={label} className="flex gap-md overflow-x-auto scrollbar-none py-xs">

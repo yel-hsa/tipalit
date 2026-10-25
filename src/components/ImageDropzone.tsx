@@ -5,7 +5,7 @@ import { OVERLAY_CONTROL } from './overlayControl'
 import Pressable from './Pressable'
 
 type ImageDropzoneProps = {
-  /** Current photo URLs (data URLs or remote); the first is the cover. */
+  // current photo urls (data or remote); the first is the cover
   previewUrls: string[]
   maxPhotos: number
   onSelect: (file: File) => void
@@ -29,7 +29,7 @@ export default function ImageDropzone({ previewUrls, maxPhotos, onSelect, onRemo
 
   return (
     <>
-      {/* The kit has no file input, so a visually hidden native input backs the dropzone. */}
+      {/* kit has no file input, so a hidden native input backs the dropzone */}
       <input
         ref={inputRef}
         type="file"

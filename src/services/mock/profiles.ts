@@ -9,9 +9,9 @@ const isProfiles = isRecordOf(hasShape<Profile>({ userId: 'string', name: 'strin
 
 const seedProfiles = () => Object.fromEntries(SEED_ADMIN_PROFILES().map((profile) => [profile.userId, profile]))
 
-/** Profiles saved by onboarding or edits, i.e. the writable half of the store. */
+// writable half of the store; seeds stay read-only
 const loadStored = () => read<Record<string, Profile>>('profiles', () => ({}), isProfiles)
-/** Stored profiles, plus staff profiles that exist before their first sign-in. */
+// staff profiles exist before their first sign-in
 export const loadProfiles = (): Record<string, Profile> => ({ ...seedProfiles(), ...loadStored() })
 
 export const saveProfile = (profile: Profile): Profile => {
@@ -19,12 +19,7 @@ export const saveProfile = (profile: Profile): Profile => {
   return profile
 }
 
-/*
- * First sign-in stub, mirroring the Firebase create: the required shape for
- * hasShape (userId/name/program/year) but no campus, so isProfileComplete()
- * stays false and onboarding runs. Roles are never stored here — the session
- * derives them from the email.
- */
+// no campus keeps isProfileComplete() false so onboarding runs; roles come from the email
 export const createSignInProfile = (userId: string, name: string, email: string): Profile => ({
   userId,
   name,
@@ -35,7 +30,7 @@ export const createSignInProfile = (userId: string, name: string, email: string)
   joinedAt: new Date().toISOString(),
 })
 
-/** Average stars + count of reviews the given user has received. */
+// null when the user has no reviews yet
 const reputationFor = (userId: string): Pick<Seller, 'rating' | 'reviews'> | null => {
   const received = Object.values(loadReviews()).filter((review) => review.revieweeId === userId)
   if (received.length === 0) return null
@@ -78,7 +73,7 @@ export function createMockProfiles(): ProfileService {
           const seedSeller = SELLERS.find((seller) => seller.id === id)
           const base = seedSeller ?? (profiles[id] ? toSeller(profiles[id]) : null)
           if (!base) return null
-          // Live reviews outweigh the seed aggregate once the store has them.
+          // live reviews outweigh the seed aggregate
           const live = reputationFor(id)
           return live ? { ...base, ...live } : base
         })

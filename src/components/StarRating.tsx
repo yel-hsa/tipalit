@@ -7,7 +7,7 @@ export const RATING_LABELS = ['Poor', 'Fair', 'Good', 'Great', 'Excellent']
 type StarRatingProps = {
   value: number
   onChange?: (value: number) => void
-  /** Read-only stars for summaries. */
+  // read-only stars for summaries
   readOnly?: boolean
 }
 

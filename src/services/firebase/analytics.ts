@@ -2,10 +2,6 @@ import { addDoc, collection, getDocs } from 'firebase/firestore'
 import type { AnalyticsService, AnalyticsOverview } from '../types'
 import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from './config'
 
-/**
- * Firebase analytics. Events are appended to an `analytics_events` collection
- * (fire-and-forget); the overview counts live documents across collections.
- */
 export function createFirebaseAnalytics(): AnalyticsService {
   const db = getFirebaseDb()
   const auth = getFirebaseAuth()
@@ -59,7 +55,7 @@ export function createFirebaseAnalytics(): AnalyticsService {
     async track(event: string, properties?: Record<string, string | number | boolean>): Promise<void> {
       if (!isFirebaseConfigured()) return
       try {
-        // Fire-and-forget: analytics must never break the user action it records.
+        // analytics must never break the user action it records
         await addDoc(collection(db, 'analytics_events'), {
           name: event,
           properties: properties ?? {},

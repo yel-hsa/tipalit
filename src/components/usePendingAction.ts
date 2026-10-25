@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-/** Simulates a network round trip: `run` flips `pending` on, then calls `fn` after `ms`. */
+// simulates a network round trip
 export default function usePendingAction() {
   const [pending, setPending] = useState(false)
   const timer = useRef<number | null>(null)

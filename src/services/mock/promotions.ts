@@ -1,7 +1,3 @@
-/*
- * Mock promotions. Sponsors and perks are seeded locally; clicks are counted
- * in storage the way an affiliate-tracking backend would record them.
- */
 import { SEED_PROMOTIONS } from '../../data/seed'
 import type { CampusId, Promotion, PromotionService } from '../types'
 import { hasShape, isArrayOf, read, write } from './storage'

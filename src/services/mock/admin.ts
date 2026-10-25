@@ -42,11 +42,7 @@ const summarize = (person: Person): MemberSummary => {
 const quoted = (report: Report) =>
   report.target.kind === 'listing' ? `\u201c${report.target.label}\u201d` : report.target.label
 
-/**
- * Which other open reports the same decision settles: every open report on
- * the same target, for every action (parity with the Firebase adapter, which
- * cascades on target id). A dismissal cascades as a dismissal.
- */
+// one decision settles every open report on the same target, matching the Firebase adapter
 const settles = (report: Report) => (other: Report) =>
   other.id !== report.id &&
   other.status === 'open' &&

@@ -17,12 +17,12 @@ type FeedScreenProps = {
   userInitials: string
   campusLabel: string
   listings: Listing[]
-  /** Active sponsor banners and perks for this campus; empty hides the slot. */
+  // empty hides the sponsor slot
   promotions: Promotion[]
   loading: boolean
   error: boolean
   onRetry: () => void
-  /** Demo hook: start with a search already typed. */
+  // demo hook: start with a search already typed
   initialQuery?: string
   onOpen: (listingId: string) => void
   onSell: () => void
@@ -71,7 +71,7 @@ export default function FeedScreen({
     })
   }, [listings, query, category])
 
-  // A new search or filter starts again from the first page.
+  // a new search or filter restarts paging
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
     setLoadingMore(false)

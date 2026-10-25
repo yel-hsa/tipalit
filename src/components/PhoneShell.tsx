@@ -4,11 +4,11 @@ export type ToastOffset = 'tabs' | 'composer' | 'cta' | 'none'
 
 type PhoneShellProps = {
   children: ReactNode
-  /** Dialogs and sheets. Kept outside the inert wrapper so they stay interactive. */
+  // dialogs and sheets; kept outside the inert wrapper so they stay interactive
   overlay?: ReactNode
   tabBar?: ReactNode
   toast?: ReactNode
-  /** Which bottom bar the toast should clear. */
+  // which bottom bar the toast should clear
   toastOffset?: ToastOffset
 }
 
@@ -28,7 +28,7 @@ export default function PhoneShell({ children, overlay, tabBar, toast, toastOffs
           {overlay}
         </main>
         {tabBar}
-        {/* The live region stays mounted so screen readers announce each new toast. */}
+        {/* live region stays mounted so screen readers announce each new toast */}
         <div className={`fixed inset-x-0 ${OFFSET_CLASS[toastOffset]} z-40 flex justify-center pointer-events-none`}>
           <div role="status" aria-live="polite" className="w-full max-w-phone px-xl flex justify-center">
             {toast && <div className="rounded-corner-lg shadow-raised pointer-events-auto">{toast}</div>}

@@ -12,14 +12,11 @@ import { ACTION_COPY, KIND_LABEL, reportBadge } from './adminLabels'
 type ReportReviewSheetProps = {
   report: Report
   subject?: MemberSummary
-  /** False once the listing is gone (removed by an admin or deleted by the seller). */
   listingAvailable: boolean
-  /** Other open reports the same decision would close. */
   related: { sameListing: number; sameMember: number }
   onClose: () => void
   onResolve: (action: ReportAction, note: string) => Promise<boolean>
   onViewListing: () => void
-  /** Missing when the member isn't in the directory. */
   onViewMember?: () => void
 }
 
@@ -59,7 +56,7 @@ export default function ReportReviewSheet({
     if (!action || pending) return
     setPending(true)
     const done = await onResolve(action, note.trim())
-    // On success the parent closes the sheet and this component unmounts.
+    // success unmounts this sheet, so only reset pending on failure
     if (!done) setPending(false)
   }
 

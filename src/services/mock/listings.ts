@@ -53,7 +53,7 @@ export function createMockListings(): ListingService {
     async list({ campus }) {
       await delay()
       failLoad()
-      // Suspended members' listings are hidden from the feed, not deleted.
+      // suspended members' listings are hidden, not deleted
       const statuses = loadStatuses()
       return load()
         .filter(

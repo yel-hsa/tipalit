@@ -48,9 +48,7 @@ export function createFirebaseAdmin(): AdminService {
     return user
   }
 
-  // Moderation without Cloud Functions: a privileged action must never land
-  // without its audit trail, so a failed write is surfaced rather than
-  // swallowed. Callers fail the whole operation when this throws.
+  // a privileged action must never land without its audit trail, so a failed write throws
   const logAudit = async (action: AuditAction, summary: string, note?: string) => {
     const user = auth.currentUser
     const actorName = user?.displayName || user?.email || 'Admin Staff'
@@ -143,8 +141,7 @@ export function createFirebaseAdmin(): AdminService {
             const subjectId: string = data.subjectId || data.subject_id || targetId
             const targetLabel: string = data.target?.label || data.target_label || 'Item'
 
-            // 'removed' is the one moderated status (the rules allow an admin
-            // to write it and nothing else); 'hidden' is legacy.
+            // rules let an admin write only 'removed'; 'hidden' is legacy
             if (action === 'remove_listing' && targetKind === 'listing') {
               const listingRef = doc(db, 'listings', targetId)
               await updateDoc(listingRef, { status: 'removed', updated_at: nowIso })
@@ -153,15 +150,7 @@ export function createFirebaseAdmin(): AdminService {
               await updateDoc(userRef, { status: 'suspended', updated_at: nowIso })
             }
 
-            // Ordering: the audit entry is written BEFORE any report is marked
-            // resolved. `reports.status` is the system of record for "this
-            // decision happened", so if the audit write fails nothing claims
-            // the report was handled and the admin can safely retry. The
-            // listing/member mutation still precedes it (Firestore has no
-            // cross-collection transaction over a query here); re-running that
-            // mutation is idempotent — status is set to the same value. The
-            // previous order (mutate, mark resolved, audit) could leave a
-            // fully-applied moderation with a permanently missing log entry.
+            // audit before resolving: a failed audit write leaves the report open for retry
             if (action === 'remove_listing') {
               await logAudit('listing_removed', `Removed listing "${targetLabel}"`, note)
             } else if (action === 'suspend_member') {
@@ -173,12 +162,7 @@ export function createFirebaseAdmin(): AdminService {
             const resolution = { action, note, byName: adminName, at: nowIso }
             const newStatus = action === 'dismiss' ? 'dismissed' : 'resolved'
 
-            // Cascade (client-side stand-in for the old resolveReport
-            // Function): closing a report on a target settles every other open
-            // report on that same target. Reports carry the target twice —
-            // nested target{kind,id} and flat target_type/target_id — so match
-            // on either id field. Siblings are closed with the same resolution;
-            // a dismissal cascades as 'dismissed', otherwise 'resolved'.
+            // reports carry the target as both nested target.id and flat target_id
             const siblingByNested = await getDocs(
               query(collection(db, 'reports'), where('target.id', '==', targetId), where('status', '==', 'open')),
             )
@@ -190,8 +174,7 @@ export function createFirebaseAdmin(): AdminService {
             siblingByFlat.forEach((sibling) => siblingIds.add(sibling.id))
             siblingIds.delete(id)
 
-            // One atomic batch: the resolved report and all siblings flip
-            // together, so a failure cannot close some but not others.
+            // one batch so a failure cannot close some siblings but not others
             const batch = writeBatch(db)
             batch.update(reportRef, {
               status: newStatus,

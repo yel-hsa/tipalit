@@ -12,8 +12,7 @@ type BottomSheetProps = {
   footer?: ReactNode
 }
 
-// The kit has no sheet, so this follows the Modal's scrim and surface tokens
-// but docks to the bottom of the phone frame.
+// kit has no sheet; reuses modal scrim and surface tokens, docked to the frame bottom
 export default function BottomSheet({ isOpen, onClose, title, subtitle, children, footer }: BottomSheetProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
   const titleId = useId()

@@ -6,7 +6,7 @@ import BottomSheet from './BottomSheet'
 type MeetupPickerSheetProps = {
   isOpen: boolean
   onClose: () => void
-  /** Campus-approved spots for the listing's campus. */
+  // campus-approved spots for the listing's campus
   spots: string[]
   campusLabel: string
   defaultLocation: string
@@ -21,7 +21,7 @@ const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', '
 
 const formatHour = (hour: number) => `${hour % 12 || 12}:00 ${hour < 12 ? 'AM' : 'PM'}`
 
-// Today, tomorrow, and the next campus day after that (no classes on Sunday).
+// skips Sunday: no classes, so the third slot jumps to Monday
 const buildDays = (now: Date): Day[] => {
   const third = (now.getDay() + 2) % 7 === 0 ? 3 : 2
   const weekday = (now.getDay() + third) % 7
@@ -54,7 +54,7 @@ export default function MeetupPickerSheet({
   defaultLocation,
   onSubmit,
 }: MeetupPickerSheetProps) {
-  // Mounted fresh for each proposal, so "now" is captured once per open.
+  // mounted fresh per proposal, so "now" is captured once per open
   const now = useMemo(() => new Date(), [])
   const days = useMemo(() => buildDays(now), [now])
   const isPast = (dayOffset: number, hour: number) => dayOffset === 0 && hour <= now.getHours()

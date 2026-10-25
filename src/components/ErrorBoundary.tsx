@@ -5,7 +5,7 @@ import EmptyState from './EmptyState'
 
 type ErrorBoundaryProps = {
   children: ReactNode
-  /** Full-viewport framing for boundaries rendered outside PhoneShell. */
+  // full-viewport framing for boundaries rendered outside PhoneShell
   fullScreen?: boolean
 }
 

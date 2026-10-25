@@ -14,11 +14,6 @@ import type {
   Thread,
 } from '../services/types'
 
-/*
- * Seed content and display constants. Domain types live in services/types.ts;
- * the mock adapter copies this data into localStorage on first run.
- */
-
 export const CAMPUSES: { id: CampusId; label: string; area: string }[] = [
   { id: 'manila', label: 'TIP Manila', area: 'Quiapo, Manila' },
   { id: 'qc', label: 'TIP Quezon City', area: 'Cubao, Quezon City' },
@@ -26,14 +21,10 @@ export const CAMPUSES: { id: CampusId; label: string; area: string }[] = [
 
 export const campusLabel = (id: CampusId) => CAMPUSES.find((campus) => campus.id === id)?.label ?? 'TIP'
 
-/*
- * Admin accounts. In production the role is a server-side claim on the
- * session; the mock adapter grants it to these emails.
- */
+// production reads the admin role from a server-side session claim
 export const ADMIN_ACCOUNT: GoogleAccount = { name: 'Office of Student Affairs', email: 'osa.admin@tip.edu.ph' }
 export const ADMIN_EMAILS = [ADMIN_ACCOUNT.email]
 
-/** Accounts offered by the mock Google chooser. Reviewer mode adds the extras. */
 export const GOOGLE_TEST_ACCOUNTS: GoogleAccount[] = [{ name: 'Bea Lim', email: 'bea.lim@tip.edu.ph' }, ADMIN_ACCOUNT]
 export const REVIEWER_GOOGLE_ACCOUNTS: GoogleAccount[] = [
   { name: 'Marco Tan', email: 'marco.tan@tip.edu.ph' },
@@ -75,10 +66,7 @@ export const SUBJECT_CODES = [
   'GEN ED',
 ]
 
-/*
- * Campus-approved meetup spots. The Manila names are placeholders until
- * Student Affairs confirms them (see README, "Open questions").
- */
+// manila spot names are placeholders pending Student Affairs confirmation
 export const MEETUP_SPOTS: Record<CampusId, string[]> = {
   qc: ['Library Plaza', 'Main Lobby', 'Cafeteria Entrance', 'Engineering Building Steps', 'Gate 2 Security Post'],
   manila: ['Library Lobby', 'Main Gate Security Post', 'Canteen Entrance', 'Student Lounge'],
@@ -128,10 +116,7 @@ export const CATEGORY_FALLBACK_IMAGES: Record<Category, string> = {
   Others: photo('1516035069371-29a1b244cc32'),
 }
 
-/*
- * Sponsors and student perks (PRD monetization). `campus: 'all'` runs on both
- * feeds; the mock adapter serves these to the Perks tab and sponsor banners.
- */
+// campus 'all' runs on both feeds
 export const SEED_PROMOTIONS: Promotion[] = [
   {
     id: 'p1',
@@ -187,7 +172,6 @@ export const SELLERS: Seller[] = [
   { id: 's6', name: 'Ramon Villanueva', initials: 'RV', program: 'BS Chemical Engineering', year: '3rd year', campus: 'manila', verified: true },
 ]
 
-/** Seed reviews behind the seller aggregates above. Buyers write to sellers. */
 export const SEED_REVIEWS: Review[] = [
   { id: 'rv1', rating: 5, comment: 'Meetup was on time and the calculator worked perfectly. Smooth exchange!', reviewerId: 'buyer_demo', revieweeId: 's1', listingId: 'l1', threadId: 't1', createdAt: new Date('2026-09-14T10:00:00Z').toISOString() },
   { id: 'rv2', rating: 5, comment: 'Very responsive and easy to talk to. Recommended seller.', reviewerId: 'buyer_demo', revieweeId: 's1', listingId: 'l2', threadId: 't1', createdAt: new Date('2026-09-27T14:30:00Z').toISOString() },
@@ -462,7 +446,7 @@ const SEED_LISTING_DATA: SeedListing[] = [
 
 const HOUR_MS = 60 * 60 * 1000
 
-/** Listings are dated relative to the moment they are seeded, then persisted. */
+// dates are relative to seed time, then persisted
 export const buildSeedListings = (now = Date.now()): Listing[] =>
   SEED_LISTING_DATA.map(({ hoursAgo, status, ...listing }) => ({
     ...listing,
@@ -507,7 +491,7 @@ export const SEED_THREADS: Thread[] = [
   },
 ]
 
-/** A seller proposed a meetup that the buyer has not answered yet. */
+// seller proposed a meetup the buyer has not answered yet
 export const threadNeedsReply = (thread: Thread) =>
   thread.items.some((item) => item.kind === 'meetup' && item.from === 'seller' && item.status === 'pending')
 
@@ -541,7 +525,7 @@ export const formatMonthYear = (iso: string) =>
 
 export const formatPrice = (value: number) => `\u20b1${value.toLocaleString('en-PH')}`
 
-/** Feed/detail price text: free and trade listings have no peso amount. */
+// free and trade listings have no peso amount
 export const priceLabel = (listing: Pick<Listing, 'transactionType' | 'price'>) =>
   listing.transactionType === 'free' ? 'Free' : listing.transactionType === 'trade' ? 'Trade' : formatPrice(listing.price)
 
@@ -557,7 +541,7 @@ export const STATUS_BADGE: Partial<Record<Listing['status'], { label: string; va
   sold: { label: 'Sold', variant: 'danger' },
 }
 
-/** Staff profiles exist before first sign-in, so admins skip student onboarding. */
+// staff profiles exist before first sign-in, so admins skip student onboarding
 export const SEED_ADMIN_PROFILES = (now = Date.now()): Profile[] => [
   {
     userId: 'u_osa_admin',
@@ -572,7 +556,6 @@ export const SEED_ADMIN_PROFILES = (now = Date.now()): Profile[] => [
   },
 ]
 
-/** A few reports so the admin queue has something to review on first run. */
 export const buildSeedReports = (now = Date.now()): Report[] => [
   {
     id: 'r1',

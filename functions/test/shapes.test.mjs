@@ -1,17 +1,3 @@
-/*
- * Pure unit tests for the two data shapes that broke live production:
- *   (a) listing images — array / JSON string / bracketed-unquoted / garbage
- *   (b) meetup spots   — real arrays / stringified arrays / missing field
- *
- * The parsers under test come from ./shapes.mjs, a local reference
- * implementation of the documented contract (see the header there). Streams A
- * and B are writing the real parsers in src/ concurrently; once they export
- * them, point these imports at the real modules and delete shapes.mjs. The
- * assertions below are the contract and should not need to change.
- *
- * Runs without the emulator: `node --test functions/test/shapes.test.mjs`.
- */
-
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -20,7 +6,6 @@ import { FALLBACK_IMAGE, FALLBACK_SPOTS, parseListingImages, parseMeetupSpots } 
 const URL_A = 'https://firebasestorage.googleapis.com/v0/b/tipalit.appspot.com/o/listings%2Fa.jpg?alt=media'
 const URL_B = 'https://firebasestorage.googleapis.com/v0/b/tipalit.appspot.com/o/listings%2Fb.jpg?alt=media'
 
-/** Every parser call must return a non-empty array of non-empty strings. */
 const assertUsableImages = (result) => {
   assert.ok(Array.isArray(result), `expected an array, got ${typeof result}`)
   assert.ok(result.length > 0, 'expected at least one image (fallback)')
@@ -95,7 +80,7 @@ describe('parseListingImages — never throws, always degrades', () => {
   })
 
   test('malformed JSON array degrades to the bracketed split, not a throw', () => {
-    // Missing closing quote/bracket: JSON.parse fails, the split path runs.
+    // missing closing bracket; JSON.parse fails and the split path runs
     const result = parseListingImages('[https://cdn.example.com/a.jpg, https://cdn.example.com/b.jpg')
     assertUsableImages(result)
     assert.deepEqual(result, ['https://cdn.example.com/a.jpg', 'https://cdn.example.com/b.jpg'])

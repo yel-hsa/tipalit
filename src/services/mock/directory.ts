@@ -2,7 +2,7 @@ import { SELLERS } from '../../data/seed'
 import type { CampusId, Profile } from '../types'
 import { loadProfiles } from './profiles'
 
-/** Everyone the mock knows about: seeded sellers plus anyone who has signed in. */
+// seeded sellers plus anyone who has signed in
 export type Person = {
   userId: string
   name: string
@@ -39,8 +39,7 @@ export const listPeople = (): Person[] => {
   const signedIn = Object.values(loadProfiles())
     .filter((profile) => profile.name.trim())
     .map(fromProfile)
-  // Seeded sellers and profiles share ids: the profile copy is the live one,
-  // so it wins and each person appears once.
+  // profile copy wins over the seed so each person appears once
   const byId = new Map<string, Person>()
   for (const person of [...seeded, ...signedIn]) byId.set(person.userId, person)
   return [...byId.values()]

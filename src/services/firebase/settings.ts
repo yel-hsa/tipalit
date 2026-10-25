@@ -3,26 +3,12 @@ import { MEETUP_SPOTS } from '../../data/seed'
 import type { CampusId, MeetupSpots, SettingsService } from '../types'
 import { getFirebaseDb, isFirebaseConfigured } from './config'
 
-/**
- * Live Firestore document that holds the admin-approved meetup spots.
- * Historical note: the code once read/wrote `settings/meetup_spots`, but the
- * live database holds `settings/campus_meetup_spots` — saved spots were never
- * read and every campus silently fell back to seed values.
- */
+// live db uses campus_meetup_spots; reading settings/meetup_spots silently fell back to seed
 export const MEETUP_SPOTS_DOC_ID = 'campus_meetup_spots'
 
 const CAMPUSES: CampusId[] = ['qc', 'manila']
 
-/**
- * Normalises a single campus value into a string array.
- *
- * Live data stores spots as a *stringified* array, in two shapes:
- *   - '["Arlegui Gate 1","Casal Student Lounge"]'  (JSON)
- *   - '[Arlegui Gate 1, Casal Student Lounge]'     (bracketed, unquoted)
- * Real arrays (what the admin write path stores) are used as-is.
- * Anything that yields no usable entries returns an empty array so the caller
- * can fall back to defaults.
- */
+// live data stores spots as a json array, a bare bracketed list, or a real array
 export function parseSpotList(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
@@ -40,7 +26,6 @@ export function parseSpotList(value: unknown): string[] {
     return []
   }
 
-  // JSON array: '["a","b"]' (also tolerates single-quoted strings inside).
   if (trimmed.startsWith('[')) {
     try {
       const parsed: unknown = JSON.parse(trimmed)
@@ -48,14 +33,13 @@ export function parseSpotList(value: unknown): string[] {
         return parseSpotList(parsed)
       }
     } catch {
-      // Not valid JSON — fall through to the bracketed/unquoted split below.
+      // fall through to the bracketed/unquoted split
     }
 
     const inner = trimmed.slice(1, trimmed.endsWith(']') ? -1 : undefined)
     return splitBracketedList(inner)
   }
 
-  // Bare comma-separated string: 'a, b'.
   return splitBracketedList(trimmed)
 }
 
@@ -76,10 +60,7 @@ const stripQuotes = (spot: string): string => {
   return spot
 }
 
-/**
- * Tolerantly reads the meetup spots document data into `MeetupSpots`.
- * Per-campus values that parse to nothing fall back to the seed defaults.
- */
+// a campus that parses to nothing keeps the seed defaults
 export function readMeetupSpots(
   data: Record<string, unknown> | undefined,
   fallback: MeetupSpots,

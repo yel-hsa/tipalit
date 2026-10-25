@@ -6,8 +6,7 @@ type MessageBubbleProps = {
   initials: string
 }
 
-// Person-to-person bubble. The kit's ChatBubbles marks the non-user side with an
-// AI sparkle, which would mislabel human sellers, so this mirrors its tokens instead.
+// kit ChatBubbles marks the non-user side with an AI sparkle, mislabelling human sellers
 export default function MessageBubble({ text, fromMe, initials }: MessageBubbleProps) {
   return (
     <div className={`flex max-w-4/5 items-end gap-sm ${fromMe ? 'flex-row-reverse self-end' : 'self-start'}`}>

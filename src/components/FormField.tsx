@@ -9,9 +9,7 @@ type FormFieldProps = {
 
 export const errorIdFor = (id: string) => `${id}-error`
 
-// The kit's fields have no error state, so this wraps them with a tinted
-// background and an inline message. Inputs should also set aria-invalid and
-// aria-describedby={errorIdFor(id)} themselves.
+// kit fields have no error state; inputs set aria-invalid and aria-describedby themselves
 export default function FormField({ id, error, children }: FormFieldProps) {
   return (
     <div

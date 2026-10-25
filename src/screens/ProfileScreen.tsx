@@ -25,12 +25,12 @@ type ProfileScreenProps = {
   myListings: Listing[]
   threadCount: number
   completedMeetups: number
-  /** Active sponsor perks for this campus; empty hides the section. */
+  // empty hides the perks section
   promotions: Promotion[]
   loading: boolean
   error: boolean
   reviewerMode: boolean
-  /** Staff accounts show an admin badge instead of the student verification. */
+  // staff accounts show an admin badge instead of student verification
   isAdmin?: boolean
   onRetry: () => void
   onOpenListing: (listingId: string) => void
@@ -127,7 +127,7 @@ export default function ProfileScreen({
   const active = myListings.filter((listing) => listing.status === 'active')
   const sold = myListings.filter((listing) => listing.status === 'sold')
 
-  // Hidden reviewer switch: seven quick taps on the version line.
+  // hidden reviewer switch: seven quick taps on the version line
   const tapVersion = () => {
     const now = Date.now()
     taps.current.count = now - taps.current.at < TAP_WINDOW_MS ? taps.current.count + 1 : 1

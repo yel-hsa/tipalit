@@ -7,13 +7,10 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https'
 initializeApp()
 const db = getFirestore()
 
-/** Reports required before a listing auto-hides pending review. */
+// reports before a listing auto-hides pending review
 const AUTO_HIDE_THRESHOLD = 5
 
-/**
- * FR-4.4: when a report is created, increment the listing's report_count
- * server-side (clients can never touch it) and auto-hide at the threshold.
- */
+// report_count is server-only; clients can never write it
 export const onReportCreated = onDocumentCreated('reports/{reportId}', async (event) => {
   const report = event.data?.data()
   if (!report || report.target?.kind !== 'listing') return
@@ -31,15 +28,11 @@ export const onReportCreated = onDocumentCreated('reports/{reportId}', async (ev
   })
 })
 
-/**
- * Two-way reputation: a completed, rated meetup exchange writes a review.
- * Keep the seller's aggregate (average_rating, total_reviews) accurate —
- * clients never compute it.
- */
+// aggregates are server-computed; clients never write them
 export const onReviewWritten = onDocumentWritten('reviews/{reviewId}', async (event) => {
   const before = event.data?.before.data()
   const after = event.data?.after.data()
-  if (!after) return // deleted; aggregates left as-is (admin action)
+  if (!after) return // deleted; aggregates left as-is
   if (before?.rating === after.rating) return
 
   const revieweeId = after.reviewee_id as string
@@ -74,11 +67,7 @@ const assertAdmin = (email: string | undefined) => {
   }
 }
 
-/**
- * Trusted moderation. Resolving a report also closes other open reports on
- * the same target and writes the audit entry — the client cannot forge any
- * of it. (Role is verified from the caller's token email.)
- */
+// moderation is server-only so the client cannot forge the audit trail
 export const resolveReport = onCall(async (request) => {
   assertAdmin(request.auth?.token.email as string | undefined)
 
@@ -103,7 +92,7 @@ export const resolveReport = onCall(async (request) => {
     const resolution = { action, note, byName: actorName, at }
     tx.set(reportRef, { status: action === 'dismiss' ? 'dismissed' : 'resolved', resolution }, { merge: true })
 
-    // Close sibling open reports on the same target.
+    // resolving one report closes the rest on the same target
     const siblings = await db
       .collection('reports')
       .where('target.id', '==', report.target.id)

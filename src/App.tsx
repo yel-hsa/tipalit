@@ -89,10 +89,10 @@ type AdminData = { reports: Report[]; members: MemberSummary[]; audit: AuditEntr
 const EMPTY_ADMIN: AdminData = { reports: [], members: [], audit: [] }
 const DEFAULT_SPOTS: MeetupSpots = { qc: MEETUP_SPOTS.qc, manila: MEETUP_SPOTS.manila }
 
-/** Which meetup the rate modal is for. Null ids are the demo preview with no data behind it. */
+// null ids are the demo preview with no data behind it
 type RateTarget = { threadId: string | null; itemId: string | null; sellerId: string }
 
-/** One-shot props for the screen a reviewer launcher jumps to; cleared on the next navigation. */
+// one-shot props for the screen a reviewer launcher jumps to; cleared on the next navigation
 type ScreenInit = { nonce: number; feedQuery?: string; rejectedEmail?: string; sellValidate?: boolean }
 
 const DEFAULT_CONTROLS: DemoControls = {
@@ -152,7 +152,6 @@ function TipalitApp() {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
 
-  // Data
   const [feed, setFeed] = useState<Listing[]>([])
   const [mine, setMine] = useState<Listing[]>([])
   const [listingsById, setListingsById] = useState<Record<string, Listing>>({})
@@ -165,14 +164,12 @@ function TipalitApp() {
   const [adminData, setAdminData] = useState<AdminData>(EMPTY_ADMIN)
   const [adminTab, setAdminTab] = useState<AdminTab>('reports')
 
-  // Loading
   const [loads, setLoads] = useState<Partial<Record<LoadKey, LoadStatus>>>({})
   const loadsRef = useRef(loads)
   loadsRef.current = loads
   const loadRequest = useRef<Record<LoadKey, number>>({ feed: 0, chats: 0, profile: 0, admin: 0 })
   const [feedVersion, setFeedVersion] = useState(0)
 
-  // Overlays + reviewer tooling
   const [toast, setToast] = useState<ToastState | null>(null)
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null)
   const [rateTarget, setRateTarget] = useState<RateTarget | null>(null)
@@ -205,7 +202,7 @@ function TipalitApp() {
     return () => window.clearTimeout(timer)
   }, [toast])
 
-  // Runs before child effects, so the chat thread can still scroll itself to the bottom.
+  // runs before child effects, so the chat thread can still scroll itself to the bottom
   useLayoutEffect(() => {
     window.scrollTo(0, 0)
     messageToastThread.current = null
@@ -218,7 +215,7 @@ function TipalitApp() {
   }
 
   const clearData = () => {
-    // Invalidate every in-flight load so it cannot repopulate state after sign-out.
+    // invalidate every in-flight load so it cannot repopulate state after sign-out
     loadRequest.current = {
       feed: loadRequest.current.feed + 1,
       chats: loadRequest.current.chats + 1,
@@ -244,8 +241,6 @@ function TipalitApp() {
     setProfile(nextProfile)
     navigate(routeAfterSignIn(nextProfile, nextSession.role))
   }
-
-  // ---- Boot -------------------------------------------------------------
 
   useEffect(() => {
     let cancelled = false
@@ -278,8 +273,6 @@ function TipalitApp() {
     }
   }, [bootNonce, setTheme])
 
-  // ---- Mock Google chooser bridge ----------------------------------------
-
   useEffect(() => {
     const demo = services.demo
     if (!demo) return
@@ -298,8 +291,6 @@ function TipalitApp() {
     chooserResolve.current?.(account)
     chooserResolve.current = null
   }
-
-  // ---- Realtime chat events ----------------------------------------------
 
   useEffect(
     () =>
@@ -328,8 +319,6 @@ function TipalitApp() {
       }),
     [notify],
   )
-
-  // ---- Lookups -----------------------------------------------------------
 
   const userId = session?.userId ?? ''
   const me: Seller | null =
@@ -384,11 +373,10 @@ function TipalitApp() {
         return next
       })
     } catch {
-      // Seller cards fall back to a generic verified student.
+      // seller cards fall back to a generic verified student
     }
   }
 
-  /** Threads plus the listings and sellers they reference. */
   const fetchThreads = async (isLatest: () => boolean = () => true) => {
     const list = await services.chat.listThreads()
     if (!isLatest()) return list
@@ -402,7 +390,6 @@ function TipalitApp() {
     return list
   }
 
-  /** Reports, members, and the log, plus the reported listings so "View listing" can open them. */
   const fetchAdmin = async (isLatest: () => boolean = () => true) => {
     const [reports, members, audit, overview] = await Promise.all([
       services.admin.listReports(),
@@ -417,7 +404,7 @@ function TipalitApp() {
       ensureSellers(members.map((m) => m.userId), isLatest),
     ])
     if (!isLatest()) return
-    // Forget reported listings the server no longer has, so the review sheet knows they're gone.
+    // forget reported listings the server no longer has, so the review sheet knows they're gone
     setListingsById((current) => {
       const next = { ...current }
       listingIds.forEach((id) => delete next[id])
@@ -429,8 +416,6 @@ function TipalitApp() {
     setAdminData({ reports, members, audit })
     setOverview(overview)
   }
-
-  // ---- Tab loads ---------------------------------------------------------
 
   const load = async (key: LoadKey) => {
     const current = profileRef.current
@@ -458,7 +443,7 @@ function TipalitApp() {
         if (!isLatest()) return
         setMine(items)
         cacheListings(items, isLatest)
-        // Threads only feed the activity count; never let them fail the tab.
+        // threads only feed the activity count; never let them fail the tab
         await fetchThreads(isLatest).catch((err) => {
           console.error('[TIPalit] Threads load failed:', err)
         })
@@ -475,14 +460,14 @@ function TipalitApp() {
       ? route.name
       : null
 
-  // Skeletons on the first visit to each tab, or on every visit with "Slow network".
+  // skeletons on the first visit to each tab, or on every visit with "Slow network"
   useEffect(() => {
     if (!loadKey || !session) return
     const status = loadsRef.current[loadKey]
     if (status === 'loading') return
     if (status === 'ready' && !controls.slowNetwork) return
     load(loadKey)
-    // `route` is included so "Slow network" re-runs the load on every visit.
+    // `route` is included so "Slow network" re-runs the load on every visit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadKey, route, session, feedVersion])
 
@@ -492,14 +477,11 @@ function TipalitApp() {
   const isAdmin = session?.role === 'admin'
   const ready = !!session && isProfileComplete(profile) && !!profile.safetyAcceptedAt
 
-  // Admins get the open-report dot on their tab even before they visit it.
-  // On the Admin route itself the tab load above already fetches.
+  // admins get the open-report dot on their tab even before they visit it
   useEffect(() => {
     if (isAdmin && ready && route.name !== 'admin' && !loadsRef.current.admin) load('admin')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, ready])
-
-  // ---- Auth + onboarding -------------------------------------------------
 
   const finishIntro = () => {
     services.prefs.set({ introSeen: true }).catch(() => undefined)
@@ -513,7 +495,7 @@ function TipalitApp() {
     try {
       storedProfile = await services.profiles.get(result.session.userId)
     } catch {
-      // Treated as a first sign-in; onboarding saves a fresh profile.
+      // treated as a first sign-in; onboarding saves a fresh profile
     }
     clearData()
     enter(result.session, storedProfile)
@@ -527,7 +509,7 @@ function TipalitApp() {
     try {
       await services.auth.signOut()
     } catch {
-      // The local session is dropped either way.
+      // the local session is dropped either way
     }
     setSession(null)
     setProfile(null)
@@ -587,7 +569,7 @@ function TipalitApp() {
     )
     if (!saved) return false
     if (campusChanged) {
-      // The feed reloads (with skeletons) and resets its filters on the next visit.
+      // the feed reloads (with skeletons) and resets its filters on the next visit
       setFeed([])
       setLoads((all) => ({ ...all, feed: undefined }))
       setFeedVersion((v) => v + 1)
@@ -602,9 +584,6 @@ function TipalitApp() {
     services.prefs.set({ theme }).catch(() => undefined)
   }
 
-  // ---- Listings ----------------------------------------------------------
-
-  /** Writes a listing into every local collection it belongs to. */
   const applyListing = (listing: Listing) => {
     cacheListings([listing])
     const inFeed = listing.status === 'active' && listing.campus === profileRef.current?.campus
@@ -694,7 +673,7 @@ function TipalitApp() {
       try {
         await navigator.share({ title: listing.title, text })
       } catch {
-        // Closing the share sheet is not an error.
+        // closing the share sheet is not an error
       }
       return
     }
@@ -706,19 +685,17 @@ function TipalitApp() {
     }
   }
 
-  // ---- Reports + admin ---------------------------------------------------
-
   const submitReport = async (target: ReportTarget, reason: string, details: string) => {
     const done = () => {
       setReportTarget(null)
       notify("Report sent. We'll review it within 24 hours.", 'success')
       return true
     }
-    // The reviewer preview has no real listing or member behind it.
+    // the reviewer preview has no real listing or member behind it
     if (!target.id) return done()
     try {
       await services.reports.submit({ id: createId('r'), target: { kind: target.kind, id: target.id }, reason, details })
-      // Admins see the new report the next time the queue loads.
+      // admins see the new report the next time the queue loads
       setLoads((all) => ({ ...all, admin: undefined }))
       return done()
     } catch (error) {
@@ -731,7 +708,7 @@ function TipalitApp() {
     try {
       await fetchAdmin()
     } catch {
-      // The current view stays; the next visit reloads.
+      // the current view stays; the next visit reloads
       setLoads((all) => ({ ...all, admin: undefined }))
     }
   }
@@ -779,7 +756,7 @@ function TipalitApp() {
       return false
     }
     if (status === 'suspended') setFeed((current) => current.filter((item) => item.sellerId !== userId))
-    // Reinstated listings come back on the next feed load.
+    // reinstated listings come back on the next feed load
     else setLoads((all) => ({ ...all, feed: undefined }))
     notify(`${member.name} ${status === 'suspended' ? 'suspended' : 'reinstated'}`, 'success')
     await refreshAdmin()
@@ -797,8 +774,6 @@ function TipalitApp() {
     await refreshAdmin()
     return true
   }
-
-  // ---- Chat --------------------------------------------------------------
 
   const patchThread = (threadId: string, change: (thread: Thread) => Thread) => {
     setThreads((current) => current.map((thread) => (thread.id === threadId ? change(thread) : thread)))
@@ -837,7 +812,7 @@ function TipalitApp() {
   const sendMessage = async (threadId: string, text: string) => {
     const id = createId('m')
     appendItem(threadId, { id, kind: 'message', from: 'me', text })
-    // Only the first message of a visit gets a toast, so a normal conversation isn't noisy.
+    // only the first message of a visit gets a toast, so a normal conversation isn't noisy
     if (messageToastThread.current !== threadId) {
       messageToastThread.current = threadId
       notify('Message sent')
@@ -901,14 +876,12 @@ function TipalitApp() {
     patchMeetup(threadId, itemId, { completed: true, rating })
     try {
       await services.chat.rate(threadId, itemId, rating, comment)
-      // The seller's aggregate changed; re-pull their public card so the
-      // stars on detail/thread views reflect the review just written.
+      // re-pull the seller card so detail/thread stars reflect the new review
       const [refreshed] = await services.profiles.getSellers([target.sellerId])
       if (refreshed?.rating != null) {
         setSellers((current) => ({ ...current, [target.sellerId]: refreshed }))
       } else {
-        // Seller card has no live aggregate (new account, 1st review) —
-        // fold the rating into the cached card so it still shows.
+        // new accounts have no live aggregate, so fold the rating into the cached card
         setSellers((current) => {
           const seller = current[target.sellerId]
           if (!seller) return current
@@ -923,19 +896,16 @@ function TipalitApp() {
     }
   }
 
-  /** Sponsor banner / perk tap: track the click (FR-7.4), then open the destination. */
   const openPromotion = (promotion: Promotion) => {
     void services.promotions.trackClick(promotion.id)
     void services.analytics?.track('promo_click', { promo_id: promotion.id, sponsor: promotion.sponsorName })
     window.open(promotion.destinationUrl, '_blank', 'noopener,noreferrer')
   }
 
-  // ---- Reviewer tools ----------------------------------------------------
-
   const reviewerFlags: ReviewerFlags = { ...controls, ...uiFlags }
 
   const openReviewerTools = () => {
-    // One-shot mock flags clear themselves, so re-read them before showing the switches.
+    // one-shot mock flags clear themselves, so re-read them before showing the switches
     if (services.demo) setControls(services.demo.getControls())
     setDemoVersion((v) => v + 1)
     setDemoOpen(true)
@@ -1049,8 +1019,6 @@ function TipalitApp() {
         break
     }
   }
-
-  // ---- Screens -----------------------------------------------------------
 
   const visibleThreads = uiFlags.emptyInbox ? [] : threads
   const myListings = uiFlags.emptyInventory ? [] : mine
@@ -1266,7 +1234,6 @@ function TipalitApp() {
     }
   }
 
-  // Overlay data
   const pickerThread = pickerThreadId ? threads.find((t) => t.id === pickerThreadId) : undefined
   const pickerListing = pickerThread ? getListing(pickerThread.listingId) : undefined
   const pickerCampus = pickerListing?.campus ?? (isProfileComplete(profile) ? profile.campus : 'qc')

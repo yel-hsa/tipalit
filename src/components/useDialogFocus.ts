@@ -5,7 +5,7 @@ const FOCUSABLE =
 
 type DialogEntry = { id: number; canClose: () => boolean; close: () => void }
 
-// Only the topmost dialog may handle Escape, since a confirm can open over a sheet.
+// only the topmost dialog handles Escape, since a confirm can open over a sheet
 const stack: DialogEntry[] = []
 const listeners = new Set<() => void>()
 let nextId = 0
@@ -34,13 +34,7 @@ export type DialogFocusOptions = {
   onClose?: () => void
 }
 
-/**
- * Moves focus into a dialog on open, keeps Tab inside it, closes it on Escape
- * (when it is the topmost dialog and `canClose` allows), and returns focus to
- * the opener on close. `bodyRef` points at content inside the dialog; the
- * nearest [role="dialog"] ancestor is used as the trap boundary so this works
- * with the kit Modal, which exposes no ref or focus handling of its own.
- */
+// traps focus in the nearest [role="dialog"] ancestor; the kit modal exposes no ref
 export default function useDialogFocus(
   isOpen: boolean,
   bodyRef: RefObject<HTMLElement | null>,
@@ -65,7 +59,7 @@ export default function useDialogFocus(
     const frame = requestAnimationFrame(() => {
       const body = bodyRef.current
       dialog = body?.closest<HTMLElement>('[role="dialog"]') ?? body
-      // The kit Modal's close button has no accessible name.
+      // the kit Modal's close button has no accessible name
       dialog?.querySelectorAll('button:not([aria-label])').forEach((button) => {
         if (!button.textContent?.trim()) button.setAttribute('aria-label', 'Close')
       })
@@ -73,9 +67,7 @@ export default function useDialogFocus(
       ;(first ?? dialog)?.focus()
     })
 
-    // Dialogs mount wherever their owner renders them, so a fixed wrapper cannot
-    // be inerted without also inerting the dialog. Walk up from the dialog and
-    // inert every sibling instead; the dialog's own ancestor chain stays live.
+    // dialogs mount wherever their owner renders them, so inert siblings up the tree
     const inerted: HTMLElement[] = []
     const inertSiblings = () => {
       let node: HTMLElement | null = dialog

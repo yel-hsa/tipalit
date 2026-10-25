@@ -1,19 +1,3 @@
-/*
- * Firestore security-rule specs, executed against the emulator's REST API.
- * Run via: npm run test:rules   (see package.json; requires JDK 25 for
- * firebase-tools 15.x — the script points JAVA_HOME at it).
- *
- * Assertions describe firestore.rules AS IT EXISTS AT THIS BASELINE (commit
- * a573f78). Stream E is rewriting the listings/users_profile blocks
- * concurrently. Every test whose expectation is likely to flip under that
- * rewrite is tagged "TODO(stream E)" with the flip spelled out, so the merge
- * can reconcile deliberately instead of discovering breakage in the dark.
- *
- * Token model: the literal "owner" bearer token bypasses rules and is used
- * only to seed fixtures. Everybody else sends an unsigned Firebase-shaped JWT
- * whose claims are read as request.auth.token (uid, email, email_verified).
- */
-
 import { after, before, describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -44,7 +28,7 @@ const sellerClient = () => asUser(SELLER.token)
 const otherClient = () => asUser(OTHER.token)
 const adminClient = () => asUser(ADMIN.token)
 
-/** Baseline listing doc: every field the create rule currently pins. */
+// every field the create rule pins
 const listingDoc = (overrides = {}) => ({
   seller_id: SELLER.uid,
   title: 'Statics, 14th Ed.',
@@ -63,7 +47,7 @@ const listingDoc = (overrides = {}) => ({
   ...overrides,
 })
 
-/** Seeds a listing as the rules-bypassing owner agent. Returns its id. */
+// owner token bypasses rules, so seeds never trip them
 const seedListing = async (overrides = {}) => {
   const id = uniqueId('listing')
   const result = await owner.setWithId(`listings/${id}`, listingDoc(overrides))
@@ -71,7 +55,7 @@ const seedListing = async (overrides = {}) => {
   return id
 }
 
-/** Seeds a users_profile (owner privileges) so exists()/get() role lookups resolve. */
+// rules resolve roles via get(), so profiles must exist before the tests run
 const seedProfile = async (uid, overrides = {}) => {
   const result = await owner.setWithId(`users_profile/${uid}`, {
     user_id: uid,
@@ -98,13 +82,8 @@ before(async () => {
 })
 
 after(async () => {
-  // The emulator is torn down with the process; explicit teardown only matters
-  // when emulators:exec is replaced by a long-lived emulator.
+  // emulators:exec tears the emulator down with the process
 })
-
-// ---------------------------------------------------------------------------
-// listings: report_count is server-only
-// ---------------------------------------------------------------------------
 
 describe('listings — report_count is server-only', () => {
   test('seller cannot bump report_count while editing their own listing', async () => {
@@ -130,20 +109,12 @@ describe('listings — report_count is server-only', () => {
     assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 
-  // TODO(stream E): if the rewrite replaces the diff().hasAny(['report_count'])
-  // guard with an allowlist of writable keys (hasOnly([...])), this expectation
-  // stays the same — report_count must remain unwritable. If it drops the guard
-  // entirely (relying on a Cloud Function only), flip this to isOk.
   test('admin cannot write report_count through the client rules either', async () => {
     const id = await seedListing()
     const result = await adminClient().update(`listings/${id}`, { report_count: 9 })
     assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 })
-
-// ---------------------------------------------------------------------------
-// listings: sellers cannot hide their own listings
-// ---------------------------------------------------------------------------
 
 describe('listings — sellers cannot set a moderated status', () => {
   test('seller cannot set status hidden', async () => {
@@ -157,9 +128,6 @@ describe('listings — sellers cannot set a moderated status', () => {
     assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 
-  // TODO(stream E): current rule blocks status == 'hidden' but NOT 'removed'.
-  // Stream E's addition is expected to forbid sellers writing 'removed' too.
-  // Flip this from isOk to isForbidden when that lands.
   test('seller cannot set status removed', async () => {
     const id = await seedListing()
     const result = await sellerClient().update(`listings/${id}`, { status: 'removed' })
@@ -175,10 +143,6 @@ describe('listings — sellers cannot set a moderated status', () => {
     assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
   })
 })
-
-// ---------------------------------------------------------------------------
-// listings: reads
-// ---------------------------------------------------------------------------
 
 describe('listings — read visibility', () => {
   for (const status of ['hidden', 'removed']) {
@@ -214,17 +178,9 @@ describe('listings — read visibility', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// listings: the feed query the app actually issues
-// ---------------------------------------------------------------------------
-
 describe('listings — feed query shape', () => {
-  // The app's feed is `where campus == X` + `where status not-in
-  // ['hidden','removed']` (src/services/firebase/listings.ts:126-131). Firestore
-  // evaluates a list query against the rules by proving every document it
-  // could return is readable. The read rule is `!isModerated() || owner ||
-  // admin`, and `isModerated()` is a disjunction the query cannot prove false
-  // from a not-in filter — so the whole feed is denied. This test pins that.
+  // firestore proves list queries readable per document; a not-in filter cannot
+  // prove the isModerated() disjunction false, so the feed is denied without it
   const feedQuery = (campus) => ({
     where: {
       compositeFilter: {
@@ -259,10 +215,8 @@ describe('listings — feed query shape', () => {
     assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
   })
 
-  // The list rule is `isTipStudent()` only, so a query that does NOT exclude
-  // moderated listings returns them. This is the accepted trade-off: the
-  // client always filters, and the alternative (a provable disjunction) denies
-  // the feed outright. Pinned so the trade-off is visible, not accidental.
+  // accepted trade-off: the list rule is isTipStudent() only, so the client
+  // must always filter; a provable disjunction would deny the feed outright
   test('a query without the status filter can see a removed listing', async () => {
     const id = await seedListing({ campus: 'qc', status: 'removed' })
     const result = await otherClient().query('listings', {
@@ -278,10 +232,6 @@ describe('listings — feed query shape', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// listings: moderation
-// ---------------------------------------------------------------------------
-
 describe('listings — admin moderation', () => {
   test('admin can set status removed', async () => {
     const id = await seedListing()
@@ -292,11 +242,8 @@ describe('listings — admin moderation', () => {
     assert.equal(read.json.fields.status.stringValue, 'removed')
   })
 
-  // TODO(stream E): the rule `request.resource.data.status != 'hidden'` blocks
-  // EVERYBODY, admins included. Stream E is expected to let admins hide/restore
-  // listings; when it does, flip this expectation to isOk. The Cloud Function
-  // (functions/src/index.ts onReportCreated) writes 'hidden' via the Admin SDK,
-  // which bypasses rules, so auto-hide works today regardless.
+  // the status != 'hidden' rule blocks admins too; auto-hide works because the
+  // cloud function writes via the admin sdk, which bypasses rules
   test('admin cannot set status hidden through client rules (baseline quirk)', async () => {
     const id = await seedListing()
     const result = await adminClient().update(`listings/${id}`, { status: 'hidden' })
@@ -310,10 +257,6 @@ describe('listings — admin moderation', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// users_profile
-// ---------------------------------------------------------------------------
-
 describe('users_profile — owners and privileged fields', () => {
   test('a normal user cannot update another user’s profile', async () => {
     const result = await otherClient().update(`users_profile/${SELLER.uid}`, { full_name: 'Hijacked' })
@@ -326,8 +269,7 @@ describe('users_profile — owners and privileged fields', () => {
   })
 
   test('a normal user cannot overwrite another user’s profile wholesale (PUT)', async () => {
-    // A PATCH that names every field is still a write to a foreign doc; the
-    // owner-only branch must not be satisfiable by matching field names.
+    // naming every field must not satisfy the owner-only branch
     const result = await otherClient().update(`users_profile/${SELLER.uid}`, {
       full_name: 'Hijacked',
       campus: 'manila',
@@ -341,21 +283,13 @@ describe('users_profile — owners and privileged fields', () => {
     assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
   })
 
-  // TODO(stream E): the owner branch uses hasOnly([...]) which already keeps
-  // role/status/is_verified out. If stream E tightens this further (e.g.
-  // forbids owner writes when status == 'suspended'), the control above is the
-  // one that flips, not these negative cases.
   test('owner cannot self-escalate role to admin', async () => {
     const result = await sellerClient().update(`users_profile/${SELLER.uid}`, { role: 'admin' })
     assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 
-  // TODO(stream E): the owner branch is hasOnly([...]) WITHOUT a status guard,
-  // so a suspended member can write status:'active' back themselves — a real
-  // A suspended member can still write their own card, but `status` is not in
-  // the owner's allowed key list, so the write is rejected. The self-unsuspend
-  // hole is closed by that allowlist, not by a status check — so the assertion
-  // is that the write fails, not that it returns 403.
+  // self-unsuspend is closed by the owner key allowlist, not a status check,
+  // so the write is rejected rather than returning 403
   test('owner cannot self-unsuspend (write status)', async () => {
     await seedProfile(SELLER.uid, { status: 'suspended' })
     const result = await sellerClient().update(`users_profile/${SELLER.uid}`, { status: 'active' })

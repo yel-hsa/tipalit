@@ -13,15 +13,11 @@ const isReviews = isRecordOf(
   hasShape<Review>({ id: 'string', rating: 'number', comment: 'string', revieweeId: 'string', createdAt: 'string' }),
 )
 
-/** Reviews are global (both sides read them); ids are review ids. */
+// reviews are global; keyed by review id
 export const loadReviews = () =>
   read<Record<string, Review>>('reviews', () => Object.fromEntries(SEED_REVIEWS.map((r) => [r.id, r])), isReviews)
 
-/*
- * Threads are stored per signed-in user. Seller behaviour (typing, replies,
- * accepting or declining meetups) is simulated here and pushed through
- * `subscribe`, the same way a realtime backend would deliver it.
- */
+// threads are per user; seller activity is simulated and pushed through `subscribe`
 export function createMockChat() {
   const listeners = new Set<(event: ChatEvent) => void>()
   let timers: number[] = []
@@ -62,7 +58,7 @@ export function createMockChat() {
         try {
           run()
         } catch {
-          // The thread was removed or the user signed out; drop the simulated event.
+          // thread removed or signed out; drop the simulated event
         }
       }, ms),
     )
@@ -77,8 +73,7 @@ export function createMockChat() {
 
     async openThread(listing) {
       await delay(250)
-      // Same unauthenticated contract as the Firebase adapter: a failed open
-      // must not leave the caller navigating to an unsaved thread.
+      // a failed open must not leave the caller navigating to an unsaved thread
       const session = readSession()
       if (!session) throw new ServiceError('unauthenticated', 'Sign in to use chat.')
       const threads = load()
@@ -142,16 +137,14 @@ export function createMockChat() {
     async rate(threadId, itemId, rating, comment) {
       await delay(250)
       patchMeetup(threadId, itemId, { completed: true, rating })
-      // Record the review so seller cards and the analytics average can be
-      // computed from real data instead of hard-coded numbers.
+      // seller cards and the analytics average read from these reviews
       const session = readSession()
       if (!session) throw new ServiceError('unauthenticated', 'Sign in to leave a review.')
       const thread = load().find((candidate) => candidate.id === threadId)
       if (!thread) return // meetup already patched; review needs no thread
       const listing = loadListings().find((item) => item.id === thread.listingId)
       const sellerId = listing?.sellerId ?? thread.sellerId
-      // Mock threads are always the buyer's; rating your own listing would be
-      // a self-review, which the reviews rules reject.
+      // mock threads are always the buyer's; the reviews rules reject self-reviews
       if (!sellerId || sellerId === session.userId) {
         throw new ServiceError('invalid', 'This exchange has no one left to review.')
       }
@@ -190,7 +183,7 @@ export function createMockChat() {
 
   return {
     service,
-    /** Cancels simulated seller activity (on sign-out and demo reset). */
+    // cancels simulated seller activity on sign-out and demo reset
     cancelPending() {
       timers.forEach((timer) => window.clearTimeout(timer))
       timers = []

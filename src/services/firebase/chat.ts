@@ -26,7 +26,6 @@ export function createFirebaseChat(): ChatService {
   const getCurrentUserId = (): string => {
     const user = auth.currentUser
     if (!user) {
-      // Return a demo ID if not logged in to prevent hard crashes in preview
       return 'anonymous_user'
     }
     return user.uid
@@ -40,14 +39,12 @@ export function createFirebaseChat(): ChatService {
         return structuredClone(SEED_THREADS)
       }
 
-      // 'anonymous_user' can never match a chats doc, so the query is denied
-      // by the participant rule. Treat "not signed in" as "no threads".
+      // 'anonymous_user' never matches a chats doc, so the participant rule denies the query
       const user = auth.currentUser
       if (!user) return []
       const uid = user.uid
 
-      // No try/catch fallback here: permission and network failures must
-      // surface as an error, not as fabricated demo conversations.
+      // no fallback here: failures must surface, not become fabricated demo threads
       const chatsCol = collection(db, 'chats')
       const qBuyer = query(chatsCol, where('buyer_id', '==', uid))
       const qSeller = query(chatsCol, where('seller_id', '==', uid))
@@ -63,7 +60,6 @@ export function createFirebaseChat(): ChatService {
 
       const threads: Thread[] = []
       for (const [chatId, data] of chatDocs.entries()) {
-        // Fetch messages subcollection
         const messagesCol = collection(db, 'chats', chatId, 'messages')
         const messagesQuery = query(messagesCol, orderBy('created_at', 'asc'))
         const messagesSnap = await getDocs(messagesQuery)
@@ -122,7 +118,6 @@ export function createFirebaseChat(): ChatService {
 
       try {
         const chatsCol = collection(db, 'chats')
-        // Check for existing thread
         const q = query(
           chatsCol,
           where('listing_id', '==', listing.id),
@@ -139,7 +134,6 @@ export function createFirebaseChat(): ChatService {
           }
         }
 
-        // Create new chat document
         const newChatRef = doc(chatsCol, threadId)
         await setDoc(newChatRef, {
           listing_id: listing.id,
@@ -157,8 +151,7 @@ export function createFirebaseChat(): ChatService {
           items: [],
         }
       } catch (err) {
-        // A failed open leaves no thread behind; App.tsx needs the error to
-        // stop navigating and show its toast.
+        // app.tsx needs the error to stop navigating and show its toast
         console.error('[TIPalit Firebase Chat] Error opening thread:', err)
         if (err instanceof ServiceError) throw err
         throw new ServiceError('network', "Couldn't open the chat.")
@@ -234,8 +227,7 @@ export function createFirebaseChat(): ChatService {
             created_at: nowIso,
           })
 
-          // The chat doc's allowlist covers only metadata; the meetup itself
-          // lives on the message written above.
+          // the chat doc's allowlist covers only metadata; the meetup lives on the message
           const chatDocRef = doc(db, 'chats', threadId)
           await updateDoc(chatDocRef, { updated_at: nowIso }).catch(() => {})
         } catch (err) {
@@ -292,15 +284,14 @@ export function createFirebaseChat(): ChatService {
       rating: number,
       comment: string,
     ): Promise<void> {
-      // Review rules require a real signed-in reviewer; 'anonymous_user' can
-      // never satisfy them, so fail before writing half the exchange state.
+      // review rules reject 'anonymous_user', so fail before writing half the exchange state
       const user = auth.currentUser
       if (!user) throw new ServiceError('unauthenticated', 'Sign in to leave a review.')
       const uid = user.uid
       if (isFirebaseConfigured()) {
         let chatData: Record<string, any> = {}
         try {
-          // Only the keys firestore.rules permits on a message update.
+          // only the keys firestore.rules permits on a message update
           const messageDocRef = doc(db, 'chats', threadId, 'messages', itemId)
           await updateDoc(messageDocRef, {
             rating,
@@ -309,7 +300,6 @@ export function createFirebaseChat(): ChatService {
             updated_at: new Date().toISOString(),
           })
 
-          // Resolve the chat's listing so the review links to the exchange.
           const chatSnap = await getDoc(doc(db, 'chats', threadId))
           chatData = chatSnap.exists() ? chatSnap.data() : {}
         } catch (err) {
@@ -322,7 +312,7 @@ export function createFirebaseChat(): ChatService {
         const chatSellerId = (chatData.seller_id || chatData.sellerId || '') as string
         const buyerId = (chatData.buyer_id || chatData.buyerId || '') as string
 
-        // Older chat docs may predate seller_id; fall back to the listing.
+        // older chat docs may predate seller_id; fall back to the listing
         let sellerId = chatSellerId
         if (!sellerId && listingId) {
           try {
@@ -336,9 +326,7 @@ export function createFirebaseChat(): ChatService {
           }
         }
 
-        // The counterparty is whoever didn't write the review: a buyer rates
-        // the seller, and the seller (thread on their own listing) rates the
-        // buyer. Never review yourself.
+        // the reviewee is the counterparty; never review yourself
         let revieweeId = ''
         if (uid && uid === sellerId) revieweeId = buyerId
         else if (sellerId && sellerId !== uid) revieweeId = sellerId
@@ -347,7 +335,6 @@ export function createFirebaseChat(): ChatService {
         }
 
         try {
-          // Save review in reviews collection per PRD Section 5.1 Collection 5.
           const reviewDocRef = doc(collection(db, 'reviews'))
           await setDoc(reviewDocRef, {
             chat_id: threadId,
@@ -374,7 +361,6 @@ export function createFirebaseChat(): ChatService {
     ): Promise<void> {
       if (!isFirebaseConfigured()) return
       try {
-        // Resolve the chat doc to its listing, then update the listing status.
         const chatDocRef = doc(db, 'chats', threadId)
         const chatSnap = await getDoc(chatDocRef)
         if (!chatSnap.exists()) return
@@ -398,8 +384,7 @@ export function createFirebaseChat(): ChatService {
       const unsubFires: Array<() => void> = []
 
       if (isFirebaseConfigured()) {
-        // Rules deny chat queries for an unresolved uid, so wait for Firebase
-        // Auth to resolve before attaching the realtime listeners.
+        // rules deny chat queries for an unresolved uid, so wait for auth to resolve
         onAuthStateChanged(
           auth,
           (user) => {
@@ -415,10 +400,10 @@ export function createFirebaseChat(): ChatService {
                 messagesQuery,
                 (snapshot) => {
                   snapshot.docChanges().forEach((change) => {
-                    // Only surface newly written documents; edits arrive via reload.
+                    // only newly written docs; edits arrive via reload
                     if (change.type !== 'added') return
                     const data = change.doc.data()
-                    // Skip our own writes; sendMessage/proposeMeetup already emit them.
+                    // skip our own writes; sendMessage/proposeMeetup already emit them
                     if (data.sender_id === uid) return
                     const from: 'me' | 'seller' = 'seller'
                     if (data.message_type === 'meetup_proposal' || data.kind === 'meetup') {
@@ -457,7 +442,7 @@ export function createFirebaseChat(): ChatService {
                 (snapshot) => {
                   snapshot.docChanges().forEach((change) => {
                     if (change.type === 'added' || change.type === 'modified') watchMessages(change.doc.id)
-                    // Removed chats stop listening; the thread list reload drops them.
+                    // removed chats stop listening; the thread list reload drops them
                   })
                 },
                 (error) => {

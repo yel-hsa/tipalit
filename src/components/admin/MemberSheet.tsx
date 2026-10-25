@@ -12,7 +12,6 @@ import Spinner from '../Spinner'
 
 type MemberSheetProps = {
   member: MemberSummary
-  /** Open reports about this member, newest first. */
   openReports: Report[]
   onClose: () => void
   onSetStatus: (status: AccountStatus, note: string) => Promise<boolean>

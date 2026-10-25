@@ -8,10 +8,10 @@ export const DEFAULT_CONTROLS: DemoControls = {
   googleFailure: 'none',
 }
 
-/** In-memory reviewer knobs. They reset on refresh. */
+// in-memory only, so knobs reset on refresh
 export const mockControls: DemoControls = { ...DEFAULT_CONTROLS }
 
-/** One-shot flags clear themselves after firing, so the retry succeeds. */
+// one-shot flags clear after firing so the retry succeeds
 export const consumeOnce = (key: 'failNextLoad' | 'failNextPublish') => {
   if (!mockControls[key]) return false
   mockControls[key] = false

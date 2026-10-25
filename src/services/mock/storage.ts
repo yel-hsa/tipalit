@@ -1,11 +1,7 @@
 import { ServiceError } from '../errors'
 
-/*
- * Versioned localStorage wrapper. Bump VERSION when a stored shape changes:
- * older keys are purged on startup and every record reseeds.
- */
 const NAMESPACE = 'tipalit.'
-// v2: listings gained transactionType + imageUrls; older records reseed.
+// bump on any stored shape change; older keys are purged and reseed
 const VERSION = 'v2'
 const PREFIX = `${NAMESPACE}${VERSION}.`
 
@@ -19,7 +15,7 @@ const safeStorage = (): Storage | null => {
 
 const storageKeys = (store: Storage) => Array.from({ length: store.length }, (_, index) => store.key(index) ?? '')
 
-/** Reads a record; missing, corrupt, or invalid data is replaced by `fallback()`. */
+// missing, corrupt, or invalid data is replaced by `fallback()`
 export function read<T>(key: string, fallback: () => T, isValid: (value: unknown) => value is T): T {
   const store = safeStorage()
   const raw = store?.getItem(PREFIX + key) ?? null
@@ -28,7 +24,7 @@ export function read<T>(key: string, fallback: () => T, isValid: (value: unknown
       const parsed: unknown = JSON.parse(raw)
       if (isValid(parsed)) return parsed
     } catch {
-      // Falls through to the reset below.
+      // falls through to the reset below
     }
     console.warn(`[TIPalit] Stored "${key}" was unreadable and has been reset.`)
   }
@@ -50,7 +46,7 @@ export function remove(key: string) {
   safeStorage()?.removeItem(PREFIX + key)
 }
 
-/** Removes every TIPalit record in the current version. */
+// current version only; other versions are left for purgeOldVersions
 export function clearAll() {
   const store = safeStorage()
   if (!store) return
@@ -59,7 +55,7 @@ export function clearAll() {
     .forEach((key) => store.removeItem(key))
 }
 
-/** Drops records written by older storage versions. */
+// runs on startup so stale shapes never reach read()
 export function purgeOldVersions() {
   const store = safeStorage()
   if (!store) return
@@ -80,7 +76,7 @@ export const isArrayOf =
   (value: unknown): value is T[] =>
     Array.isArray(value) && value.every(isItem)
 
-/** Shallow shape check: every listed key exists with the given primitive type. */
+// shallow check only; extra keys are allowed
 export const hasShape =
   <T>(shape: Record<string, 'string' | 'number' | 'boolean' | 'object'>) =>
   (value: unknown): value is T =>

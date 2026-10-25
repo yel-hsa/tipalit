@@ -5,7 +5,7 @@ import type { DemoControls } from '../services/types'
 import SwitchRow from './SwitchRow'
 import useDialogFocus from './useDialogFocus'
 
-/** UI-only reviewer flags; the rest live in the mock adapter's controls. */
+// ui-only reviewer flags; the rest live in the mock adapter's controls
 export type UiFlags = { emptyInbox: boolean; emptyInventory: boolean }
 export const UI_FLAGS_OFF: UiFlags = { emptyInbox: false, emptyInventory: false }
 
@@ -54,7 +54,7 @@ type DemoStatesPanelProps = {
   isOpen: boolean
   onClose: () => void
   flags: ReviewerFlags
-  /** Bumped on open and reset so every control starts from fresh state. */
+  // bumped on open and reset so every control starts from fresh state
   version: number
   onChange: <K extends keyof ReviewerFlags>(key: K, value: ReviewerFlags[K]) => void
   onLaunch: (launcher: DemoLauncher) => void

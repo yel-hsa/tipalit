@@ -9,12 +9,7 @@ type SwitchRowProps = {
   icon?: ReactNode
 }
 
-/**
- * Full-width settings toggle. The kit's SwitchField renders at a fixed 360px
- * (wider than our cards), is uncontrolled and exposes no switch role, so this
- * keeps the same anatomy but fills its container and is fully accessible.
- * The whole row is the tap target.
- */
+// kit SwitchField is fixed at 360px, uncontrolled and has no switch role
 export default function SwitchRow({ label, description, checked, onChange, icon }: SwitchRowProps) {
   const id = useId()
   const labelId = `${id}-label`

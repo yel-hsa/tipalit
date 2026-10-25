@@ -6,11 +6,11 @@ export type Tab = 'home' | 'sell' | 'chats' | 'profile' | 'admin'
 type BottomTabBarProps = {
   active: Tab
   onSelect: (tab: Tab) => void
-  /** Shows a dot on Chats when a seller is waiting on a reply. */
+  // dot on chats when a seller is waiting on a reply
   chatsUnread?: boolean
-  /** Adds the Admin tab. Only for sessions with the admin role. */
+  // admin tab only exists for admin sessions
   showAdmin?: boolean
-  /** Shows a dot on Admin while reports are open. */
+  // dot on admin while reports are open
   adminAlert?: boolean
 }
 

@@ -3,16 +3,7 @@ import { ServiceError } from '../errors'
 import type { Report, ReportInput, ReportService } from '../types'
 import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from './config'
 
-/**
- * Deterministic report id: one document per reporter per target.
- *
- * The random `input.id` meant the same member could file the same report over
- * and over, and an admin had to decide each copy separately. Hashing
- * reporter + target kind + target id makes a repeat land on the SAME document,
- * so it is an update rather than a second report. The hash is deliberately
- * tiny (two FNV-1a 32-bit passes) — it only needs to be stable, and the rules
- * still pin `reporter_id` on create.
- */
+// one doc per reporter per target, so a repeat is an update not a duplicate
 const hashId = (input: string): string => {
   let a = 0x811c9dc5
   let b = 0x01000193
@@ -27,7 +18,7 @@ const hashId = (input: string): string => {
   return `${a.toString(36)}${b.toString(36)}`
 }
 
-/** Firebase doc ids may not contain '/', so the kind and target are hashed, not concatenated. */
+// doc ids may not contain '/', so the parts are hashed rather than concatenated
 export const reportDocId = (reporterId: string, kind: string, targetId: string) =>
   `r-${hashId(`${reporterId}|${kind}|${targetId}`)}`
 
@@ -49,8 +40,7 @@ export function createFirebaseReports(): ReportService {
       let subjectName = 'Student'
       let campus: 'qc' | 'manila' = 'qc'
 
-      // The caller pre-generates an id for optimistic UI; live docs use the
-      // deterministic reporter+target id below instead.
+      // caller pre-generates an id for optimistic UI; live docs use the deterministic id
       const draftId = input.id
 
       if (!isFirebaseConfigured()) {
@@ -92,8 +82,7 @@ export function createFirebaseReports(): ReportService {
         const reportDocRef = doc(db, 'reports', id)
         const existing = await getDoc(reportDocRef)
 
-        // A repeat while the first is still open is a no-op: the admin already
-        // has this report, and re-opening it would bump it in the queue.
+        // re-opening an open report would bump it in the admin queue
         if (existing.exists() && existing.data().status === 'open') {
           const data = existing.data()
           return {
@@ -113,9 +102,7 @@ export function createFirebaseReports(): ReportService {
 
         const nowIso = new Date().toISOString()
 
-        // A previously closed report on the same target is re-opened with the
-        // new evidence rather than duplicated, so the admin always has one
-        // current report per reporter per target.
+        // a closed report is re-opened with the new evidence, never duplicated
         if (existing.exists()) {
           const previous = existing.data()
           await updateDoc(reportDocRef, {
@@ -141,9 +128,7 @@ export function createFirebaseReports(): ReportService {
           }
         }
 
-        // Create: the rules pin reporter_id to the caller and status 'open'.
-        // report_count is never touched from the client — it is server-only
-        // and, with no Cloud Functions, currently never moves.
+        // rules pin reporter_id to the caller; report_count is server-only
         await setDoc(reportDocRef, {
           id,
           target_type: input.target.kind,

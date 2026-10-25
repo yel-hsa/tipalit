@@ -1,18 +1,4 @@
-/*
- * TIPalit design tokens — the single place to restyle the app.
- *
- * The palette is derived from the TIPalit logo: charcoal tile, mid-gray
- * letterforms and the yellow arrow. These values override the Astra kit
- * defaults (@figma/astraui/styles.css); every screen and kit component reads
- * them through the Tailwind utilities mapped in @theme, so edit values here
- * and nothing else needs to change.
- *
- * Note: kit components always draw white text on --brand-primary and
- * --brand-secondary (button hover), so keep both dark enough for white text.
- */
-
 :root {
-  /* Typography — the only font face used by the app */
   --font-family-base: 'Instrument Sans', system-ui, sans-serif;
   --font-sans: var(--font-family-base);
   --font-display: var(--font-family-base);
@@ -33,27 +19,23 @@
   --type-weight-medium: 500;
   --type-weight-semibold: 600;
 
-  /* Layout */
   --layout-phone: 390px;
-  /* Kit modals use fixed 360/480px widths; this keeps them inside the phone frame. */
+  /* kit modals use fixed 360/480px widths; this keeps them inside the phone frame */
   --modal-width: min(calc(100vw - 2 * var(--space-xl)), calc(var(--layout-phone) - 2 * var(--space-xl)));
-  /* Minimum hit area for every interactive control (WCAG 2.5.5). */
+  /* minimum hit area for every interactive control (WCAG 2.5.5) */
   --touch-target: 44px;
   --sheet-max-height: 85dvh;
 
-  /* Toasts float above whichever bottom bar the screen has. */
+  /* toasts float above whichever bottom bar the screen has */
   --toast-offset-tabs: 96px;
   --toast-offset-composer: 80px;
   --toast-offset-cta: 96px;
 
-  /* Intro carousel photo tile */
   --intro-photo-ratio: 4 / 5;
 
-  /* Elevation — reserved for floating layers (sheet, modal, toast). */
   --elevation-raised: 0 4px 6px -1px #0000001a;
   --modal-scrim: #1c1b1a80;
 
-  /* Brand — logo charcoal */
   --brand-primary: #2b2a28;
   --brand-hover: #3c3b39;
   --brand-dark: #1c1b1a;
@@ -61,12 +43,10 @@
   --brand-tertiary: #f3f2ee;
   --brand-muted: #8a8780;
 
-  /* Accent — logo yellow. Use for highlights with --on-accent text. */
   --accent: #f9c80e;
   --accent-soft: #fdf3c4;
   --on-accent: #1e1e1e;
 
-  /* Surfaces */
   --surface-bg: #ffffff;
   --surface-secondary-bg: #ffffff80;
   --surface-hover: #e9e7e1;
@@ -74,14 +54,12 @@
   --surface-dark-hover: #33322f;
   --surface-darkest: #1c1b1a;
 
-  /* Text */
   --text-primary: #1f1e1ce6;
   --text-secondary: #1f1e1c94;
   --text-tertiary: #1f1e1c57;
   --on-brand: #ffffff;
   --on-reverse: #1e1e1e;
 
-  /* Borders & tints */
   --border-primary: #1f1e1c26;
   --border-secondary: #1f1e1c12;
   --border-selected: #2b2a28;
@@ -90,33 +68,24 @@
   --bg-subtle: #1f1e1c0d;
   --bg-hover: #1f1e1c14;
 
-  /* Status */
   --success: #3cc774;
   --warning: #f5a524;
   --danger: #e5484d;
   --danger-soft: #e5484d14;
   --success-soft: #3cc77414;
 
-  /* Neutral/subtle control label, icon and outline colours (see the .dark overrides below). */
   --control-fg: var(--brand-primary);
   --control-border: var(--brand-primary);
 
-  /* Round buttons that float over photos. Same in both themes: a dark scrim with a white icon. */
+  /* same in both themes: a dark scrim with a white icon */
   --overlay-control-bg: #1c1b1aa6;
   --overlay-control-hover: #1c1b1ad9;
   --on-overlay: #ffffff;
 
-  /* Switch */
   --switch-track-off: #1f1e1c29;
   --switch-track-on: var(--brand-primary);
   --switch-thumb: #ffffff;
   --switch-thumb-on: #ffffff;
-
-  /* Spacing / radius overrides — uncomment and edit.
-  --space-xs: 4px;  --space-sm: 6px;  --space-md: 8px;
-  --space-lg: 12px; --space-xl: 16px; --space-2xl: 24px;
-  --corner-sm: 4px; --corner-md: 8px; --corner-lg: 16px; --corner-full: 999px;
-  */
 }
 
 .dark {
@@ -164,7 +133,6 @@
 }
 
 @theme inline {
-  /* Colours */
   --color-brand-primary: var(--brand-primary);
   --color-brand-hover: var(--brand-hover);
   --color-brand-dark: var(--brand-dark);
@@ -207,7 +175,6 @@
   --color-switch-thumb: var(--switch-thumb);
   --color-switch-thumb-on: var(--switch-thumb-on);
 
-  /* Spacing */
   --spacing-xs: var(--space-xs);
   --spacing-sm: var(--space-sm);
   --spacing-md: var(--space-md);
@@ -219,26 +186,21 @@
   --spacing-toast-composer: var(--toast-offset-composer);
   --spacing-toast-cta: var(--toast-offset-cta);
 
-  /* Radius */
   --radius-corner-sm: var(--corner-sm);
   --radius-corner-md: var(--corner-md);
   --radius-corner-lg: var(--corner-lg);
   --radius-corner-full: var(--corner-full);
 
-  /* Layout */
   --container-phone: var(--layout-phone);
   --aspect-intro: var(--intro-photo-ratio);
 
-  /* Elevation & motion */
   --shadow-raised: var(--elevation-raised);
   --animate-shimmer: tip-shimmer 1.4s ease-in-out infinite;
   --animate-sheet-in: tip-sheet-in 200ms ease-out;
   --animate-fade-in: tip-fade-in 240ms ease-out;
 
-  /* Font weights */
   --font-weight-book: var(--type-weight-book);
 
-  /* Type scale */
   --text-title: var(--type-title-size);
   --text-title--line-height: var(--type-line-height);
   --text-title--font-weight: var(--type-weight-semibold);
@@ -275,13 +237,7 @@
   }
 }
 
-/*
- * Kit neutral and subtle controls (Button, IconButton) draw their label, icon,
- * outline and focus ring with --brand-primary. That colour is tuned as a fill
- * behind white text, so in dark mode it nearly disappears on dark surfaces.
- * Point those parts at the --control-* tokens instead. Left unlayered on
- * purpose so it wins over the kit's own utilities.
- */
+/* --brand-primary is tuned as a fill behind white text, so it vanishes on dark surfaces; left unlayered to beat the kit's utilities */
 .dark .text-brand-primary {
   color: var(--control-fg);
 }
@@ -292,7 +248,7 @@
   --tw-ring-color: var(--control-fg);
   --tw-ring-offset-color: var(--surface-bg);
 }
-/* The kit Tabs' active underline is a bg-brand-primary bar inside the tab. */
+/* the kit tabs' active underline is a bg-brand-primary bar inside the tab */
 .dark [role='tab'] > .bg-brand-primary {
   background-color: var(--control-fg);
 }
@@ -304,10 +260,7 @@
   }
 }
 
-/*
- * Grows a control's invisible hit area to --touch-target without changing
- * its visual size. Kit buttons render at 32px (small) and 40px (medium).
- */
+/* grows the hit area to --touch-target without changing visual size; kit buttons render at 32px and 40px */
 @utility touch-hit {
   position: relative;
   &::after {
