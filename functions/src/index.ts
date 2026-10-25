@@ -211,9 +211,12 @@ export const submitReport = onCall(async (request) => {
       created_at: nowIso,
       updated_at: FieldValue.serverTimestamp(),
       server_timestamp: FieldValue.serverTimestamp(),
-      resolution: FieldValue.delete(),
     }
-    tx.set(reportRef, reportData)
+    if (isReopen) {
+      tx.set(reportRef, { ...reportData, resolution: FieldValue.delete() }, { merge: true })
+    } else {
+      tx.create(reportRef, reportData)
+    }
     if (!isReopen) {
       tx.set(
         rateLimitRef,
@@ -268,21 +271,25 @@ export const resolveReport = onCall(async (request) => {
   const siblingRefs = new Map<string, FirebaseFirestore.DocumentReference>()
   nestedSiblings.forEach((snapshot) => siblingRefs.set(snapshot.id, snapshot.ref))
   flatSiblings.forEach((snapshot) => siblingRefs.set(snapshot.id, snapshot.ref))
+  siblingRefs.set(reportRef.id, reportRef)
 
   const resolution = { action, note, byName: actorName, at }
   const status = action === 'dismiss' ? 'dismissed' : 'resolved'
   const auditRef = db.collection('audit_log').doc(`report_${reportId}`)
   await db.runTransaction(async (tx) => {
-    const currentSnap = await tx.get(reportRef)
-    if (!currentSnap.exists) throw new HttpsError('not-found', 'Report not found.')
+    const siblingSnaps = await tx.getAll(...siblingRefs.values())
+    const currentSnap = siblingSnaps.find((snapshot) => snapshot.id === reportId)
+    if (!currentSnap?.exists) throw new HttpsError('not-found', 'Report not found.')
     if (currentSnap.data()?.status !== 'open') {
       throw new HttpsError('failed-precondition', 'This report has already been resolved.')
     }
+    if (siblingSnaps.some((snapshot) => snapshot.exists && snapshot.data()?.status !== 'open')) {
+      throw new HttpsError('failed-precondition', 'A report for this target has already been resolved.')
+    }
 
-    siblingRefs.forEach((ref) =>
-      tx.set(ref, { status, resolution, updated_at: FieldValue.serverTimestamp() }, { merge: true }),
+    siblingSnaps.forEach((snapshot) =>
+      tx.set(snapshot.ref, { status, resolution, updated_at: FieldValue.serverTimestamp() }, { merge: true }),
     )
-    tx.set(reportRef, { status, resolution, updated_at: FieldValue.serverTimestamp() }, { merge: true })
 
     if (action === 'remove_listing') {
       tx.set(

@@ -32,6 +32,8 @@ jobs:
 
       - run: pnpm run test:functions
 
+      - run: pnpm run test:callables
+
       - run: pnpm run test:shapes
 
       - run: pnpm run test:rules

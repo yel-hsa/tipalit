@@ -18,7 +18,11 @@ if (!existsSync(path.join(javaHome, 'bin', process.platform === 'win32' ? 'java.
 
 const filter = process.argv[2] ?? ''
 const specs = readdirSync(HERE)
-  .filter((name) => name.endsWith('.test.mjs') && name.includes(filter))
+  .filter(
+    (name) =>
+      name.endsWith('-rules.test.mjs') &&
+      name.includes(filter),
+  )
   .map((name) => `functions/test/${name}`)
 
 if (specs.length === 0) {

@@ -1,5 +1,4 @@
 import { collection, getDocs } from 'firebase/firestore'
-import { ADMIN_EMAILS } from '../seed'
 import { ServiceError } from '../errors'
 import { callResolveReport, callSaveMeetupSpots, callSetMemberStatus } from './admin-callables'
 import { toListing } from './listings'
@@ -13,12 +12,8 @@ import type {
   MemberSummary,
   Report,
   ReportAction,
-  Role,
 } from '../types'
 import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from './config'
-
-const roleForEmail = (email: string): Role =>
-  ADMIN_EMAILS.includes(email.toLowerCase()) ? 'admin' : 'member'
 
 export function createFirebaseAdmin(): AdminService {
   const db = getFirebaseDb()
@@ -106,7 +101,7 @@ export function createFirebaseAdmin(): AdminService {
             campus: data.campus || 'qc',
             program: data.department || data.program || 'Student',
             year: data.year || '1st Year',
-            role: data.role || roleForEmail(email),
+            role: data.role === 'admin' ? 'admin' : 'member',
             status: data.status || 'active',
             joinedAt: data.joinedAt || null,
             activeListings: 0,
