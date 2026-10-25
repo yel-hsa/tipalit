@@ -1,34 +1,7 @@
 #!/usr/bin/env node
-/**
- * TIPalit live-data repair — DRY RUN BY DEFAULT.
- *
- * Two independent repairs, each idempotent:
- *
- *  1. settings/campus_meetup_spots — normalize stringified-array campus values
- *     into real arrays.
- *       Input shapes seen live:
- *         manila: '[Arlegui Gate 1, Casal Student Lounge, Library Mezzanine]'  (bracketed, unquoted)
- *         qc:     '["Main Gate Guard Post", "Gym Lobby"]'                      (JSON)
- *         manila: ['Arlegui Gate 1', 'Casal Student Lounge']                   (already fine)
- *       Run this AFTER the frontend reads `campus_meetup_spots` (Stream A), so
- *       the parser there is tolerant of both shapes during rollout.
- *
- *  2. users_profile.program — backfill from `department` where `program` is
- *     missing or empty (every users_profile doc, in batches).
- *
- * Usage (from the repo root):
- *   node scripts/migrate-live-data.mjs               # dry run, prints planned changes
- *   node scripts/migrate-live-data.mjs --apply       # performs the writes
- *   node scripts/migrate-live-data.mjs --only=spots  # or --only=program
- *
- * Auth: uses Application Default Credentials (run `gcloud auth application-default login`
- * once, or set GOOGLE_APPLICATION_CREDENTIALS to a service-account key file).
- *
- * Requires `firebase-admin` to resolve. It is not a root dependency of this app;
- * run it via the functions workspace, e.g.:
- *   (cd functions && npm run build && node ../scripts/migrate-live-data.mjs --apply)
- * or `npm install --no-save firebase-admin` first.
- */
+// live-data repair, dry run by default; --apply writes, --only=spots|program narrows
+// auth: application default credentials, or GOOGLE_APPLICATION_CREDENTIALS
+// firebase-admin is not a root dep; run from functions/ after npm run build
 
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
@@ -48,13 +21,9 @@ const APPLY = args.has('--apply')
 const onlyArg = [...args].find((arg) => arg.startsWith('--only='))
 const ONLY = onlyArg ? onlyArg.slice('--only='.length) : null // 'spots' | 'program' | null
 
-// ---------------------------------------------------------------------------
-// firebase-admin resolution
-// ---------------------------------------------------------------------------
-
 function loadAdmin() {
   const require = createRequire(import.meta.url)
-  // The app root does not depend on firebase-admin; the functions workspace does.
+  // the app root does not depend on firebase-admin; the functions workspace does
   const candidates = [
     'firebase-admin',
     path.join(REPO_ROOT, 'functions', 'node_modules', 'firebase-admin'),
@@ -74,11 +43,7 @@ function loadAdmin() {
   process.exit(1)
 }
 
-// ---------------------------------------------------------------------------
-// Tolerant parser — mirrors src/services/firebase/settings.ts#parseSpotList.
-// Keep the two in sync: the app reads live data with the same rules.
-// ---------------------------------------------------------------------------
-
+// mirrors src/services/firebase/settings.ts#parseSpotList; keep the two in sync
 function stripQuotes(spot) {
   if (spot.length >= 2) {
     const first = spot[0]
@@ -115,7 +80,7 @@ function parseSpotList(value) {
       const parsed = JSON.parse(trimmed)
       if (Array.isArray(parsed)) return parseSpotList(parsed)
     } catch {
-      // Not valid JSON — bracketed/unquoted shape.
+      // not valid json; fall through to the bracketed/unquoted shape
     }
     const inner = trimmed.slice(1, trimmed.endsWith(']') ? -1 : undefined)
     return splitBracketedList(inner)
@@ -129,10 +94,7 @@ const isPlainArrayOfStrings = (value) =>
 
 const sameList = (a, b) => a.length === b.length && a.every((spot, i) => spot === b[i])
 
-// ---------------------------------------------------------------------------
-// Repair 1: settings/campus_meetup_spots
-// ---------------------------------------------------------------------------
-
+// repair 1: settings/campus_meetup_spots
 function describeShape(value) {
   if (value === undefined) return 'missing'
   if (Array.isArray(value)) return `array(${value.length})`
@@ -209,10 +171,7 @@ async function repairSpots(db) {
   return { changed }
 }
 
-// ---------------------------------------------------------------------------
-// Repair 2: users_profile.program backfilled from department
-// ---------------------------------------------------------------------------
-
+// repair 2: users_profile.program backfilled from department
 const isMissingProgram = (value) => value === undefined || value === null || value === ''
 
 async function repairPrograms(db) {
@@ -262,15 +221,10 @@ async function repairPrograms(db) {
   return { changed: written }
 }
 
-// ---------------------------------------------------------------------------
-// main
-// ---------------------------------------------------------------------------
-
 async function main() {
   const admin = loadAdmin()
   admin.initializeApp()
-  // firebase-admin 14 dropped the namespaced `admin.firestore()`; the modular
-  // entry point is the supported path.
+  // firebase-admin 14 dropped the namespaced admin.firestore(); use the modular entry
   const { getFirestore } = createRequire(import.meta.url)('firebase-admin/firestore')
   const db = getFirestore()
 
