@@ -11,8 +11,8 @@ This file serves as the ground-truth state anchor across Claude Code sessions, r
 ---
 
 ## 2. Git & Branch State
-- **Primary Branch (`master`):** At commit `9a84caa` (*"Add the Storage CORS policy for local dev and hosting origins"*).
-- **Last Auto-Sync:** 2026-10-25 07:35:37
+- **Primary Branch (`master`):** At commit `0096196` (*"Record the rules deploy and the blocked Storage CORS step"*).
+- **Last Auto-Sync:** 2026-10-25 07:35:38
 - **Working Tree:** Clean.
 - **Verification Status (re-run 2026-10-25 against `9963790`):**
   - `npm run typecheck` -> PASS (clean `tsc --noEmit`)
@@ -23,11 +23,11 @@ This file serves as the ground-truth state anchor across Claude Code sessions, r
 ---
 
 ### Recent Commits (Auto-Synced)
+- **0096196** *(2026-10-25 15:35)*: Record the rules deploy and the blocked Storage CORS step
 - **9a84caa** *(2026-10-25 15:35)*: Add the Storage CORS policy for local dev and hosting origins
 - **43bdcfa** *(2026-10-25 15:32)*: Record the rules-test pass in PROGRESS.md
 - **64caa2c** *(2026-10-25 14:28)*: chore: automate PROGRESS.md updates via git hooks and sync-progress script
 - **9963790** *(2026-10-25 12:42)*: Fix the inert background: it was inerting the dialogs too
-- **166380e** *(2026-10-25 12:30)*: Wire up the reserved status, drop listReviews, add CI
 
 ---
 
