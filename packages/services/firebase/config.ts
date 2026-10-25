@@ -1,6 +1,7 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
 import { getAuth, type Auth } from 'firebase/auth'
 import { getFirestore, type Firestore } from 'firebase/firestore'
+import { getFunctions, type Functions } from 'firebase/functions'
 
 export interface FirebaseConfig {
   apiKey: string
@@ -37,6 +38,7 @@ export const isFirebaseConfigured = (): boolean => {
 let appInstance: FirebaseApp | null = null
 let authInstance: Auth | null = null
 let dbInstance: Firestore | null = null
+let functionsInstance: Functions | null = null
 
 export const getFirebaseApp = (): FirebaseApp => {
   if (appInstance) return appInstance
@@ -75,4 +77,11 @@ export const getFirebaseDb = (): Firestore => {
     dbInstance = getFirestore(getFirebaseApp())
   }
   return dbInstance
+}
+
+export const getFirebaseFunctions = (): Functions => {
+  if (!functionsInstance) {
+    functionsInstance = getFunctions(getFirebaseApp())
+  }
+  return functionsInstance
 }

@@ -6,15 +6,13 @@ import {
   type User,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
-import { ADMIN_EMAILS } from '../seed'
 import { initialsOf } from '../profile'
 import type { AuthService, AuthResult, Role, Session } from '../types'
 import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from './config'
 
 const TIP_DOMAIN = /@tip\.edu\.ph$/i
 
-const roleForEmail = (email: string): Role =>
-  ADMIN_EMAILS.includes(email.toLowerCase()) ? 'admin' : 'member'
+const roleFromClaims = (claims: Record<string, unknown>): Role => (claims.admin === true ? 'admin' : 'member')
 
 const nameFromUser = (user: User): string => {
   if (user.displayName && user.displayName.trim()) return user.displayName.trim()
@@ -29,7 +27,7 @@ const nameFromUser = (user: User): string => {
   )
 }
 
-function sessionFromUser(user: User, roleOverride?: Role): Session {
+function sessionFromUser(user: User, role: Role): Session {
   const email = user.email || ''
   const name = nameFromUser(user)
   return {
@@ -38,7 +36,7 @@ function sessionFromUser(user: User, roleOverride?: Role): Session {
     name,
     initials: initialsOf(name),
     issuedAt: new Date().toISOString(),
-    role: roleOverride ?? roleForEmail(email),
+    role,
   }
 }
 
@@ -85,18 +83,19 @@ export function createFirebaseAuth(): AuthService {
 
         if (userSnapshot.exists()) {
           const data = userSnapshot.data()
-          if (data.status === 'suspended') {
+          if (data.status !== 'active') {
             await firebaseSignOut(auth).catch(() => {})
             return null
           }
-          const role: Role = data.role === 'admin' || roleForEmail(currentUser.email) === 'admin' ? 'admin' : 'member'
-          return sessionFromUser(currentUser, role)
+          const token = await currentUser.getIdTokenResult()
+          return sessionFromUser(currentUser, roleFromClaims(token.claims))
         }
 
-        return sessionFromUser(currentUser)
+        await firebaseSignOut(auth).catch(() => {})
+        return null
       } catch (err) {
         console.warn('[TIPalit Firebase Auth] Could not fetch profile on getSession:', err)
-        return sessionFromUser(currentUser)
+        return null
       }
     },
 
@@ -129,16 +128,15 @@ export function createFirebaseAuth(): AuthService {
         const userDocRef = doc(db, 'users_profile', user.uid)
         const userSnapshot = await getDoc(userDocRef)
 
-        let role: Role = roleForEmail(email)
+        let role: Role = 'member'
         if (userSnapshot.exists()) {
           const profileData = userSnapshot.data()
-          if (profileData.status === 'suspended') {
+          if (profileData.status !== 'active') {
             await firebaseSignOut(auth).catch(() => {})
             return { ok: false, reason: 'suspended', email }
           }
-          if (profileData.role === 'admin') {
-            role = 'admin'
-          }
+          const token = await user.getIdTokenResult()
+          role = roleFromClaims(token.claims)
         } else {
           // rules pin create to role 'member'; leaving campus unset keeps onboarding running
           await setDoc(userDocRef, {
@@ -150,6 +148,8 @@ export function createFirebaseAuth(): AuthService {
             status: 'active',
             joinedAt: new Date().toISOString(),
           })
+          const token = await user.getIdTokenResult()
+          role = roleFromClaims(token.claims)
         }
 
         const session = sessionFromUser(user, role)

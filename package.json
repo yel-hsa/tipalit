@@ -13,8 +13,9 @@
     "build:functions": "corepack pnpm --filter tipalit-functions build",
     "typecheck": "corepack pnpm --filter @tipalit/services typecheck && corepack pnpm --filter @tipalit/web typecheck && corepack pnpm --filter @tipalit/mobile typecheck && corepack pnpm --filter tipalit-functions typecheck",
     "format": "corepack pnpm -r --if-present format",
+    "test:functions": "corepack pnpm --filter tipalit-functions unit",
     "test:shapes": "node --test functions/test/shapes.test.mjs",
     "test:rules": "node functions/test/run-rules.mjs",
-    "test": "corepack pnpm run test:shapes && corepack pnpm run test:rules"
+    "test": "corepack pnpm run test:functions && corepack pnpm run test:shapes && corepack pnpm run test:rules"
   }
 }

@@ -19,10 +19,7 @@ service firebase.storage {
     }
 
     function isAdmin() {
-      return hasActiveAccount() && (
-        request.auth.token.email in ['osa.admin@tip.edu.ph'] ||
-        firestore.get(profilePath()).data.role == 'admin'
-      );
+      return hasActiveAccount() && request.auth.token.admin == true;
     }
 
     function isImage() {

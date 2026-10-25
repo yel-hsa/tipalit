@@ -5,13 +5,14 @@ export const BASE = `http://${HOST}/v1/projects/${PROJECT_ID}/databases/(default
 export const OWNER_TOKEN = 'owner'
 
 // unsigned jwt; the emulator reads its claims as request.auth.token
-export const tipClaims = (uid, email = `${uid}@tip.edu.ph`) => ({
+export const tipClaims = (uid, email = `${uid}@tip.edu.ph`, overrides = {}) => ({
   uid,
   sub: uid,
   email,
   email_verified: true,
   aud: PROJECT_ID,
   iss: `https://securetoken.google.com/${PROJECT_ID}`,
+  ...overrides,
 })
 
 // non-tip domain, so isTipStudent must reject it

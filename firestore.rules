@@ -27,14 +27,8 @@ service cloud.firestore {
         get(profilePath(request.auth.uid)).data.status == 'active';
     }
 
-    // Admin authority is currently compatible with the preserved email/profile
-    // roles. Every branch also requires an active account so suspension takes
-    // effect in rules without waiting for the client to refresh its session.
     function isAdmin() {
-      return hasActiveAccount() && (
-        request.auth.token.email in ['osa.admin@tip.edu.ph'] ||
-        get(profilePath(request.auth.uid)).data.role == 'admin'
-      );
+      return hasActiveAccount() && request.auth.token.admin == true;
     }
 
     function isOwner(userId) {
@@ -69,23 +63,16 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['full_name', 'campus', 'department', 'program', 'year',
                       'safetyAcceptedAt', 'onboardedAt', 'joinedAt', 'updated_at']))
-        // Admins moderate accounts: status is the only extra key they may
-        // write, and it is limited to the two account states.
-        || (isAdmin()
-          && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['full_name', 'campus', 'department', 'program', 'year',
-                      'safetyAcceptedAt', 'onboardedAt', 'joinedAt', 'updated_at',
-                      'status'])
-          && request.resource.data.status in ['active', 'suspended']);
-      allow delete: if isAdmin();
+        // Account state and role are server-owned. Administrators use callable
+        // Functions so the profile mutation and immutable audit event are atomic.
+        || false;
+      allow delete: if false;
     }
 
     // ---------- 2. listings ----------
 
-    function listingOwnerOrAdmin() {
-      return hasActiveAccount() && (
-        resource.data.seller_id == request.auth.uid || isAdmin()
-      );
+    function listingOwner() {
+      return hasActiveAccount() && resource.data.seller_id == request.auth.uid;
     }
 
     match /listings/{listingId} {
@@ -122,13 +109,11 @@ service cloud.firestore {
       // admins alike. It is a server-maintained counter; with no Cloud
       // Functions it currently never moves (see INFO.md), and a client write
       // would let a seller reset their own flag count.
-      allow update: if listingOwnerOrAdmin()
+      allow update: if listingOwner()
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(['report_count'])
-        && request.resource.data.status in (
-             isAdmin() ? ['active', 'reserved', 'sold', 'removed'] : ['active', 'reserved', 'sold']
-           );
-      allow delete: if listingOwnerOrAdmin();
+        && request.resource.data.status in ['active', 'reserved', 'sold'];
+      allow delete: if listingOwner();
     }
 
     // ---------- 3. chats + 4. messages ----------
@@ -189,20 +174,17 @@ service cloud.firestore {
     // ---------- 6. reports ----------
 
     match /reports/{reportId} {
-      // Reporters create; one report per reporter per target is enforced by
-      // the client's deterministic doc id (reporter uid + target hashed, see
-      // src/services/firebase/reports.ts). No Cloud Function exists on the
-      // current plan, so report_count is never incremented and nothing
-      // auto-hides a listing here.
-      allow create: if hasActiveAccount()
-        && request.resource.data.reporter_id == request.auth.uid
-        && request.resource.data.status == 'open';
+      // Submissions, reopenings, resolutions, and moderation effects are all
+      // authored by callable Functions from server-derived target metadata.
       allow read: if hasActiveAccount() && (
         resource.data.reporter_id == request.auth.uid || isAdmin()
       );
-      // Only admins resolve; the resolution note and action are theirs.
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /report_rate_limits/{userId} {
+      // Private server-owned counters used by the report submission callable.
+      allow read, write: if false;
     }
 
     // ---------- 7. promotions ----------
@@ -215,9 +197,10 @@ service cloud.firestore {
     // ---------- 8. settings ----------
 
     match /settings/{settingId} {
-      // Readable only by verified members, not the public.
+      // Readable only by verified members, not the public. Settings changes and
+      // their audit event are authored atomically by callable Functions.
       allow read: if hasActiveAccount();
-      allow write: if isAdmin();
+      allow write: if false;
     }
 
     // ---------- 8b. promotion_clicks ----------
@@ -236,9 +219,8 @@ service cloud.firestore {
 
     match /audit_log/{auditId} {
       allow read: if isAdmin();
-      // Append-only: admins create, nobody updates or deletes.
-      allow create: if isAdmin();
-      allow update, delete: if false;
+      // Server-authored and append-only; Admin SDK writes bypass client rules.
+      allow create, update, delete: if false;
     }
 
     // ---------- 10. analytics_events ----------

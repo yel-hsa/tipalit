@@ -30,6 +30,8 @@ jobs:
 
       - run: pnpm run build
 
+      - run: pnpm run test:functions
+
       - run: pnpm run test:shapes
 
       - run: pnpm run test:rules

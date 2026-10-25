@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Milestone 0 — Preserve work and establish truthful safety rails.
+Milestone 1 — Canonical domain, identity, media, and security foundation.
 
 - Branch: `milestone-0-preserve-and-stabilize`
 - Base: `7e42332` (`Split the app into web, mobile, and shared service workspaces`)
@@ -40,19 +40,22 @@ Coverage confirmed:
 - Vite emits both `dist/index.html` and `dist/admin.html`.
 - Functions compile successfully.
 - Expo exports web, iOS, and Android bundles successfully.
+- Function helper tests: 6/6 passed.
 - Shape tests: 17/17 passed.
-- Firestore rules tests: 54/54 passed after the first Milestone 1 security slice.
-- Storage rules loaded successfully in the Storage emulator with the installed JDK 25; the machine's default JDK 17 is too old for the current Firebase CLI.
+- Firestore rules tests: 61/61 passed for custom-claim authority, suspended administrators, active accounts, safe listing queries, denied direct privileged writes, and forged report submission.
+- Storage rules loaded successfully in the Storage emulator with the installed JDK 25; the machine's default Java runtime is too old for the current Firebase CLI.
 - `git diff --check` passed before each completed checkpoint.
 
 ## Open warnings and blockers
 
-- The shared web JavaScript chunk is approximately 924.52 kB minified; route-level/code splitting remains required before release.
-- Suspended accounts are now denied protected Firestore/Storage access, and unfiltered student listing queries can no longer expose moderated records.
-- Admin authority still supports the preserved email/profile-role compatibility path; trusted custom claims and callable role provisioning remain required.
-- Listing photos still require migration from inline/base64 data to Cloud Storage metadata and thumbnails.
+- The shared web JavaScript chunk is approximately 927.05 kB minified; route-level/code splitting remains required before release.
+- Suspended accounts and suspended claimed administrators are denied protected Firestore/Storage access, and unfiltered student listing queries cannot expose moderated records.
+- Admin authorization now uses trusted custom claims, while report resolution, member status, and meetup settings route through callable Functions. Safe custom-claim provisioning remains required; no real role has been provisioned.
+- Report submission now routes through a callable with reason-code validation, server-derived metadata, deterministic document IDs, and per-account rate limiting.
+- Callable emulator integration coverage for concurrent report resolution/submission and mutation/audit atomicity remains required beyond the current helper and rule suites.
+- Listing photos still require migration from inline/base64 data to Cloud Storage metadata and thumbnails, plus adversarial Storage-rule tests.
 - The desktop admin has known forbidden-sign-in, expiry-warning, semantic-style, and responsive-layout gaps.
 
 ## Exact next action
 
-Continue Milestone 1 by moving administrator authority to trusted custom claims and routing moderation/account actions through authorized callable Functions. Add emulator tests for role escalation, suspended-admin access, direct privileged writes, atomic moderation/audit behavior, and forged report metadata before changing the UI or extracting `apps/admin`.
+Checkpoint the current custom-claim, moderation, meetup-settings, and server-authored report callable slice after final diff review. Next, add callable-emulator concurrency/atomicity coverage and safe custom-claim provisioning tooling without assigning a real role, then begin the Storage media model and adversarial Storage-rule tests before UI work.

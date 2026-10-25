@@ -19,12 +19,18 @@ const OTHER_UID = `${RUN}-other`
 const ADMIN_UID = `${RUN}-admin`
 const OUTSIDER_UID = `${RUN}-outsider`
 const SUSPENDED_UID = `${RUN}-suspended`
+const SUSPENDED_ADMIN_UID = `${RUN}-suspended-admin`
 
 const SELLER = { uid: SELLER_UID, token: userToken(tipClaims(SELLER_UID)) }
 const OTHER = { uid: OTHER_UID, token: userToken(tipClaims(OTHER_UID)) }
-const ADMIN = { uid: ADMIN_UID, token: userToken(tipClaims(ADMIN_UID, ADMIN_EMAIL)) }
+const ADMIN = { uid: ADMIN_UID, token: userToken(tipClaims(ADMIN_UID, ADMIN_EMAIL, { admin: true })) }
 const OUTSIDER = { uid: OUTSIDER_UID, token: userToken(outsiderClaims(OUTSIDER_UID)) }
 const SUSPENDED = { uid: SUSPENDED_UID, token: userToken(tipClaims(SUSPENDED_UID)) }
+const SUSPENDED_ADMIN = {
+  uid: SUSPENDED_ADMIN_UID,
+  token: userToken(tipClaims(SUSPENDED_ADMIN_UID, `${SUSPENDED_ADMIN_UID}@tip.edu.ph`, { admin: true })),
+}
+const UNCLAIMED_ADMIN = { uid: ADMIN_UID, token: userToken(tipClaims(ADMIN_UID, ADMIN_EMAIL)) }
 
 const sellerClient = () => asUser(SELLER.token)
 const otherClient = () => asUser(OTHER.token)
@@ -105,10 +111,28 @@ before(async () => {
   await seedProfile(OTHER.uid)
   await seedProfile(OUTSIDER.uid, { email: `${OUTSIDER_UID}@example.com` })
   await seedProfile(SUSPENDED.uid, { status: 'suspended' })
+  await seedProfile(SUSPENDED_ADMIN.uid, { status: 'suspended', role: 'admin' })
 })
 
 after(async () => {
   // emulators:exec tears the emulator down with the process
+})
+
+describe('administrator claims', () => {
+  test('allowlisted email without an admin claim has no privileged access', async () => {
+    const result = await asUser(UNCLAIMED_ADMIN.token).query('audit_log', {})
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('member cannot self-grant an administrator role', async () => {
+    const result = await sellerClient().update(`users_profile/${SELLER.uid}`, { role: 'admin' })
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('suspended administrator claim cannot read privileged collections', async () => {
+    const result = await asUser(SUSPENDED_ADMIN.token).query('audit_log', {})
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
 })
 
 describe('listings — active-account enforcement', () => {
@@ -287,18 +311,13 @@ describe('listings — feed query shape', () => {
 })
 
 describe('listings — admin moderation', () => {
-  test('admin can set status removed', async () => {
+  test('admin cannot set status removed through client rules', async () => {
     const id = await seedListing()
     const result = await adminClient().update(`listings/${id}`, { status: 'removed' })
-    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
-
-    const read = await owner.get(`listings/${id}`)
-    assert.equal(read.json.fields.status.stringValue, 'removed')
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 
-  // the status != 'hidden' rule blocks admins too; auto-hide works because the
-  // cloud function writes via the admin sdk, which bypasses rules
-  test('admin cannot set status hidden through client rules (baseline quirk)', async () => {
+  test('admin cannot set status hidden through client rules', async () => {
     const id = await seedListing()
     const result = await adminClient().update(`listings/${id}`, { status: 'hidden' })
     assert.ok(isForbidden(result), `expected 403 at baseline, got ${result.status}: ${result.text}`)
@@ -307,6 +326,49 @@ describe('listings — admin moderation', () => {
   test('non-owner non-admin cannot delete a listing', async () => {
     const id = await seedListing()
     const result = await otherClient().remove(`listings/${id}`)
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+})
+
+describe('privileged collections — client writes are denied', () => {
+  test('member cannot submit a forged report directly', async () => {
+    const result = await otherClient().createWithId('reports', uniqueId('forged-report'), {
+      reporter_id: OTHER.uid,
+      target_type: 'listing',
+      target_id: 'forged-listing',
+      subject_id: ADMIN.uid,
+      status: 'open',
+    })
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('admin cannot resolve a report directly', async () => {
+    const id = uniqueId('report')
+    const seeded = await owner.setWithId(`reports/${id}`, {
+      reporter_id: OTHER.uid,
+      target_id: 'listing-1',
+      target: { kind: 'listing', id: 'listing-1', label: 'Listing' },
+      status: 'open',
+    })
+    assert.ok(isOk(seeded), `seed report failed: ${seeded.status} ${seeded.text}`)
+    const result = await adminClient().update(`reports/${id}`, { status: 'resolved' })
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('admin cannot forge an audit event directly', async () => {
+    const result = await adminClient().create('audit_log', {
+      at: new Date().toISOString(),
+      action: 'member_suspended',
+      actorName: 'Forged Admin',
+      summary: 'Forged event',
+    })
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('admin cannot update meetup settings directly', async () => {
+    const result = await adminClient().createWithId('settings', uniqueId('meetup-spots'), {
+      qc: ['Forged location'],
+    })
     assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 })
@@ -354,9 +416,9 @@ describe('users_profile — owners and privileged fields', () => {
     await seedProfile(SELLER.uid)
   })
 
-  test('admin can suspend a member', async () => {
+  test('admin cannot suspend a member through client rules', async () => {
     const result = await adminClient().update(`users_profile/${OTHER.uid}`, { status: 'suspended' })
-    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 
   test('admin cannot write arbitrary privileged values (unknown status)', async () => {

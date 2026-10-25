@@ -12,7 +12,8 @@
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions,firestore,storage",
     "deploy": "firebase deploy --only functions",
-    "test": "npm run build && npx firebase-tools emulators:exec --only functions,firestore 'npm run mocha'",
+    "test": "npm run build && npm run unit && npx firebase-tools emulators:exec --only functions,firestore 'npm run mocha'",
+    "unit": "npm run build && node --test lib/test/**/*.spec.js",
     "mocha": "nyc mocha --exit lib/**/*.spec.js"
   },
   "dependencies": {
