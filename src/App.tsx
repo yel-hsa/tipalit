@@ -1304,61 +1304,64 @@ function TipalitApp() {
           />
         ) : undefined
       }
+      overlay={
+        <>
+          {services.demo && (
+            <GoogleAccountChooser
+              key={chooserOpen ? 'open' : 'closed'}
+              isOpen={chooserOpen}
+              accounts={chooserAccounts}
+              onSelect={(account) => closeChooser(account)}
+              onClose={() => closeChooser(null)}
+            />
+          )}
+
+          {pickerThread && (
+            <MeetupPickerSheet
+              key={pickerThread.id}
+              isOpen
+              onClose={() => setPickerThreadId(null)}
+              spots={spots[pickerCampus]}
+              campusLabel={campusLabel(pickerCampus)}
+              defaultLocation={pickerListing?.meetupSpot ?? spots[pickerCampus][0]}
+              onSubmit={(proposal) => proposeMeetup(pickerThread.id, proposal)}
+            />
+          )}
+
+          {reportTarget && (
+            <ReportModal
+              isOpen
+              target={reportTarget}
+              onClose={() => setReportTarget(null)}
+              onSubmit={(reason, details) => submitReport(reportTarget, reason, details)}
+            />
+          )}
+
+          {rateTarget && (
+            <RateModal
+              isOpen
+              seller={getSeller(rateTarget.sellerId)}
+              listingTitle={rateThread ? getListing(rateThread.listingId)?.title : undefined}
+              onClose={() => setRateTarget(null)}
+              onSubmit={(rating, comment) => submitRating(rateTarget, rating, comment)}
+            />
+          )}
+
+          {reviewerMode && services.demo && (
+            <DemoStatesPanel
+              isOpen={demoOpen}
+              onClose={() => setDemoOpen(false)}
+              flags={reviewerFlags}
+              version={demoVersion}
+              onChange={changeFlag}
+              onLaunch={launch}
+              onReset={resetDemo}
+            />
+          )}
+        </>
+      }
     >
       {screen}
-
-      {services.demo && (
-        <GoogleAccountChooser
-          key={chooserOpen ? 'open' : 'closed'}
-          isOpen={chooserOpen}
-          accounts={chooserAccounts}
-          onSelect={(account) => closeChooser(account)}
-          onClose={() => closeChooser(null)}
-        />
-      )}
-
-      {pickerThread && (
-        <MeetupPickerSheet
-          key={pickerThread.id}
-          isOpen
-          onClose={() => setPickerThreadId(null)}
-          spots={spots[pickerCampus]}
-          campusLabel={campusLabel(pickerCampus)}
-          defaultLocation={pickerListing?.meetupSpot ?? spots[pickerCampus][0]}
-          onSubmit={(proposal) => proposeMeetup(pickerThread.id, proposal)}
-        />
-      )}
-
-      {reportTarget && (
-        <ReportModal
-          isOpen
-          target={reportTarget}
-          onClose={() => setReportTarget(null)}
-          onSubmit={(reason, details) => submitReport(reportTarget, reason, details)}
-        />
-      )}
-
-      {rateTarget && (
-        <RateModal
-          isOpen
-          seller={getSeller(rateTarget.sellerId)}
-          listingTitle={rateThread ? getListing(rateThread.listingId)?.title : undefined}
-          onClose={() => setRateTarget(null)}
-          onSubmit={(rating, comment) => submitRating(rateTarget, rating, comment)}
-        />
-      )}
-
-      {reviewerMode && services.demo && (
-        <DemoStatesPanel
-          isOpen={demoOpen}
-          onClose={() => setDemoOpen(false)}
-          flags={reviewerFlags}
-          version={demoVersion}
-          onChange={changeFlag}
-          onLaunch={launch}
-          onReset={resetDemo}
-        />
-      )}
     </PhoneShell>
   )
 }

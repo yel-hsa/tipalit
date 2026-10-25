@@ -73,6 +73,26 @@ export default function useDialogFocus(
       ;(first ?? dialog)?.focus()
     })
 
+    // Dialogs mount wherever their owner renders them, so a fixed wrapper cannot
+    // be inerted without also inerting the dialog. Walk up from the dialog and
+    // inert every sibling instead; the dialog's own ancestor chain stays live.
+    const inerted: HTMLElement[] = []
+    const inertSiblings = () => {
+      let node: HTMLElement | null = dialog
+      while (node && node !== document.body) {
+        const parent: HTMLElement | null = node.parentElement
+        if (!parent) break
+        for (const sibling of Array.from(parent.children)) {
+          if (sibling === node || !(sibling instanceof HTMLElement)) continue
+          if (sibling.inert) continue
+          sibling.inert = true
+          inerted.push(sibling)
+        }
+        node = parent
+      }
+    }
+    const frame2 = requestAnimationFrame(inertSiblings)
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (stack[stack.length - 1] !== entry) return
@@ -100,7 +120,11 @@ export default function useDialogFocus(
 
     return () => {
       cancelAnimationFrame(frame)
+      cancelAnimationFrame(frame2)
       document.removeEventListener('keydown', onKeyDown)
+      inerted.forEach((element) => {
+        element.inert = false
+      })
       const index = stack.indexOf(entry)
       if (index !== -1) stack.splice(index, 1)
       emit()
