@@ -20,13 +20,50 @@ const toSeller = (profile: Profile): Seller | null =>
       }
     : null
 
-/** Maps the Cloud Function's aggregate fields onto the public seller card. */
-const withReputation = (seller: Seller, data: Record<string, any> | undefined): Seller => {
-  if (!data) return seller
-  const rating = Number(data.average_rating)
-  const reviews = Number(data.total_reviews)
-  if (!Number.isFinite(rating) || rating <= 0 || !Number.isFinite(reviews) || reviews <= 0) return seller
-  return { ...seller, rating: Math.round(rating * 10) / 10, reviews }
+/**
+ * Ratings are aggregated on read. The project is on the Spark plan, so the
+ * onReviewWritten Cloud Function that used to maintain average_rating and
+ * total_reviews never runs; those profile fields are stale or absent.
+ */
+
+/** Reviews actually written for these users, summed and counted. */
+const fetchReputation = async (db: ReturnType<typeof getFirebaseDb>, ids: string[]) => {
+  const aggregation = new Map<string, { total: number; count: number }>()
+
+  // One query per seller: getSellers is called once per seller id (App.tsx
+  // caches cards by id), so the cost is bounded by the number of sellers seen.
+  const perSeller = await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const snapshot = await getDocs(query(collection(db, 'reviews'), where('reviewee_id', '==', id)))
+        const ratings: number[] = []
+        snapshot.forEach((docSnap) => {
+          const value = Number(docSnap.data().rating)
+          if (Number.isFinite(value)) ratings.push(value)
+        })
+        return { id, ratings }
+      } catch (err) {
+        console.warn(`[TIPalit Firebase Profiles] Error reading reviews for ${id}:`, err)
+        return { id, ratings: [] as number[] }
+      }
+    }),
+  )
+  for (const { id, ratings } of perSeller) {
+    const total = ratings.reduce((sum, value) => sum + value, 0)
+    aggregation.set(id, { total, count: ratings.length })
+  }
+  return aggregation
+}
+
+/** Overlays reviews actually written; without any, the base card (seed aggregate or none) stands. */
+const withReputation = (
+  seller: Seller,
+  reputation: { total: number; count: number } | undefined,
+): Seller => {
+  if (!reputation || reputation.count <= 0) return seller
+  // One decimal place, the same rounding the mock adapter applies.
+  const rating = Math.round((reputation.total / reputation.count) * 10) / 10
+  return { ...seller, rating, reviews: reputation.count }
 }
 
 export function createFirebaseProfiles(): ProfileService {
@@ -108,16 +145,20 @@ export function createFirebaseProfiles(): ProfileService {
     async getSellers(ids: string[]): Promise<Seller[]> {
       if (ids.length === 0) return []
 
+      // Ratings come from the reviews themselves, never from the profile's
+      // stale aggregate (no Cloud Function maintains it on the Spark plan).
+      const reputation = await fetchReputation(db, ids)
+      const reputationOf = (id: string) => reputation.get(id)
+
       const result: Seller[] = []
       const missingIds: string[] = []
 
-      // 1. Check known SELLERS first — their aggregates live on their
-      //    users_profile docs, which may not exist for seed ids, so read
-      //    them best-effort without blocking the card.
+      // 1. Seed sellers have no users_profile doc, so they are built from
+      //    SELLERS and still pick up any reviews actually written for them.
       for (const id of ids) {
         const seedSeller = SELLERS.find((s) => s.id === id)
         if (seedSeller) {
-          result.push(seedSeller)
+          result.push(withReputation(seedSeller, reputationOf(id)))
         } else {
           missingIds.push(id)
         }
@@ -150,7 +191,7 @@ export function createFirebaseProfiles(): ProfileService {
                     campus: campusVal,
                     verified: true,
                   },
-                  data,
+                  reputationOf(docSnap.id),
                 ),
               )
             }

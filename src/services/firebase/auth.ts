@@ -5,7 +5,7 @@ import {
   onAuthStateChanged,
   type User,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { ADMIN_EMAILS } from '../../data/seed'
 import { initialsOf } from '../profile'
 import type { AuthService, AuthResult, Role, Session } from '../types'
@@ -148,26 +148,20 @@ export function createFirebaseAuth(): AuthService {
             role = 'admin'
           }
         } else {
-          // Initialize base user profile document per PRD Section 5.1 Collection 1: users_profile
-          const name = nameFromUser(user)
-          await setDoc(
-            userDocRef,
-            {
-              user_id: user.uid,
-              email,
-              full_name: name,
-              campus: 'qc',
-              department: 'General',
-              is_verified: user.emailVerified,
-              average_rating: 0.0,
-              total_reviews: 0,
-              role,
-              status: 'active',
-              joinedAt: new Date().toISOString(),
-              created_at: serverTimestamp(),
-            },
-            { merge: true },
-          )
+          // Initialize base user profile document per PRD Section 5.1 Collection 1: users_profile.
+          // firestore.rules pins create to role == 'member' (admin-ness comes from the token
+          // email), and campus/program/year are deliberately left unset so
+          // isProfileComplete() stays false and onboarding still runs. The rules' create
+          // clause rejects average_rating/total_reviews, so those wait for the server.
+          await setDoc(userDocRef, {
+            user_id: user.uid,
+            email,
+            full_name: nameFromUser(user),
+            is_verified: user.emailVerified,
+            role: 'member',
+            status: 'active',
+            joinedAt: new Date().toISOString(),
+          })
         }
 
         const session = sessionFromUser(user, role)

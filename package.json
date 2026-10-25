@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run typecheck && vite build",
     "preview": "vite preview",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "typecheck": "tsc --noEmit",
+    "test:shapes": "node --test functions/test/shapes.test.mjs",
+    "test:rules": "node functions/test/run-rules.mjs"
   },
   "dependencies": {
     "@figma/astraui": "1.0.0",

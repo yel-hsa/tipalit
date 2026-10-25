@@ -77,6 +77,10 @@ export function createMockChat() {
 
     async openThread(listing) {
       await delay(250)
+      // Same unauthenticated contract as the Firebase adapter: a failed open
+      // must not leave the caller navigating to an unsaved thread.
+      const session = readSession()
+      if (!session) throw new ServiceError('unauthenticated', 'Sign in to use chat.')
       const threads = load()
       const existing = threads.find((thread) => thread.listingId === listing.id)
       if (existing) return existing
@@ -145,7 +149,13 @@ export function createMockChat() {
       const thread = load().find((candidate) => candidate.id === threadId)
       if (!thread) return // meetup already patched; review needs no thread
       const listing = loadListings().find((item) => item.id === thread.listingId)
-      const revieweeId = listing?.sellerId ?? thread.sellerId
+      const sellerId = listing?.sellerId ?? thread.sellerId
+      // Mock threads are always the buyer's; rating your own listing would be
+      // a self-review, which the reviews rules reject.
+      if (!sellerId || sellerId === session.userId) {
+        throw new ServiceError('invalid', 'This exchange has no one left to review.')
+      }
+      const revieweeId = sellerId
       const review: Review = {
         id: itemId,
         rating,

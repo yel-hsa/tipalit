@@ -93,12 +93,22 @@ service cloud.firestore {
         && request.resource.data.seller_id == request.auth.uid
         && request.resource.data.report_count == 0
         && request.resource.data.status == 'active';
-      // Sellers/admins may edit, but never report_count or an un-hide.
-      // report_count is server-only (Cloud Function on report create).
+      // Only two moderated values exist: 'removed' (admin takedown) and, as
+      // legacy, 'hidden'. Neither is writable by a seller — a seller may only
+      // move between the three public states. An admin may additionally write
+      // 'removed'. This is the entire takedown mechanism: there is no
+      // auto-hide, so nothing else ever sets a moderated status.
+      //
+      // report_count is intentionally unwritable by EVERYONE, sellers and
+      // admins alike. It is a server-maintained counter; with no Cloud
+      // Functions it currently never moves (see INFO.md), and a client write
+      // would let a seller reset their own flag count.
       allow update: if listingOwnerOrAdmin()
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(['report_count'])
-        && request.resource.data.status != 'hidden';
+        && request.resource.data.status in (
+             isAdmin() ? ['active', 'reserved', 'sold', 'removed'] : ['active', 'reserved', 'sold']
+           );
       allow delete: if listingOwnerOrAdmin();
     }
 
@@ -160,8 +170,11 @@ service cloud.firestore {
     // ---------- 6. reports ----------
 
     match /reports/{reportId} {
-      // Reporters create; one report per reporter per target is enforced
-      // by the Cloud Function that also increments listing report_count.
+      // Reporters create; one report per reporter per target is enforced by
+      // the client's deterministic doc id (reporter uid + target hashed, see
+      // src/services/firebase/reports.ts). No Cloud Function exists on the
+      // current plan, so report_count is never incremented and nothing
+      // auto-hides a listing here.
       allow create: if isTipStudent()
         && request.resource.data.reporter_id == request.auth.uid
         && request.resource.data.status == 'open';
