@@ -9,6 +9,7 @@ import DemoStatesPanel, {
   type UiFlags,
 } from './components/DemoStatesPanel'
 import EmptyState from './components/EmptyState'
+import ErrorBoundary from './components/ErrorBoundary'
 import GoogleAccountChooser from './components/GoogleAccountChooser'
 import MeetupPickerSheet from './components/MeetupPickerSheet'
 import PhoneShell, { type ToastOffset } from './components/PhoneShell'
@@ -1288,7 +1289,8 @@ function TipalitApp() {
         ) : undefined
       }
     >
-      {screen}
+      {/* Keyed on route.name so navigating away clears a crashed screen's error state. */}
+      <ErrorBoundary key={route.name}>{screen}</ErrorBoundary>
 
       {services.demo && (
         <GoogleAccountChooser
