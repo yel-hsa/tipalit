@@ -21,7 +21,7 @@ Milestone 1 — Canonical domain, identity, media, and security foundation.
 | `60e621a` | Created the milestone progress ledger and recorded release blockers. |
 | `e557a18` | Enforced active accounts in Firestore/Storage rules and made student listing queries positively prove public statuses. |
 | `7bb207f` | Moved administrator authority, report submission, moderation, account state, and meetup settings behind trusted callable Functions with atomic audit writes. |
-| _pending commit_ | Added real callable/Firestore emulator coverage for authoritative reports, rate limits, threshold takedowns, duplicate submissions, reopen behavior, claimed-admin checks, concurrent sibling resolution, and audit atomicity; added a no-write-by-default administrator-claim tool. |
+| `d83aff7` | Added real callable/Firestore emulator coverage for authoritative reports, rate limits, threshold takedowns, duplicate submissions, reopen behavior, claimed-admin checks, concurrent sibling resolution, and audit atomicity; added a no-write-by-default administrator-claim tool. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped with the product. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
