@@ -4,6 +4,7 @@ import { createId } from '../ids'
 import type { AdminService, AuditEntry, MemberSummary, Report } from '../types'
 import { loadStatuses, requireAdmin, roleForEmail, writeStatus } from './accounts'
 import { readSession } from './auth'
+import { loadReviews } from './chat'
 import { consumeOnce } from './controls'
 import { findPerson, listPeople, type Person } from './directory'
 import { delay } from './latency'
@@ -29,6 +30,8 @@ const failLoad = () => {
 
 const summarize = (person: Person): MemberSummary => {
   const statuses = loadStatuses()
+  const received = Object.values(loadReviews()).filter((review) => review.revieweeId === person.userId)
+  const ratingTotal = received.reduce((sum, review) => sum + review.rating, 0)
   return {
     ...person,
     role: roleForEmail(person.email),
@@ -36,6 +39,9 @@ const summarize = (person: Person): MemberSummary => {
     activeListings: loadListings().filter((listing) => listing.sellerId === person.userId && listing.status === 'active')
       .length,
     openReports: loadReports().filter((report) => report.subjectId === person.userId && report.status === 'open').length,
+    ...(received.length > 0
+      ? { rating: Math.round((ratingTotal / received.length) * 10) / 10, reviews: received.length }
+      : {}),
   }
 }
 
@@ -95,6 +101,13 @@ export function createMockAdmin(): AdminService {
       return listPeople()
         .map(summarize)
         .sort((a, b) => b.openReports - a.openReports || a.name.localeCompare(b.name))
+    },
+
+    async listListings() {
+      admin()
+      await delay(400)
+      failLoad()
+      return [...loadListings()].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     },
 
     async setMemberStatus(userId, status, note) {

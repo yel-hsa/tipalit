@@ -72,7 +72,7 @@ function parseImageList(value: unknown): string[] {
     .filter((url) => url.length > 0)
 }
 
-function toListing(id: string, data: Record<string, any>): Listing {
+export function toListing(id: string, data: Record<string, any>): Listing {
   const rawStatus = STATUSES.includes(data.status) ? data.status : 'active'
   const campus: CampusId = data.campus === 'manila' || data.campus === 'qc' ? data.campus : 'qc'
   const category: Category = (data.category as Category) || 'Textbooks'

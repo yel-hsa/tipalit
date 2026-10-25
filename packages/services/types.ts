@@ -168,6 +168,9 @@ export type MemberSummary = {
   joinedAt: string | null
   activeListings: number
   openReports: number
+  // absent until the member's first review
+  rating?: number
+  reviews?: number
 }
 
 export type AuditAction = 'report_dismissed' | 'listing_removed' | 'member_suspended' | 'member_reinstated' | 'spots_updated'
@@ -277,6 +280,8 @@ export interface AdminService {
   // resolving one report also closes other open reports on the same target
   resolveReport(id: string, action: ReportAction, note: string): Promise<Report>
   listMembers(): Promise<MemberSummary[]>
+  // every listing across both campuses, including reserved and sold; newest first
+  listListings(): Promise<Listing[]>
   setMemberStatus(userId: string, status: AccountStatus, note: string): Promise<MemberSummary>
   saveMeetupSpots(campus: CampusId, spots: string[]): Promise<MeetupSpots>
   // newest first

@@ -14,6 +14,7 @@ import {
 import { ADMIN_EMAILS, buildSeedAudit, buildSeedReports, campusLabel } from '../seed'
 import { ServiceError } from '../errors'
 import { createId } from '../ids'
+import { toListing } from './listings'
 import { MEETUP_SPOTS_DOC_ID, readMeetupSpots } from './settings'
 import type {
   AccountStatus,
@@ -21,6 +22,7 @@ import type {
   AuditAction,
   AuditEntry,
   CampusId,
+  Listing,
   MeetupSpots,
   MemberSummary,
   Report,
@@ -268,6 +270,23 @@ export function createFirebaseAdmin(): AdminService {
         return members
       } catch (err) {
         console.warn('[TIPalit Firebase Admin] listMembers error:', err)
+        return []
+      }
+    },
+
+    async listListings(): Promise<Listing[]> {
+      checkAdmin()
+      if (!isFirebaseConfigured()) {
+        return []
+      }
+
+      try {
+        const snapshot = await getDocs(collection(db, 'listings'))
+        const items: Listing[] = []
+        snapshot.forEach((d) => items.push(toListing(d.id, d.data())))
+        return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      } catch (err) {
+        console.warn('[TIPalit Firebase Admin] listListings error:', err)
         return []
       }
     },
