@@ -25,8 +25,7 @@ import type {
   ListingStatus,
   TransactionType,
 } from '../types'
-import { getFirebaseDb, getFirebaseAuth, isFirebaseConfigured } from './config'
-import { uploadListingImage } from './storage'
+import { getFirebaseDb, isFirebaseConfigured } from './config'
 
 /** Normalizes course code to uppercase per PRD Section 5.1 Collection 2. */
 const normalizeSubjectCode = (code: string): string => code.trim().toUpperCase()
@@ -160,19 +159,10 @@ export function createFirebaseListings(): ListingService {
 
     async create(draft: ListingDraft, ctx: { userId: string; campus: CampusId }): Promise<Listing> {
       const listingId = createId('l')
-      let imageUrls = draft.imageUrls.length > 0 ? draft.imageUrls : [fallbackImageFor(draft.category)]
-
-      // Local photos (data URLs) go to Cloud Storage; remote URLs stay as-is.
-      const uploadDataUrl = async (url: string, index: number) => {
-        if (!url.startsWith('data:') || !isFirebaseConfigured()) return url
-        try {
-          return await uploadListingImage(ctx.userId, `${listingId}-${index}`, url)
-        } catch (uploadErr) {
-          console.warn('[TIPalit Firebase Listings] Storage upload failed, keeping original:', uploadErr)
-          return url
-        }
-      }
-      imageUrls = await Promise.all(imageUrls.slice(0, 5).map(uploadDataUrl))
+      // Photos stay as downscaled JPEG data URLs (~60-120 KB each, max 5) and
+      // ride along in the listing document. Cloud Storage needs the Blaze plan,
+      // which this project is not on, so there is no bucket to upload to.
+      const imageUrls = draft.imageUrls.length > 0 ? draft.imageUrls : [fallbackImageFor(draft.category)]
 
       const subjectCode = normalizeSubjectCode(draft.courseCode)
       const department = departmentFor(subjectCode)
@@ -211,20 +201,7 @@ export function createFirebaseListings(): ListingService {
     },
 
     async update(id: string, patch: ListingDraft): Promise<Listing> {
-      let imageUrls = patch.imageUrls
-
-      const uploadDataUrl = async (url: string, index: number) => {
-        if (!url.startsWith('data:') || !isFirebaseConfigured()) return url
-        try {
-          // Only the listing owner reaches this path (rules enforce seller_id match).
-          const uid = getFirebaseAuth().currentUser?.uid
-          return await uploadListingImage(uid || 'unknown', `${id}-${index}`, url)
-        } catch (uploadErr) {
-          console.warn('[TIPalit Firebase Listings] Image update upload failed:', uploadErr)
-          return url
-        }
-      }
-      imageUrls = await Promise.all(imageUrls.slice(0, 5).map(uploadDataUrl))
+      const imageUrls = patch.imageUrls
 
       const subjectCode = normalizeSubjectCode(patch.courseCode)
       const department = departmentFor(subjectCode)
