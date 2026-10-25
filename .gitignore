@@ -13,3 +13,9 @@ logs/
 *.log
 .tmp-*
 /.figma/design-context/
+
+# Playwright MCP screenshots and console logs
+.playwright-mcp/
+
+# Expo local development state
+.expo/
