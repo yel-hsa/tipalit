@@ -1,0 +1,29 @@
+{
+  "name": "@tipalit/services",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./types": "./types.ts",
+    "./errors": "./errors.ts",
+    "./ids": "./ids.ts",
+    "./profile": "./profile.ts",
+    "./seed": "./seed.ts",
+    "./platform": "./platform.ts",
+    "./firebase": "./firebase/index.ts",
+    "./mock": "./mock/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "firebase": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

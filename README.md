@@ -2,10 +2,20 @@
 
 A mobile-first campus marketplace for students of the Technological Institute of the Philippines (TIP). Students buy and sell textbooks, calculators, uniforms, lab gear, and drafting tools with other verified students, then meet at campus-approved spots to hand items over.
 
-TIPalit ships with two swappable adapters behind the same service layer:
+TIPalit is a pnpm monorepo with two clients over one shared service layer:
 
-- **Firebase adapter** (production): Google sign-in, Cloud Firestore, and Cloud Functions for rating aggregates and report auto-flagging. Listing photos are downscaled in the browser and stored inline on the listing document, so no Storage bucket is required. Selected automatically when the Firebase env vars are set, or forced with `VITE_DATA_ADAPTER=firebase`.
-- **Mock adapter** (demo): everything saves to `localStorage`, so sessions, listings, chats, and the theme are still there after a refresh. Forced with `VITE_DATA_ADAPTER=mock`.
+| Workspace | Package | Platform | Audience |
+|---|---|---|---|
+| `apps/web` | `@tipalit/web` | Vite + React, desktop browser | Admin dashboard: moderation, analytics, member management, audit log |
+| `apps/mobile` | `@tipalit/mobile` | Expo + React Native, iOS / Android | Students (feed, buy/sell, camera uploads, chat, profile). Admins who sign in also get a moderation tab |
+| `packages/services` | `@tipalit/services` | Host-agnostic TypeScript | Domain types, both adapters, seed content, shared helpers |
+
+The admin scope is identical on both platforms — the web dashboard and the mobile admin tab expose the same moderation actions. Only the presentation differs.
+
+Both clients ship with two swappable adapters behind the same service layer:
+
+- **Firebase adapter** (production): Google sign-in, Cloud Firestore, and Cloud Functions for rating aggregates and report auto-flagging. Listing photos are downscaled on-device and stored inline on the listing document, so no Storage bucket is required. Selected automatically when the Firebase config is set, or forced with the adapter env var.
+- **Mock adapter** (demo): everything saves to the host's key-value store, so sessions, listings, chats, and the theme survive a refresh on web. Forced with the adapter env var.
 
 See section 5 for backend setup and env vars.
 
@@ -19,19 +29,35 @@ See section 5 for backend setup and env vars.
 
 ## 2. Screens and flows
 
+Web dashboard (`apps/web`):
+
 | Screen | File |
 |---|---|
-| Boot (session restore) | `src/screens/BootScreen.tsx` |
-| Intro carousel (3 slides) | `src/screens/IntroScreen.tsx` |
-| Sign in with Google | `src/screens/AuthScreen.tsx` |
-| Onboarding: profile and safety pledge | `src/screens/OnboardingScreen.tsx` |
-| Feed (Home tab) | `src/screens/FeedScreen.tsx` |
-| Product detail | `src/screens/ProductDetailScreen.tsx` |
-| Add / edit listing (Sell tab) | `src/screens/AddListingScreen.tsx` |
+| Boot (session restore) | `screens/BootScreen.tsx` |
+| Intro carousel (3 slides) | `screens/IntroScreen.tsx` |
+| Sign in with Google | `screens/AuthScreen.tsx` |
+| Onboarding: profile and safety pledge | `screens/OnboardingScreen.tsx` |
+| Feed (Home tab) | `screens/FeedScreen.tsx` |
+| Product detail | `screens/ProductDetailScreen.tsx` |
+| Add / edit listing (Sell tab) | `screens/AddListingScreen.tsx` |
+| Chat list (Chats tab) | `screens/ChatListScreen.tsx` |
+| Chat thread | `screens/ChatThreadScreen.tsx` |
+| Profile (Profile tab) | `screens/ProfileScreen.tsx` |
+| Admin console (Admin tab, admins only) | `screens/AdminScreen.tsx`, `components/admin/*` |
+
+Mobile app (`apps/mobile`):
+
+| Screen | File |
+|---|---|
+| Sign in with Google | `src/screens/SignInScreen.tsx` |
+| Onboarding: profile | `src/screens/OnboardingScreen.tsx` |
+| Feed (Feed tab) | `src/screens/FeedScreen.tsx` |
+| Listing detail | `src/screens/ListingDetailScreen.tsx` |
+| Sell with camera / library upload (Sell tab) | `src/screens/SellScreen.tsx` |
 | Chat list (Chats tab) | `src/screens/ChatListScreen.tsx` |
 | Chat thread | `src/screens/ChatThreadScreen.tsx` |
 | Profile (Profile tab) | `src/screens/ProfileScreen.tsx` |
-| Admin console (Admin tab, admins only) | `src/screens/AdminScreen.tsx`, `src/components/admin/*` |
+| Moderation (Admin tab, admins only) | `src/screens/AdminScreen.tsx` |
 
 **First run:** intro → Continue with Google → account chooser → profile setup (name, campus, program, year) → safety pledge → feed, with a welcome toast.
 
@@ -45,31 +71,51 @@ See section 5 for backend setup and env vars.
 
 **Moderate (admin):** sign in as `osa.admin@tip.edu.ph` → lands on Admin → Reports → open a report → View listing / View member → choose Remove listing, Suspend member, or Dismiss report (with an optional note) → the report closes, and so do other open reports the same decision settles → the action is written to the Log.
 
-Routing is an in-memory `Route` union in `src/App.tsx`. The tab bar shows only on Feed, Sell, Chats, Profile, and (for admins) Admin.
+Routing is an in-memory `Route` union in `apps/web/App.tsx`. The tab bar shows only on Feed, Sell, Chats, Profile, and (for admins) Admin.
 
 ## 3. Architecture
 
 ```
-src/
+apps/web/
+  main.tsx              Entry; imports bootstrap before the app
+  bootstrap.ts          Installs the browser platform and Firebase config
   App.tsx               Routing, app state, optimistic mutations, overlays
   config/reviewer.ts    Reviewer-mode flag (useReviewerMode)
-  data/seed.ts          Seed content and display constants (campuses, spots, programs)
-  services/
-    types.ts            Domain types and service interfaces (the adapter contract)
-    index.ts            Picks the adapter (VITE_DATA_ADAPTER, or auto-detect)
-    profile.ts          Profile helpers (completeness, initials)
-    errors.ts           ServiceError with a code: network | storage | not_found | unauthenticated
-    ids.ts              Client-generated ids for optimistic items
-    mock/               localStorage-backed adapter with simulated latency and seller activity
-    firebase/           Google Auth, Firestore, feature modules
   screens/              One file per screen
   components/           Shared UI built from the Astra kit and tokens
   styles/global.css     Design tokens (the only place values live)
+
+apps/mobile/
+  index.ts              Expo entry; registers App
+  App.tsx               Session gate: sign in → onboarding → shell
+  src/bootstrap.ts      Installs the native platform and Firebase config
+  src/session.tsx       Session/profile context shared by every screen
+  src/AppShell.tsx      Tab bar and overlay routing
+  src/screens/          One file per screen
+  src/components/       Local UI primitives (no Astra kit on native)
+  src/theme.ts          Colors, radii, spacing
+
+packages/services/
+  types.ts              Domain types and service interfaces (the adapter contract)
+  index.ts              Picks the adapter (setDataAdapter, or auto-detect)
+  platform.ts           Host-provided storage and timers (setPlatform / getPlatform)
+  profile.ts            Profile helpers (completeness, initials)
+  errors.ts             ServiceError with a code: network | storage | not_found | unauthenticated
+  ids.ts                Client-generated ids for optimistic items
+  seed.ts               Seed content and display constants (campuses, spots, programs)
+  mock/                 Key-value-backed adapter with simulated latency and seller activity
+  firebase/             Google Auth, Firestore, feature modules
 ```
 
-Screens and `App.tsx` import only from `services` (`services/types` for types). Nothing in the UI touches storage or Firestore directly.
+Screens and `App.tsx` import only from `@tipalit/services`. Nothing in the UI touches storage or Firestore directly.
 
-**Adapter selection:** `VITE_DATA_ADAPTER` (`firebase` or `mock`) wins. Otherwise the app uses Firebase when `VITE_FIREBASE_API_KEY` and `VITE_FIREBASE_PROJECT_ID` are both set, and falls back to mock. Unknown values log a warning and fall back to the mock adapter.
+**Host wiring.** The services package never reads `import.meta.env`, `window`, or `localStorage`. Each client installs its host before importing services:
+
+- `setPlatform({ storage, setTimeout, clearTimeout })` — web passes `localStorage` and `window` timers; mobile passes an in-memory store and global timers.
+- `setFirebaseConfig({ apiKey, authDomain, projectId, ... })` — web reads `VITE_FIREBASE_*`, mobile reads `EXPO_PUBLIC_FIREBASE_*`.
+- `setDataAdapter('firebase' | 'mock' | undefined)` — unset auto-detects.
+
+**Adapter selection:** the adapter override (`firebase` or `mock`) wins. Otherwise the app uses Firebase when `apiKey` and `projectId` are both set, and falls back to mock. Unknown values log a warning and fall back to the mock adapter.
 
 **Storage keys** (mock adapter): `tipalit.v2.session`, `tipalit.v2.prefs`, `tipalit.v2.profiles`, `tipalit.v2.listings`, `tipalit.v2.threads.<userId>`, `tipalit.v2.reviews`, `tipalit.v2.reports`, `tipalit.v2.accounts` (suspensions), `tipalit.v2.audit`, `tipalit.v2.spots`, `tipalit.v2.promotions`, `tipalit.v2.promotionClicks`, `tipalit.v2.analyticsEvents`. Each record is shape-checked on read, and corrupt data is reseeded. Bumping `VERSION` in `mock/storage.ts` deletes records from older versions at startup.
 
@@ -97,6 +143,8 @@ The Firebase adapter is implemented and selected automatically once the env vars
 | `VITE_DATA_ADAPTER` | Force `firebase` or `mock` (overrides auto-detect) |
 | `VITE_REVIEWER_MODE` | Ship demo tooling (normally leave unset; `?reviewer=1` also works) |
 
+The mobile app reads the same values from `EXPO_PUBLIC_*` (`EXPO_PUBLIC_FIREBASE_API_KEY`, `EXPO_PUBLIC_FIREBASE_PROJECT_ID`, `EXPO_PUBLIC_DATA_ADAPTER`, and so on) in `apps/mobile/.env`. Expo inlines them at bundle time, so restart Metro after changing them.
+
 Interfaces that changed with the PRD (services/types.ts is the contract): seller reputation is aggregated on read in `services/profiles.ts`; `PromotionService.list(campus)` + `trackClick(id)` power sponsor banners; `AnalyticsService.getOverview()` powers the admin Marketplace panel and `track(name, params)` the funnel events (`listing_view`, `chat_started`, `message_sent`, `promo_click`).
 
 Everything needed on the Firebase side — Auth providers and authorized domains, rules, indexes, Functions, seeding — is in **section 5**.
@@ -114,7 +162,7 @@ Prereqs: Node 22 + pnpm (see `.mise.toml`), a Firebase project with Blaze (Cloud
    ```sh
    npx firebase deploy --only functions
    ```
-4. **Seed.** Sign in once as each email in `ADMIN_EMAILS` (`data/seed.ts` — currently `osa.admin@tip.edu.ph`) so their profile and admin role exist; the app grants the role from that list at sign-in. Edit the first-run meetup spots, then let an admin save them once from the Admin → Spots tab to write `meetup_spots`. Promotions: add documents to the `promotions` collection (`type` `banner` | `perk`, `title`, `sponsorName`, `destinationUrl`, `campus` `manila` | `qc` | `all`, optional `imageUrl` and `description`; set `active: false` to pause one) — the feed banner, Profile perks, and click tracking pick them up with no code change. Until the collection has documents, both adapters fall back to the seeded sponsors in `data/seed.ts`.
+4. **Seed.** Sign in once as each email in `ADMIN_EMAILS` (`packages/services/seed.ts` — currently `osa.admin@tip.edu.ph`) so their profile and admin role exist; the app grants the role from that list at sign-in. Edit the first-run meetup spots, then let an admin save them once from the Admin → Spots tab to write `meetup_spots`. Promotions: add documents to the `promotions` collection (`type` `banner` | `perk`, `title`, `sponsorName`, `destinationUrl`, `campus` `manila` | `qc` | `all`, optional `imageUrl` and `description`; set `active: false` to pause one) — the feed banner, Profile perks, and click tracking pick them up with no code change. Until the collection has documents, both adapters fall back to the seeded sponsors in `packages/services/seed.ts`.
 5. **Frontend.** Build and host:
    ```sh
    corepack pnpm build
@@ -128,7 +176,7 @@ Local development without touching the live project: `VITE_DATA_ADAPTER=mock cor
 - **Components:** `@figma/astraui` (Button, IconButton, InputField, SelectField, TextareaField, RadioGroup, Checkbox, Tabs, Modal, Toast, Badge, Avatar). Icons come from `lucide-react`.
 - **Local extension:** `components/SwitchRow.tsx` replaces the kit's `SwitchField`. The kit version has a fixed 360 px width that overflows the cards, is uncontrolled, and has no switch role or accessible name. `SwitchRow` uses the same anatomy, but it fills its container, is controlled, has `role="switch"`, and the whole row is the tap target.
 - **Dark-mode controls:** the kit draws neutral and subtle button labels, icons, outlines, and focus rings with `--brand-primary`, which is tuned as a fill under white text and disappears on dark surfaces. Under `.dark`, `global.css` points those parts at `--control-fg` and `--control-border`. Buttons that float over photos use `OVERLAY_CONTROL` (`components/overlayControl.ts`), which pairs a dark scrim with a white icon.
-- **Tokens:** `src/styles/global.css` holds every color, spacing, radius, type size, elevation, and layout value. Each one has light and dark values, and they reach Tailwind through `@theme inline` (`bg-surface-bg`, `p-xl`, `rounded-corner-lg`, `text-label-sm`, `shadow-raised`, and so on).
+- **Tokens:** `apps/web/styles/global.css` holds every color, spacing, radius, type size, elevation, and layout value. Each one has light and dark values, and they reach Tailwind through `@theme inline` (`bg-surface-bg`, `p-xl`, `rounded-corner-lg`, `text-label-sm`, `shadow-raised`, and so on).
 - **Rule:** components contain no hex values, pixel literals, or font families. To restyle, edit the variables in `global.css` and nothing else. Spacing and radius overrides are stubbed at the end of `:root`.
 - **Typography:** Instrument Sans (`--font-family-base`) is the only font face.
 - **Exception:** Google's branding rules require the Google "G" mark, so it ships as `src/assets/google-g.svg`. Its brand colors live in that file only.
@@ -198,9 +246,9 @@ When it is on, Profile shows a **Reviewer tools** row, and the Google chooser ad
 
 ## 10. Known limitations and open questions
 
-- The TIP Manila meetup spot names (`MEETUP_SPOTS.manila` in `data/seed.ts`) are placeholders. Confirm them with Student Affairs.
+- The TIP Manila meetup spot names (`MEETUP_SPOTS.manila` in `packages/services/seed.ts`) are placeholders. Confirm them with Student Affairs.
 - Admins can now edit meetup spots in the app; `MEETUP_SPOTS` is only the first-run default.
-- Admin roles are granted from the `ADMIN_EMAILS` list in `data/seed.ts` at sign-in. They can't be granted or revoked in the app — that stays a server/claim concern on purpose.
+- Admin roles are granted from the `ADMIN_EMAILS` list in `packages/services/seed.ts` at sign-in. They can't be granted or revoked in the app — that stays a server/claim concern on purpose.
 - Suspended members aren't notified in the app. They see the reason at their next sign-in. Email notifications belong on the server.
 - The `promotions` collection is managed directly in the Firestore console; there is no admin UI for sponsors yet.
 - Analytics events are stored in `analytics_events` via the adapter; wiring them to a dashboard (or GA4) is a follow-up.
@@ -210,11 +258,12 @@ When it is on, Profile shows a **Reviewer tools** row, and the Google chooser ad
 ## 11. Scripts
 
 ```sh
-corepack pnpm dev       # Vite dev server (loads .env; set VITE_DATA_ADAPTER=mock for local demo)
-corepack pnpm build     # Production build
-corepack pnpm preview   # Serve the production build
-corepack pnpm format    # oxfmt
-corepack pnpm exec tsc --noEmit -p tsconfig.json   # Typecheck
+corepack pnpm dev          # Web dashboard dev server (loads .env; VITE_DATA_ADAPTER=mock for local demo)
+corepack pnpm dev:mobile   # Expo dev server (scan the QR code with Expo Go)
+corepack pnpm build        # Web production build
+corepack pnpm typecheck    # tsc --noEmit across every workspace
+corepack pnpm format       # oxfmt
+corepack pnpm test         # Shape tests + Firestore rules suite
 ```
 
-Validation status: `tsc --noEmit`, `pnpm build`, the shape tests, and the Firestore rules suite all pass. The full user journey (sign-in → onboarding → browse → chat → meetup accept/complete → rate → perks → admin console) was walked end-to-end in a browser with the mock adapter with zero console errors.
+Validation status: `tsc --noEmit` across all workspaces, the web production build, the Android bundle export, the shape tests, and the Firestore rules suite all pass. The full web user journey (sign-in → onboarding → browse → chat → meetup accept/complete → rate → perks → admin console) was walked end-to-end in a browser with the mock adapter with zero console errors.
