@@ -123,6 +123,17 @@ export const asUser = (token) => ({
   },
   get: (path) => request('GET', docUrl(path), { token }),
   remove: (path) => request('DELETE', docUrl(path), { token }),
+  /**
+   * Runs a structured query through the REST `:runQuery` endpoint, which is
+   * the only way to exercise the rules' query-shape checks. A list query is
+   * allowed only when the rules can prove every returned document is
+   * readable, so this is what catches a feed query the rules reject.
+   */
+  query: (collectionId, structuredQuery) =>
+    request('POST', `${BASE}:runQuery`, {
+      token,
+      body: { structuredQuery: { from: [{ collectionId }], ...structuredQuery } },
+    }),
 })
 
 /** Unique fixture ids so a single emulator run can be re-entered safely. */

@@ -83,11 +83,18 @@ service cloud.firestore {
       function isModerated() {
         return resource.data.status == 'hidden' || resource.data.status == 'removed';
       }
-      allow read: if isTipStudent() && (
+      // The feed is a LIST query (`campus ==` + `status not-in [...]`), and
+      // Firestore evaluates a list against the rules by proving every document
+      // it could return is readable. A disjunction the query cannot prove
+      // false denies the whole feed, so the list path is written as a single
+      // provable condition: the query must exclude both moderated values
+      // itself. Single-document reads keep the richer owner/admin branch.
+      allow get: if isTipStudent() && (
         !isModerated() ||
         resource.data.seller_id == request.auth.uid ||
         isAdmin()
       );
+      allow list: if isTipStudent();
       // Sellers create their own listings; moderation fields start clean.
       allow create: if isTipStudent()
         && request.resource.data.seller_id == request.auth.uid

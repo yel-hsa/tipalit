@@ -215,6 +215,70 @@ describe('listings — read visibility', () => {
 })
 
 // ---------------------------------------------------------------------------
+// listings: the feed query the app actually issues
+// ---------------------------------------------------------------------------
+
+describe('listings — feed query shape', () => {
+  // The app's feed is `where campus == X` + `where status not-in
+  // ['hidden','removed']` (src/services/firebase/listings.ts:126-131). Firestore
+  // evaluates a list query against the rules by proving every document it
+  // could return is readable. The read rule is `!isModerated() || owner ||
+  // admin`, and `isModerated()` is a disjunction the query cannot prove false
+  // from a not-in filter — so the whole feed is denied. This test pins that.
+  const feedQuery = (campus) => ({
+    where: {
+      compositeFilter: {
+        op: 'AND',
+        filters: [
+          { fieldFilter: { field: { fieldPath: 'campus' }, op: 'EQUAL', value: { stringValue: campus } } },
+          {
+            fieldFilter: {
+              field: { fieldPath: 'status' },
+              op: 'NOT_IN',
+              value: { arrayValue: { values: [{ stringValue: 'hidden' }, { stringValue: 'removed' }] } },
+            },
+          },
+        ],
+      },
+    },
+  })
+
+  test('member can run the feed query (campus + status not-in)', async () => {
+    await seedListing({ campus: 'qc', status: 'active' })
+    const result = await otherClient().query('listings', feedQuery('qc'))
+    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
+  })
+
+  test('member can run a plain campus query', async () => {
+    await seedListing({ campus: 'qc', status: 'active' })
+    const result = await otherClient().query('listings', {
+      where: {
+        fieldFilter: { field: { fieldPath: 'campus' }, op: 'EQUAL', value: { stringValue: 'qc' } },
+      },
+    })
+    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
+  })
+
+  // The list rule is `isTipStudent()` only, so a query that does NOT exclude
+  // moderated listings returns them. This is the accepted trade-off: the
+  // client always filters, and the alternative (a provable disjunction) denies
+  // the feed outright. Pinned so the trade-off is visible, not accidental.
+  test('a query without the status filter can see a removed listing', async () => {
+    const id = await seedListing({ campus: 'qc', status: 'removed' })
+    const result = await otherClient().query('listings', {
+      where: {
+        fieldFilter: { field: { fieldPath: 'campus' }, op: 'EQUAL', value: { stringValue: 'qc' } },
+      },
+    })
+    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
+    assert.ok(
+      result.text.includes(id),
+      'expected the unfiltered query to return the removed listing (documented trade-off)',
+    )
+  })
+})
+
+// ---------------------------------------------------------------------------
 // listings: moderation
 // ---------------------------------------------------------------------------
 
