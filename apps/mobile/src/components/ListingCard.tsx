@@ -7,7 +7,12 @@ import { Badge } from './ui'
 export default function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => void }) {
   const cover = listing.imageUrls[0] ?? listing.imageUrl
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${listing.title}, ${priceLabel(listing)}, ${listing.condition}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
       <Image source={{ uri: cover }} style={styles.photo} accessibilityIgnoresInvertColors />
       <View style={styles.body}>
         <Text style={styles.title} numberOfLines={2}>

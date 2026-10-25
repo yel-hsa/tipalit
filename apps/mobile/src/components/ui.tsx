@@ -26,6 +26,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{ disabled: !!inactive, busy: !!busy }}
       onPress={onPress}
       disabled={inactive}
@@ -50,8 +51,10 @@ export function Pill({ label, active, onPress }: { label: string; active: boolea
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{ selected: active }}
       onPress={onPress}
+      hitSlop={8}
       style={[styles.pill, active && styles.pillActive]}
     >
       <Text style={[styles.pillLabel, active && styles.pillLabelActive]}>{label}</Text>
@@ -85,14 +88,14 @@ export function Loading() {
 }
 
 const badgeTone = StyleSheet.create({
-  neutral: { backgroundColor: '#f0f0ee' },
+  neutral: { backgroundColor: colors.bg },
   accent: { backgroundColor: colors.accentSoft },
   warning: { backgroundColor: colors.warningSoft },
   danger: { backgroundColor: colors.dangerSoft },
 })
 
 const badgeLabelTone = StyleSheet.create({
-  neutral: { color: colors.muted },
+  neutral: { color: colors.textSecondary },
   accent: { color: colors.accent },
   warning: { color: colors.warning },
   danger: { color: colors.danger },
@@ -121,6 +124,8 @@ const styles = StyleSheet.create({
   buttonLabel: { color: '#fff', fontSize: 16, fontWeight: '600' },
   buttonLabelSecondary: { color: colors.text },
   pill: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: space(3),
     paddingVertical: space(2),
     borderRadius: radius.pill,
@@ -128,11 +133,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  pillActive: { backgroundColor: colors.text, borderColor: colors.text },
+  pillActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   pillLabel: { fontSize: 13, color: colors.text },
   pillLabelActive: { color: '#fff', fontWeight: '600' },
   badge: { alignSelf: 'flex-start', borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 2 },
-  badgeLabel: { fontSize: 11, fontWeight: '600' },
+  badgeLabel: { fontSize: 12, fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space(8), gap: space(2) },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
   emptyBody: { fontSize: 14, color: colors.muted, textAlign: 'center' },

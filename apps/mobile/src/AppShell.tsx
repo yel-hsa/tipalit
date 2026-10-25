@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { Listing } from '@tipalit/services/types'
 import { useSession } from './session'
 import { colors, space } from './theme'
@@ -66,6 +66,7 @@ export default function AppShell() {
           <Pressable
             key={item.id}
             accessibilityRole="tab"
+            accessibilityLabel={item.label}
             accessibilityState={{ selected: tab === item.id }}
             onPress={() => setTab(item.id)}
             style={styles.tab}
@@ -86,9 +87,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
-    paddingBottom: space(2),
+    // App.tsx wraps the tree in SafeAreaView, which only insets on iOS; Android
+    // draws under the gesture bar, so reserve the same 8pt there.
+    paddingBottom: Platform.OS === 'android' ? space(4) : space(2),
   },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: space(3) },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 48, paddingVertical: space(3) },
   tabLabel: { fontSize: 12, color: colors.muted },
   tabLabelActive: { color: colors.accent, fontWeight: '700' },
 })

@@ -4,6 +4,8 @@ export const colors = {
   border: '#e4e4e0',
   text: '#16181d',
   muted: '#6b7280',
+  // darker muted for text on tinted surfaces (badges), where #6b7280 falls to 4.24:1
+  textSecondary: '#5b6270',
   accent: '#1f6f4a',
   accentSoft: '#e6f2ec',
   danger: '#b42318',

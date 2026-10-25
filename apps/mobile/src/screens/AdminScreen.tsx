@@ -122,7 +122,20 @@ export default function AdminScreen() {
                         <Button
                           label={action.label}
                           variant={action.value === 'dismiss' ? 'secondary' : 'danger'}
-                          onPress={() => resolve(item, action.value)}
+                          onPress={() =>
+                            action.value === 'dismiss'
+                              ? void resolve(item, action.value)
+                              : Alert.alert(
+                                  action.label + '?',
+                                  action.value === 'remove_listing'
+                                    ? 'This takes the listing off the feed for good.'
+                                    : 'This hides their listings and blocks sign-in until an admin reinstates them.',
+                                  [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    { text: action.label, style: 'destructive', onPress: () => void resolve(item, action.value) },
+                                  ],
+                                )
+                          }
                           busy={busyId === item.id}
                         />
                       </View>
@@ -223,8 +236,8 @@ const styles = StyleSheet.create({
     padding: space(3),
     gap: 2,
   },
-  statValue: { fontSize: 20, fontWeight: '700', color: colors.text },
-  statLabel: { fontSize: 11, color: colors.muted },
+  statValue: { fontSize: 20, fontWeight: '700', color: colors.accent },
+  statLabel: { fontSize: 12, color: colors.muted },
   tabs: { paddingHorizontal: space(4), paddingVertical: space(3), gap: space(2) },
   list: { paddingHorizontal: space(4), paddingBottom: space(10), gap: space(3), flexGrow: 1 },
   report: { gap: space(2) },

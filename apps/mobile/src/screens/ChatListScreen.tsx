@@ -59,6 +59,8 @@ export default function ChatListScreen({ onOpen }: { onOpen: (threadId: string) 
         renderItem={({ item }) => (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={`Chat about ${item.listing?.title ?? 'a removed listing'}`}
+            accessibilityHint={item.preview}
             onPress={() => onOpen(item.thread.id)}
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}
           >
@@ -109,5 +111,5 @@ const styles = StyleSheet.create({
   body: { flex: 1, gap: 2 },
   title: { fontSize: 15, fontWeight: '600', color: colors.text },
   preview: { fontSize: 13, color: colors.muted },
-  time: { fontSize: 11, color: colors.muted },
+  time: { fontSize: 12, color: colors.muted },
 })

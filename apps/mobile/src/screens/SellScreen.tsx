@@ -125,6 +125,7 @@ export default function SellScreen({ onPublished }: { onPublished: () => void })
                 key={`${index}-${uri.slice(-12)}`}
                 accessibilityRole="button"
                 accessibilityLabel={`Remove photo ${index + 1}`}
+                hitSlop={8}
                 onPress={() => setPhotos((current) => current.filter((_, i) => i !== index))}
               >
                 <Image source={{ uri }} style={styles.photo} accessibilityIgnoresInvertColors />
