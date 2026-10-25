@@ -20,6 +20,7 @@ Milestone 1 — Canonical domain, identity, media, and security foundation.
 | `f38f398` | Established explicit workspace typechecks/builds, multipage web output, Expo export, Functions validation, and CI production builds. |
 | `60e621a` | Created the milestone progress ledger and recorded release blockers. |
 | `e557a18` | Enforced active accounts in Firestore/Storage rules and made student listing queries positively prove public statuses. |
+| `7bb207f` | Moved administrator authority, report submission, moderation, account state, and meetup settings behind trusted callable Functions with atomic audit writes. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped with the product. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
@@ -58,4 +59,4 @@ Coverage confirmed:
 
 ## Exact next action
 
-Checkpoint the current custom-claim, moderation, meetup-settings, and server-authored report callable slice after final diff review. Next, add callable-emulator concurrency/atomicity coverage and safe custom-claim provisioning tooling without assigning a real role, then begin the Storage media model and adversarial Storage-rule tests before UI work.
+Add callable-emulator concurrency/atomicity coverage and safe custom-claim provisioning tooling without assigning a real role, then begin the Storage media model and adversarial Storage-rule tests before UI work.
