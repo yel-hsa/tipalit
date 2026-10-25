@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test:shapes": "node --test functions/test/shapes.test.mjs",
     "test:rules": "node functions/test/run-rules.mjs",
-    "test": "npm run test:shapes && npm run test:rules"
+    "test": "npm run test:shapes && npm run test:rules",
+    "sync:progress": "node scripts/sync-progress.mjs"
   },
   "dependencies": {
     "@figma/astraui": "1.0.0",
