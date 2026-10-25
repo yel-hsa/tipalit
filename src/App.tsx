@@ -9,7 +9,6 @@ import DemoStatesPanel, {
   type UiFlags,
 } from './components/DemoStatesPanel'
 import EmptyState from './components/EmptyState'
-import ErrorBoundary from './components/ErrorBoundary'
 import GoogleAccountChooser from './components/GoogleAccountChooser'
 import MeetupPickerSheet from './components/MeetupPickerSheet'
 import PhoneShell, { type ToastOffset } from './components/PhoneShell'
@@ -193,6 +192,8 @@ function TipalitApp() {
   sellersRef.current = sellers
   const profileRef = useRef(profile)
   profileRef.current = profile
+  const sessionRef = useRef(session)
+  sessionRef.current = session
 
   const notify = useCallback((message: string, variant: ToastVariant = 'default') => {
     setToast({ id: ++counters.current.toast, message, variant })
@@ -217,6 +218,13 @@ function TipalitApp() {
   }
 
   const clearData = () => {
+    // Invalidate every in-flight load so it cannot repopulate state after sign-out.
+    loadRequest.current = {
+      feed: loadRequest.current.feed + 1,
+      chats: loadRequest.current.chats + 1,
+      profile: loadRequest.current.profile + 1,
+      admin: loadRequest.current.admin + 1,
+    }
     setFeed([])
     setMine([])
     setListingsById({})
@@ -296,6 +304,7 @@ function TipalitApp() {
   useEffect(
     () =>
       services.chat.subscribe((event) => {
+        if (!sessionRef.current) return
         if (event.type === 'typing') {
           setTypingThreadId((current) =>
             event.typing ? event.threadId : current === event.threadId ? null : current,
@@ -350,8 +359,8 @@ function TipalitApp() {
       verified: true,
     }
 
-  const cacheListings = (items: Listing[]) => {
-    if (items.length === 0) return
+  const cacheListings = (items: Listing[], isLatest: () => boolean = () => true) => {
+    if (items.length === 0 || !isLatest()) return
     setListingsById((current) => {
       const next = { ...current }
       items.forEach((listing) => {
@@ -361,11 +370,12 @@ function TipalitApp() {
     })
   }
 
-  const ensureSellers = async (ids: string[]) => {
+  const ensureSellers = async (ids: string[], isLatest: () => boolean = () => true) => {
     const missing = [...new Set(ids)].filter((id) => id !== userId && !sellersRef.current[id])
     if (missing.length === 0) return
     try {
       const found = await services.profiles.getSellers(missing)
+      if (!isLatest()) return
       setSellers((current) => {
         const next = { ...current }
         found.forEach((seller) => {
@@ -379,28 +389,34 @@ function TipalitApp() {
   }
 
   /** Threads plus the listings and sellers they reference. */
-  const fetchThreads = async () => {
+  const fetchThreads = async (isLatest: () => boolean = () => true) => {
     const list = await services.chat.listThreads()
+    if (!isLatest()) return list
     setThreads(list)
     const listingIds = [...new Set(list.map((thread) => thread.listingId))]
     const [threadListings] = await Promise.all([
       services.listings.getMany(listingIds),
-      ensureSellers(list.map((thread) => thread.sellerId)),
+      ensureSellers(list.map((thread) => thread.sellerId), isLatest),
     ])
-    cacheListings(threadListings)
+    cacheListings(threadListings, isLatest)
     return list
   }
 
   /** Reports, members, and the log, plus the reported listings so "View listing" can open them. */
-  const fetchAdmin = async () => {
+  const fetchAdmin = async (isLatest: () => boolean = () => true) => {
     const [reports, members, audit, overview] = await Promise.all([
       services.admin.listReports(),
       services.admin.listMembers(),
       services.admin.listAudit(),
       services.analytics.getOverview().catch(() => undefined),
     ])
+    if (!isLatest()) return
     const listingIds = [...new Set(reports.filter((r) => r.target.kind === 'listing').map((r) => r.target.id))]
-    const [found] = await Promise.all([services.listings.getMany(listingIds), ensureSellers(members.map((m) => m.userId))])
+    const [found] = await Promise.all([
+      services.listings.getMany(listingIds),
+      ensureSellers(members.map((m) => m.userId), isLatest),
+    ])
+    if (!isLatest()) return
     // Forget reported listings the server no longer has, so the review sheet knows they're gone.
     setListingsById((current) => {
       const next = { ...current }
@@ -431,19 +447,19 @@ function TipalitApp() {
         if (!isLatest()) return
         setFeed(items)
         setPromotions(banners)
-        cacheListings(items)
-        await ensureSellers(items.map((listing) => listing.sellerId))
+        cacheListings(items, isLatest)
+        await ensureSellers(items.map((listing) => listing.sellerId), isLatest)
       } else if (key === 'chats') {
-        await fetchThreads()
+        await fetchThreads(isLatest)
       } else if (key === 'admin') {
-        await fetchAdmin()
+        await fetchAdmin(isLatest)
       } else {
         const items = await services.listings.listMine(session.userId)
         if (!isLatest()) return
         setMine(items)
-        cacheListings(items)
+        cacheListings(items, isLatest)
         // Threads only feed the activity count; never let them fail the tab.
-        await fetchThreads().catch((err) => {
+        await fetchThreads(isLatest).catch((err) => {
           console.error('[TIPalit] Threads load failed:', err)
         })
       }
@@ -1289,8 +1305,7 @@ function TipalitApp() {
         ) : undefined
       }
     >
-      {/* Keyed on route.name so navigating away clears a crashed screen's error state. */}
-      <ErrorBoundary key={route.name}>{screen}</ErrorBoundary>
+      {screen}
 
       {services.demo && (
         <GoogleAccountChooser
