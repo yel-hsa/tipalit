@@ -8,9 +8,20 @@ service firebase.storage {
         request.auth.token.email_verified == true;
     }
 
+    function profilePath() {
+      return /databases/(default)/documents/users_profile/$(request.auth.uid);
+    }
+
+    function hasActiveAccount() {
+      return isTipStudent() &&
+        firestore.exists(profilePath()) &&
+        firestore.get(profilePath()).data.status == 'active';
+    }
+
     function isAdmin() {
-      return isTipStudent() && (
-        request.auth.token.email in ['osa.admin@tip.edu.ph']
+      return hasActiveAccount() && (
+        request.auth.token.email in ['osa.admin@tip.edu.ph'] ||
+        firestore.get(profilePath()).data.role == 'admin'
       );
     }
 
@@ -21,18 +32,18 @@ service firebase.storage {
 
     // PRD Section 5.2: item_photos/{userId}/{listingId}/{fileName}
     match /item_photos/{userId}/{listingId}/{fileName} {
-      allow read: if isTipStudent();
-      allow write: if isTipStudent() &&
+      allow read: if hasActiveAccount();
+      allow write: if hasActiveAccount() &&
         request.auth.uid == userId &&
         isImage();
-      allow delete: if isTipStudent() && (
+      allow delete: if hasActiveAccount() && (
         request.auth.uid == userId || isAdmin()
       );
     }
 
     // PRD Section 5.2: promo_assets/{fileName}
     match /promo_assets/{fileName} {
-      allow read: if isTipStudent();
+      allow read: if hasActiveAccount();
       allow write: if isAdmin() && isImage();
     }
   }

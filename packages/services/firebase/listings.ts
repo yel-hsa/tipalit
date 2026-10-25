@@ -114,7 +114,7 @@ export function createFirebaseListings(): ListingService {
       const q = query(
         listingsCol,
         where('campus', '==', campus),
-        where('status', 'not-in', ['hidden', 'removed']),
+        where('status', 'in', ['active', 'reserved', 'sold']),
       )
       const snapshot = await getDocs(q)
       const items: Listing[] = []

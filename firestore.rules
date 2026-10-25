@@ -17,25 +17,36 @@ service cloud.firestore {
         request.auth.token.email_verified == true;
     }
 
-    // Admins are Office of Student Affairs staff. The token email is the
-    // only self-contained trust anchor; the profile role is secondary so an
-    // admin can be granted without a rules deploy, but an owner update can
-    // never write role/status (see users_profile below), so it cannot be
-    // self-escalated.
+    function profilePath(userId) {
+      return /databases/$(database)/documents/users_profile/$(userId);
+    }
+
+    function hasActiveAccount() {
+      return isTipStudent() &&
+        exists(profilePath(request.auth.uid)) &&
+        get(profilePath(request.auth.uid)).data.status == 'active';
+    }
+
+    // Admin authority is currently compatible with the preserved email/profile
+    // roles. Every branch also requires an active account so suspension takes
+    // effect in rules without waiting for the client to refresh its session.
     function isAdmin() {
-      return isTipStudent() && (
+      return hasActiveAccount() && (
         request.auth.token.email in ['osa.admin@tip.edu.ph'] ||
-        (exists(/databases/$(database)/documents/users_profile/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users_profile/$(request.auth.uid)).data.role == 'admin')
+        get(profilePath(request.auth.uid)).data.role == 'admin'
       );
     }
 
     function isOwner(userId) {
+      return hasActiveAccount() && request.auth.uid == userId;
+    }
+
+    function isProfileOwner(userId) {
       return isTipStudent() && request.auth.uid == userId;
     }
 
     function isChatParticipant(chatId) {
-      return isTipStudent() && (
+      return hasActiveAccount() && (
         get(/databases/$(database)/documents/chats/$(chatId)).data.buyer_id == request.auth.uid ||
         get(/databases/$(database)/documents/chats/$(chatId)).data.seller_id == request.auth.uid
       );
@@ -44,9 +55,9 @@ service cloud.firestore {
     // ---------- 1. users_profile ----------
 
     match /users_profile/{userId} {
-      allow read: if isTipStudent();
+      allow read: if hasActiveAccount() || isProfileOwner(userId);
       // Created by the owner on first sign-in; privileged fields are pinned.
-      allow create: if isOwner(userId)
+      allow create: if isProfileOwner(userId)
         && request.resource.data.user_id == request.auth.uid
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.is_verified == true
@@ -72,7 +83,7 @@ service cloud.firestore {
     // ---------- 2. listings ----------
 
     function listingOwnerOrAdmin() {
-      return isTipStudent() && (
+      return hasActiveAccount() && (
         resource.data.seller_id == request.auth.uid || isAdmin()
       );
     }
@@ -83,20 +94,21 @@ service cloud.firestore {
       function isModerated() {
         return resource.data.status == 'hidden' || resource.data.status == 'removed';
       }
-      // The feed is a LIST query (`campus ==` + `status not-in [...]`), and
-      // Firestore evaluates a list against the rules by proving every document
-      // it could return is readable. A disjunction the query cannot prove
-      // false denies the whole feed, so the list path is written as a single
-      // provable condition: the query must exclude both moderated values
-      // itself. Single-document reads keep the richer owner/admin branch.
-      allow get: if isTipStudent() && (
+      // Firestore authorizes list queries from their possible result set, so
+      // the client must positively constrain status to the three public values.
+      // A plain campus query could include moderated records and is denied.
+      allow get: if hasActiveAccount() && (
         !isModerated() ||
         resource.data.seller_id == request.auth.uid ||
         isAdmin()
       );
-      allow list: if isTipStudent();
+      allow list: if hasActiveAccount() && (
+        resource.data.status in ['active', 'reserved', 'sold'] ||
+        resource.data.seller_id == request.auth.uid ||
+        isAdmin()
+      );
       // Sellers create their own listings; moderation fields start clean.
-      allow create: if isTipStudent()
+      allow create: if hasActiveAccount()
         && request.resource.data.seller_id == request.auth.uid
         && request.resource.data.report_count == 0
         && request.resource.data.status == 'active';
@@ -122,14 +134,14 @@ service cloud.firestore {
     // ---------- 3. chats + 4. messages ----------
 
     match /chats/{chatId} {
-      allow read: if isTipStudent() && (
+      allow read: if hasActiveAccount() && (
         resource.data.buyer_id == request.auth.uid ||
         resource.data.seller_id == request.auth.uid ||
         isAdmin()
       );
       // Only the buyer can open a thread; the listing's seller is copied
       // from the listing document, not trusted from the request.
-      allow create: if isTipStudent()
+      allow create: if hasActiveAccount()
         && request.resource.data.buyer_id == request.auth.uid
         && exists(/databases/$(database)/documents/listings/$(request.resource.data.listing_id))
         && get(/databases/$(database)/documents/listings/$(request.resource.data.listing_id)).data.seller_id
@@ -163,9 +175,9 @@ service cloud.firestore {
     // ---------- 5. reviews ----------
 
     match /reviews/{reviewId} {
-      allow read: if isTipStudent();
+      allow read: if hasActiveAccount();
       // The reviewer is the caller; the reviewee must differ; rating is 1-5.
-      allow create: if isTipStudent()
+      allow create: if hasActiveAccount()
         && request.resource.data.reviewer_id == request.auth.uid
         && request.resource.data.reviewer_id != request.resource.data.reviewee_id
         && request.resource.data.rating >= 1
@@ -182,10 +194,10 @@ service cloud.firestore {
       // src/services/firebase/reports.ts). No Cloud Function exists on the
       // current plan, so report_count is never incremented and nothing
       // auto-hides a listing here.
-      allow create: if isTipStudent()
+      allow create: if hasActiveAccount()
         && request.resource.data.reporter_id == request.auth.uid
         && request.resource.data.status == 'open';
-      allow read: if isTipStudent() && (
+      allow read: if hasActiveAccount() && (
         resource.data.reporter_id == request.auth.uid || isAdmin()
       );
       // Only admins resolve; the resolution note and action are theirs.
@@ -196,7 +208,7 @@ service cloud.firestore {
     // ---------- 7. promotions ----------
 
     match /promotions/{promoId} {
-      allow read: if isTipStudent() && resource.data.active == true;
+      allow read: if hasActiveAccount() && resource.data.active == true;
       allow write: if isAdmin();
     }
 
@@ -204,7 +216,7 @@ service cloud.firestore {
 
     match /settings/{settingId} {
       // Readable only by verified members, not the public.
-      allow read: if isTipStudent();
+      allow read: if hasActiveAccount();
       allow write: if isAdmin();
     }
 
@@ -214,7 +226,7 @@ service cloud.firestore {
       // Affiliate click tracking (PRD FR-7.4): members log their own clicks,
       // admins read the aggregate. IDs are unguessable and the payload is
       // minimal, so no read is exposed to members.
-      allow create: if isTipStudent()
+      allow create: if hasActiveAccount()
         && request.resource.data.promotion_id is string;
       allow read: if isAdmin();
       allow update, delete: if false;
@@ -234,7 +246,7 @@ service cloud.firestore {
     match /analytics_events/{eventId} {
       allow read: if isAdmin();
       // Members log their own events (listing views, perk clicks, searches).
-      allow create: if isTipStudent()
+      allow create: if hasActiveAccount()
         && request.resource.data.user_id == request.auth.uid;
       allow update, delete: if false;
     }

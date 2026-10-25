@@ -18,15 +18,40 @@ const SELLER_UID = `${RUN}-seller`
 const OTHER_UID = `${RUN}-other`
 const ADMIN_UID = `${RUN}-admin`
 const OUTSIDER_UID = `${RUN}-outsider`
+const SUSPENDED_UID = `${RUN}-suspended`
 
 const SELLER = { uid: SELLER_UID, token: userToken(tipClaims(SELLER_UID)) }
 const OTHER = { uid: OTHER_UID, token: userToken(tipClaims(OTHER_UID)) }
 const ADMIN = { uid: ADMIN_UID, token: userToken(tipClaims(ADMIN_UID, ADMIN_EMAIL)) }
 const OUTSIDER = { uid: OUTSIDER_UID, token: userToken(outsiderClaims(OUTSIDER_UID)) }
+const SUSPENDED = { uid: SUSPENDED_UID, token: userToken(tipClaims(SUSPENDED_UID)) }
 
 const sellerClient = () => asUser(SELLER.token)
 const otherClient = () => asUser(OTHER.token)
 const adminClient = () => asUser(ADMIN.token)
+const suspendedClient = () => asUser(SUSPENDED.token)
+
+const publicFeedQuery = (campus) => ({
+  where: {
+    compositeFilter: {
+      op: 'AND',
+      filters: [
+        { fieldFilter: { field: { fieldPath: 'campus' }, op: 'EQUAL', value: { stringValue: campus } } },
+        {
+          fieldFilter: {
+            field: { fieldPath: 'status' },
+            op: 'IN',
+            value: {
+              arrayValue: {
+                values: [{ stringValue: 'active' }, { stringValue: 'reserved' }, { stringValue: 'sold' }],
+              },
+            },
+          },
+        },
+      ],
+    },
+  },
+})
 
 // every field the create rule pins
 const listingDoc = (overrides = {}) => ({
@@ -79,10 +104,40 @@ before(async () => {
   await seedProfile(SELLER.uid)
   await seedProfile(OTHER.uid)
   await seedProfile(OUTSIDER.uid, { email: `${OUTSIDER_UID}@example.com` })
+  await seedProfile(SUSPENDED.uid, { status: 'suspended' })
 })
 
 after(async () => {
   // emulators:exec tears the emulator down with the process
+})
+
+describe('listings — active-account enforcement', () => {
+  test('suspended account cannot read an active listing', async () => {
+    const id = await seedListing()
+    const result = await suspendedClient().get(`listings/${id}`)
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('suspended account cannot query the public feed', async () => {
+    await seedListing({ campus: 'qc' })
+    const result = await suspendedClient().query('listings', publicFeedQuery('qc'))
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('suspended account cannot create a listing', async () => {
+    const result = await suspendedClient().create(
+      'listings',
+      listingDoc({ seller_id: SUSPENDED.uid }),
+    )
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('suspended account cannot edit its profile card', async () => {
+    const result = await suspendedClient().update(`users_profile/${SUSPENDED.uid}`, {
+      full_name: 'Still Suspended',
+    })
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
 })
 
 describe('listings — report_count is server-only', () => {
@@ -179,55 +234,54 @@ describe('listings — read visibility', () => {
 })
 
 describe('listings — feed query shape', () => {
-  // firestore proves list queries readable per document; a not-in filter cannot
-  // prove the isModerated() disjunction false, so the feed is denied without it
-  const feedQuery = (campus) => ({
-    where: {
-      compositeFilter: {
-        op: 'AND',
-        filters: [
-          { fieldFilter: { field: { fieldPath: 'campus' }, op: 'EQUAL', value: { stringValue: campus } } },
-          {
-            fieldFilter: {
-              field: { fieldPath: 'status' },
-              op: 'NOT_IN',
-              value: { arrayValue: { values: [{ stringValue: 'hidden' }, { stringValue: 'removed' }] } },
-            },
-          },
-        ],
-      },
-    },
-  })
-
-  test('member can run the feed query (campus + status not-in)', async () => {
+  test('member can run the feed query (campus + public statuses)', async () => {
     await seedListing({ campus: 'qc', status: 'active' })
-    const result = await otherClient().query('listings', feedQuery('qc'))
+    const result = await otherClient().query('listings', publicFeedQuery('qc'))
     assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
   })
 
-  test('member can run a plain campus query', async () => {
+  test('member cannot run a plain campus query', async () => {
     await seedListing({ campus: 'qc', status: 'active' })
     const result = await otherClient().query('listings', {
       where: {
         fieldFilter: { field: { fieldPath: 'campus' }, op: 'EQUAL', value: { stringValue: 'qc' } },
       },
     })
-    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 
-  // accepted trade-off: the list rule is isTipStudent() only, so the client
-  // must always filter; a provable disjunction would deny the feed outright
-  test('a query without the status filter can see a removed listing', async () => {
+  test('owner can query all of their listings, including moderated records', async () => {
+    const hiddenId = await seedListing({ campus: 'qc', status: 'hidden' })
+    const result = await sellerClient().query('listings', {
+      where: {
+        fieldFilter: {
+          field: { fieldPath: 'seller_id' },
+          op: 'EQUAL',
+          value: { stringValue: SELLER.uid },
+        },
+      },
+    })
+    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
+    assert.ok(result.text.includes(hiddenId), `expected owner query to include ${hiddenId}`)
+  })
+
+  test('admin can query all listings, including moderated records', async () => {
+    const removedId = await seedListing({ campus: 'qc', status: 'removed' })
+    const result = await adminClient().query('listings', {})
+    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
+    assert.ok(result.text.includes(removedId), `expected admin query to include ${removedId}`)
+  })
+
+  test('a query without the status filter cannot see a removed listing', async () => {
     const id = await seedListing({ campus: 'qc', status: 'removed' })
     const result = await otherClient().query('listings', {
       where: {
         fieldFilter: { field: { fieldPath: 'campus' }, op: 'EQUAL', value: { stringValue: 'qc' } },
       },
     })
-    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
     assert.ok(
-      result.text.includes(id),
-      'expected the unfiltered query to return the removed listing (documented trade-off)',
+      isForbidden(result) && !result.text.includes(id),
+      `expected 403 without listing ${id}, got ${result.status}: ${result.text}`,
     )
   })
 })
