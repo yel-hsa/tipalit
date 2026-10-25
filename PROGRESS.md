@@ -11,8 +11,8 @@ This file serves as the ground-truth state anchor across Claude Code sessions, r
 ---
 
 ## 2. Git & Branch State
-- **Primary Branch (`master`):** At commit `64caa2c` (*"chore: automate PROGRESS.md updates via git hooks and sync-progress script"*).
-- **Last Auto-Sync:** 2026-10-25 06:29:07
+- **Primary Branch (`master`):** At commit `43bdcfa` (*"Record the rules-test pass in PROGRESS.md"*).
+- **Last Auto-Sync:** 2026-10-25 07:32:17
 - **Working Tree:** Clean.
 - **Verification Status (re-run 2026-10-25 against `9963790`):**
   - `npm run typecheck` -> PASS (clean `tsc --noEmit`)
@@ -23,11 +23,11 @@ This file serves as the ground-truth state anchor across Claude Code sessions, r
 ---
 
 ### Recent Commits (Auto-Synced)
+- **43bdcfa** *(2026-10-25 15:32)*: Record the rules-test pass in PROGRESS.md
 - **64caa2c** *(2026-10-25 14:28)*: chore: automate PROGRESS.md updates via git hooks and sync-progress script
 - **9963790** *(2026-10-25 12:42)*: Fix the inert background: it was inerting the dialogs too
 - **166380e** *(2026-10-25 12:30)*: Wire up the reserved status, drop listReviews, add CI
 - **0a8f942** *(2026-10-25 12:29)*: Let the dialog hook own Escape, with a stack and an inert background
-- **dd5b720** *(2026-10-25 12:28)*: Guard every async write against stale requests and sign-out
 
 ---
 
