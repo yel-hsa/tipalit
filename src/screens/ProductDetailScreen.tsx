@@ -161,20 +161,19 @@ export default function ProductDetailScreen({
 
       <div className="sticky bottom-0 z-20 mt-auto border-t border-border-secondary bg-surface-bg p-lg">
         {isOwn ? (
-          <div className="grid grid-cols-2 gap-md">
+          <div className="flex flex-col gap-md">
             <Button variant="neutral" iconStart={<Pencil size={16} />} onClick={onEdit} className="w-full touch-hit">
               Edit
             </Button>
-            {listing.status === 'reserved' ? (
+            <div className="grid grid-cols-2 gap-md">
               <Button
                 variant="primary"
-                iconStart={<RotateCcw size={16} />}
-                onClick={() => onSetStatus('active')}
+                iconStart={reserved ? <RotateCcw size={16} /> : <Clock size={16} />}
+                onClick={() => onSetStatus(reserved ? 'active' : 'reserved')}
                 className="w-full touch-hit"
               >
-                Mark as available
+                {reserved ? 'Mark as available' : 'Reserve'}
               </Button>
-            ) : (
               <Button
                 variant="primary"
                 iconStart={sold ? <RotateCcw size={16} /> : <CheckCircle2 size={16} />}
@@ -183,7 +182,7 @@ export default function ProductDetailScreen({
               >
                 {sold ? 'Mark as available' : 'Mark as sold'}
               </Button>
-            )}
+            </div>
           </div>
         ) : unavailable ? (
           <Button variant="neutral" disabled className="w-full">

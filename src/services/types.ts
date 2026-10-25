@@ -264,8 +264,6 @@ export interface ChatService {
   ): Promise<void>
   completeMeetup(threadId: string, itemId: string): Promise<void>
   rate(threadId: string, itemId: string, rating: number, comment: string): Promise<void>
-  /** Reviews received by a user, newest first (feeds the public seller card). */
-  listReviews(userId: string): Promise<Review[]>
   setListingStatus(threadId: string, status: Extract<ListingStatus, 'reserved' | 'sold'>): Promise<void>
   /** Realtime events (typing, incoming messages, meetup updates). Returns an unsubscribe function. */
   subscribe(listener: (event: ChatEvent) => void): () => void

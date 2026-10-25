@@ -15,7 +15,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth'
 import { SEED_THREADS } from '../../data/seed'
 import { ServiceError } from '../errors'
 import { createId } from '../ids'
-import type { ChatEvent, ChatItem, ChatService, Listing, MeetupItem, Review, Thread } from '../types'
+import type { ChatEvent, ChatItem, ChatService, Listing, MeetupItem, Thread } from '../types'
 import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from './config'
 
 export function createFirebaseChat(): ChatService {
@@ -365,38 +365,6 @@ export function createFirebaseChat(): ChatService {
           if (err instanceof ServiceError) throw err
           throw new ServiceError('network', "Couldn't save your rating.")
         }
-      }
-    },
-
-    async listReviews(userId: string): Promise<Review[]> {
-      if (!isFirebaseConfigured()) return []
-      try {
-        const q = query(
-          collection(db, 'reviews'),
-          where('reviewee_id', '==', userId),
-          orderBy('created_at', 'desc'),
-        )
-        const snapshot = await getDocs(q)
-        const reviews: Review[] = []
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data()
-          const rating = Number(data.rating)
-          if (!Number.isFinite(rating)) return
-          reviews.push({
-            id: docSnap.id,
-            rating,
-            comment: (data.comment || data.rating_comment || '') as string,
-            reviewerId: (data.reviewer_id || '') as string,
-            revieweeId: (data.reviewee_id || '') as string,
-            listingId: (data.listing_id || '') as string,
-            threadId: (data.chat_id || '') as string,
-            createdAt: (data.created_at || '') as string,
-          })
-        })
-        return reviews
-      } catch (err) {
-        console.warn('[TIPalit Firebase Chat] Error listing reviews:', err)
-        return []
       }
     },
 

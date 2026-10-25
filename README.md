@@ -97,7 +97,7 @@ The Firebase adapter is implemented and selected automatically once the env vars
 | `VITE_DATA_ADAPTER` | Force `firebase` or `mock` (overrides auto-detect) |
 | `VITE_REVIEWER_MODE` | Ship demo tooling (normally leave unset; `?reviewer=1` also works) |
 
-Interfaces that changed with the PRD (services/types.ts is the contract): `ChatService.listReviews(userId)` powers seller reputation; `PromotionService.list(campus)` + `trackClick(id)` power sponsor banners; `AnalyticsService.getOverview()` powers the admin Marketplace panel and `track(name, params)` the funnel events (`listing_view`, `chat_started`, `message_sent`, `promo_click`).
+Interfaces that changed with the PRD (services/types.ts is the contract): seller reputation is aggregated on read in `services/profiles.ts`; `PromotionService.list(campus)` + `trackClick(id)` power sponsor banners; `AnalyticsService.getOverview()` powers the admin Marketplace panel and `track(name, params)` the funnel events (`listing_view`, `chat_started`, `message_sent`, `promo_click`).
 
 Everything needed on the Firebase side — Auth providers and authorized domains, rules, indexes, Functions, seeding — is in **section 5**.
 

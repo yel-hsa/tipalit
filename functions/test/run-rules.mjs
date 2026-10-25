@@ -21,9 +21,12 @@ import { fileURLToPath } from 'node:url'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const JDK_HOME = process.env.JDK25_HOME ?? 'C:/Program Files/Java/jdk-25'
 const javaBin = path.join(JDK_HOME, 'bin', process.platform === 'win32' ? 'java.exe' : 'java')
+// CI installs a JDK via setup-java and exports JAVA_HOME; the Windows default
+// path above does not exist there.
+const javaHome = existsSync(javaBin) ? JDK_HOME : (process.env.JAVA_HOME ?? JDK_HOME)
 
-if (!existsSync(javaBin)) {
-  console.error(`[test:rules] JDK not found at ${javaBin}. Install JDK 21+ or set JDK25_HOME.`)
+if (!existsSync(path.join(javaHome, 'bin', process.platform === 'win32' ? 'java.exe' : 'java'))) {
+  console.error(`[test:rules] JDK not found at ${javaHome}. Install JDK 21+ or set JDK25_HOME.`)
   process.exit(1)
 }
 
@@ -52,8 +55,8 @@ const result = spawnSync(command, {
   shell: true,
   env: {
     ...process.env,
-    JAVA_HOME: JDK_HOME,
-    PATH: `${path.join(JDK_HOME, 'bin')}${path.delimiter}${process.env.PATH ?? ''}`,
+    JAVA_HOME: javaHome,
+    PATH: `${path.join(javaHome, 'bin')}${path.delimiter}${process.env.PATH ?? ''}`,
     FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
   },
 })

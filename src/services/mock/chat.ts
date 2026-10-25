@@ -169,13 +169,6 @@ export function createMockChat() {
       write('reviews', { ...loadReviews(), [review.id]: review })
     },
 
-    async listReviews(userId) {
-      await delay(150)
-      return Object.values(loadReviews())
-        .filter((review) => review.revieweeId === userId)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    },
-
     async setListingStatus(threadId, status) {
       await delay(250)
       const thread = load().find((candidate) => candidate.id === threadId)
