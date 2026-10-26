@@ -62,7 +62,7 @@ function Metric({
   return (
     <div
       style={{ '--i': index } as CSSProperties}
-      className="stagger flex animate-rise-in flex-col gap-md rounded-corner-lg border border-border-primary bg-surface-bg p-xl transition-shadow hover:shadow-raised"
+      className="stagger flex animate-rise-in flex-col gap-md rounded-corner-lg border border-border-primary bg-surface-bg p-xl transition-[box-shadow,border-color] duration-200 hover:border-border-selected hover:shadow-raised"
     >
       <div className="flex items-center justify-between">
         <span className="text-cell-strong text-text-secondary">{label}</span>

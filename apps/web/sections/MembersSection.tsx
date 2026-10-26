@@ -50,6 +50,7 @@ export default function MembersSection({ members, onOpen, onToggleStatus }: Memb
   const [status, setStatus] = useState<StatusFilter>('all')
   const [campus, setCampus] = useState<CampusFilter>('all')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [confirmId, setConfirmId] = useState<string | null>(null)
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -63,11 +64,19 @@ export default function MembersSection({ members, onOpen, onToggleStatus }: Memb
     })
   }, [members, status, campus, query])
 
+  const filtersActive = status !== 'all' || campus !== 'all' || query.trim().length > 0
+  const clearFilters = () => {
+    setStatus('all')
+    setCampus('all')
+    setQuery('')
+  }
+
   const toggle = async (member: MemberSummary) => {
     if (busyId) return
     setBusyId(member.userId)
     await onToggleStatus(member.userId, member.status === 'suspended' ? 'active' : 'suspended')
     setBusyId(null)
+    setConfirmId(null)
   }
 
   const columns: Column<MemberSummary>[] = [
@@ -164,18 +173,49 @@ export default function MembersSection({ members, onOpen, onToggleStatus }: Memb
         }
         const suspended = member.status === 'suspended'
         const busy = busyId === member.userId
+        const confirming = confirmId === member.userId
         return (
-          <div onClick={(event) => event.stopPropagation()}>
-            <Button
-              variant="subtle"
-              size="small"
-              disabled={busy}
-              iconStart={busy ? <Spinner size={14} /> : suspended ? <RotateCcw size={14} /> : <Ban size={14} />}
-              onClick={() => void toggle(member)}
-              className={suspended ? '' : 'text-danger'}
-            >
-              {suspended ? 'Unban' : 'Ban'}
-            </Button>
+          <div className="flex items-center justify-end gap-xs" onClick={(event) => event.stopPropagation()}>
+            {confirming ? (
+              <>
+                <span className="mr-xs text-caption-sm text-text-secondary">Sure?</span>
+                <Button
+                  variant="subtle"
+                  size="small"
+                  disabled={busy}
+                  onClick={() => setConfirmId(null)}
+                  aria-label={`Keep ${member.name} active`}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="small"
+                  disabled={busy}
+                  aria-busy={busy || undefined}
+                  aria-label={`Confirm suspending ${member.name}`}
+                  iconStart={busy ? <Spinner size={14} /> : <Ban size={14} />}
+                  onClick={() => void toggle(member)}
+                  className="border-danger bg-danger text-white hover:border-danger hover:bg-danger/90"
+                >
+                  {busy ? 'Saving…' : 'Suspend'}
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="subtle"
+                size="small"
+                disabled={busy}
+                aria-label={
+                  suspended ? `Reinstate ${member.name}` : `Suspend ${member.name}`
+                }
+                iconStart={busy ? <Spinner size={14} /> : suspended ? <RotateCcw size={14} /> : <Ban size={14} />}
+                onClick={() => (suspended ? void toggle(member) : setConfirmId(member.userId))}
+                className={suspended ? '' : 'text-danger'}
+              >
+                {suspended ? 'Unban' : 'Ban'}
+              </Button>
+            )}
           </div>
         )
       },
@@ -210,8 +250,19 @@ export default function MembersSection({ members, onOpen, onToggleStatus }: Memb
         empty={
           <EmptyState
             icon={UserSearch}
-            title="No members match"
-            body="Try another name, email, or filter."
+            title={filtersActive ? 'No members match' : 'No members yet'}
+            body={
+              filtersActive
+                ? 'No member matches the current search and filters.'
+                : 'Members appear here once students finish setting up their profile.'
+            }
+            action={
+              filtersActive ? (
+                <Button variant="neutral" size="small" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : undefined
+            }
           />
         }
       />

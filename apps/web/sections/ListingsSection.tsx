@@ -1,3 +1,4 @@
+import { Button } from '@figma/astraui'
 import { Package } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CATEGORY_LIST, campusLabel, priceLabel, timeAgo } from '@tipalit/services/seed'
@@ -56,6 +57,14 @@ export default function ListingsSection({ listings, members, onOpen }: ListingsS
       return `${listing.title} ${listing.courseCode} ${listing.category} ${seller}`.toLowerCase().includes(q)
     })
   }, [listings, status, campus, category, query, memberById])
+
+  const filtersActive = status !== 'all' || campus !== 'all' || category !== 'all' || query.trim().length > 0
+  const clearFilters = () => {
+    setStatus('all')
+    setCampus('all')
+    setCategory('all')
+    setQuery('')
+  }
 
   const columns: Column<Listing>[] = [
     {
@@ -169,8 +178,19 @@ export default function ListingsSection({ listings, members, onOpen }: ListingsS
         empty={
           <EmptyState
             icon={Package}
-            title="No listings match"
-            body="Try a different search, campus, or category."
+            title={filtersActive ? 'No listings match' : 'No listings yet'}
+            body={
+              filtersActive
+                ? 'No listing matches the current search and filters.'
+                : 'Listings appear here as students post items for sale.'
+            }
+            action={
+              filtersActive ? (
+                <Button variant="neutral" size="small" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : undefined
+            }
           />
         }
       />

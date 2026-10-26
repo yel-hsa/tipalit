@@ -1,6 +1,6 @@
 import { IconButton } from '@figma/astraui'
 import { X } from 'lucide-react'
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import useDialogFocus from '../useDialogFocus'
 
 type SlideOverProps = {
@@ -12,12 +12,31 @@ type SlideOverProps = {
   footer?: ReactNode
 }
 
+const EXIT_MS = 200
+
 // docks right at full height; the header and footer stay put while the body scrolls
 export default function SlideOver({ isOpen, onClose, title, subtitle, children, footer }: SlideOverProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
+  const [closing, setClosing] = useState(false)
+  const closingRef = useRef(false)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
-  useDialogFocus(isOpen, bodyRef, { onClose })
+  // stable identity: useDialogFocus re-runs its effect when onClose changes, which
+  // would steal focus back to the first control on every parent re-render
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onCloseRef.current()
+      return
+    }
+    closingRef.current = true
+    setClosing(true)
+    window.setTimeout(() => onCloseRef.current(), EXIT_MS)
+  }, [])
+
+  useDialogFocus(isOpen, bodyRef, { onClose: requestClose })
 
   useEffect(() => {
     if (!isOpen) return
@@ -31,12 +50,18 @@ export default function SlideOver({ isOpen, onClose, title, subtitle, children, 
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div aria-hidden="true" className="absolute inset-0 animate-fade-in bg-modal-scrim" onClick={onClose} />
+      <div
+        aria-hidden="true"
+        className={`absolute inset-0 bg-modal-scrim ${closing ? 'animate-fade-out' : 'animate-fade-in'}`}
+        onClick={requestClose}
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative flex h-full w-full max-w-drawer animate-drawer-in flex-col border-l border-border-primary bg-surface-bg shadow-raised"
+        className={`relative flex h-full w-full max-w-drawer flex-col border-l border-border-primary bg-surface-bg shadow-raised ${
+          closing ? 'animate-drawer-out' : 'animate-drawer-in'
+        }`}
       >
         <div className="flex shrink-0 items-start justify-between gap-lg border-b border-border-secondary px-2xl py-xl">
           <div className="min-w-0">
@@ -50,7 +75,7 @@ export default function SlideOver({ isOpen, onClose, title, subtitle, children, 
             size="small"
             icon={<X size={16} />}
             aria-label="Close panel"
-            onClick={onClose}
+            onClick={requestClose}
             className="shrink-0"
           />
         </div>

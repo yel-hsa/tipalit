@@ -238,7 +238,10 @@ export default function AdminConsole({ session, expiresAt, onSignOut }: AdminCon
         expiresAt={expiresAt}
         counts={counts}
       >
-        {body}
+        {/* keyed on section so switching tabs replays the entrance instead of swapping instantly */}
+        <div key={section} className="animate-fade-in">
+          {body}
+        </div>
       </AdminShell>
 
       {selectedReport && (

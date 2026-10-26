@@ -1,3 +1,4 @@
+import { Button } from '@figma/astraui'
 import { History } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { timeAgo } from '@tipalit/services/seed'
@@ -54,6 +55,12 @@ export default function AuditSection({ audit }: AuditSectionProps) {
     })
   }, [audit, action, query])
 
+  const filtersActive = action !== 'all' || query.trim().length > 0
+  const clearFilters = () => {
+    setAction('all')
+    setQuery('')
+  }
+
   const groups = useMemo(() => {
     const byDay = new Map<string, AuditEntry[]>()
     rows.forEach((entry) => {
@@ -86,7 +93,14 @@ export default function AuditSection({ audit }: AuditSectionProps) {
           body={
             audit.length === 0
               ? 'Every decision, suspension, and settings change is recorded here.'
-              : 'Try a different search or action filter.'
+              : 'No entry matches the current search and action filter.'
+          }
+          action={
+            filtersActive ? (
+              <Button variant="neutral" size="small" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : undefined
           }
         />
       ) : (
@@ -114,7 +128,8 @@ export default function AuditSection({ audit }: AuditSectionProps) {
                           <p className="mt-xs text-cell text-text-secondary">&ldquo;{entry.note}&rdquo;</p>
                         )}
                         <p className="mt-xs text-caption-sm text-text-tertiary">
-                          {entry.actorName} · {timeOf(entry.at)} · {timeAgo(entry.at)}
+                          {entry.actorName} · <span className="tabular-nums">{timeOf(entry.at)}</span> ·{' '}
+                          {timeAgo(entry.at)}
                         </p>
                       </div>
                       <Badge variant="default" label={ACTION_LABEL[entry.action] ?? entry.action} />

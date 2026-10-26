@@ -71,6 +71,13 @@ export default function ReportsSection({
   }, [reports, status, kind, campus, query])
 
   const openCount = reports.filter((report) => report.status === 'open').length
+  const filtersActive = status !== 'open' || kind !== 'all' || campus !== 'all' || query.trim().length > 0
+  const clearFilters = () => {
+    setStatus('open')
+    setKind('all')
+    setCampus('all')
+    setQuery('')
+  }
 
   const run = async (reportId: string, action: ReportAction) => {
     if (busyId) return
@@ -168,6 +175,7 @@ export default function ReportsSection({
                   size="small"
                   disabled={busy}
                   onClick={() => setConfirmId(null)}
+                  aria-label={`Keep ${report.target.label} listed`}
                   className="text-text-secondary"
                 >
                   Cancel
@@ -176,6 +184,8 @@ export default function ReportsSection({
                   variant="primary"
                   size="small"
                   disabled={busy}
+                  aria-busy={busy || undefined}
+                  aria-label={`Confirm taking down ${report.target.label}`}
                   iconStart={busy ? <Spinner size={14} /> : <X size={14} />}
                   onClick={() => void run(report.id, 'remove_listing')}
                   className="border-danger bg-danger text-white hover:border-danger hover:bg-danger/90"
@@ -189,6 +199,8 @@ export default function ReportsSection({
                   variant="subtle"
                   size="small"
                   disabled={busy}
+                  aria-busy={busy || undefined}
+                  aria-label={`Dismiss the report on ${report.target.label}`}
                   iconStart={busy ? <Spinner size={14} /> : <Check size={14} />}
                   onClick={() => void run(report.id, 'dismiss')}
                 >
@@ -199,6 +211,7 @@ export default function ReportsSection({
                     variant="subtle"
                     size="small"
                     disabled={busy}
+                    aria-label={`Take down ${report.target.label}`}
                     iconStart={<X size={14} />}
                     onClick={() => setConfirmId(report.id)}
                     className="text-danger"
@@ -211,6 +224,7 @@ export default function ReportsSection({
                     variant="subtle"
                     size="small"
                     disabled={busy}
+                    aria-label={`Suspend ${report.subjectName}`}
                     iconStart={<ShieldCheck size={14} />}
                     onClick={() => void run(report.id, 'suspend_member')}
                   >
@@ -233,7 +247,13 @@ export default function ReportsSection({
         searchLabel="Search reports"
         placeholder="Search by listing, member, reason, or reporter"
         filters={[
-          { label: 'Status', value: status, options: STATUS_OPTIONS, onChange: (value) => setStatus(value as StatusFilter) },
+          {
+            label: 'Status',
+            value: status,
+            options: STATUS_OPTIONS,
+            onChange: (value) => setStatus(value as StatusFilter),
+            defaultValue: 'open',
+          },
           { label: 'Target', value: kind, options: KIND_OPTIONS, onChange: (value) => setKind(value as KindFilter) },
           { label: 'Campus', value: campus, options: CAMPUS_OPTIONS, onChange: (value) => setCampus(value as CampusFilter) },
         ]}
@@ -252,11 +272,18 @@ export default function ReportsSection({
         empty={
           <EmptyState
             icon={ShieldCheck}
-            title={status === 'open' ? 'Queue is clear' : 'No reports match'}
+            title={filtersActive ? 'No reports match' : 'Queue is clear'}
             body={
-              status === 'open'
-                ? 'Every report has been reviewed. New ones from members show up here.'
-                : 'Try a different search or filter.'
+              filtersActive
+                ? 'No report matches the current search and filters.'
+                : 'Every report has been reviewed. New ones from members show up here.'
+            }
+            action={
+              filtersActive ? (
+                <Button variant="neutral" size="small" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : undefined
             }
           />
         }

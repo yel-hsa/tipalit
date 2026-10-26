@@ -198,6 +198,12 @@
   --animate-shimmer: tip-shimmer 1.4s ease-in-out infinite;
   --animate-sheet-in: tip-sheet-in 200ms ease-out;
   --animate-fade-in: tip-fade-in 240ms ease-out;
+  --animate-fade-out: tip-fade-out 180ms ease-in;
+  --animate-drawer-in: tip-drawer-in 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-drawer-out: tip-drawer-out 200ms cubic-bezier(0.4, 0, 1, 1);
+  --animate-rise-in: tip-rise-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-toast-in: tip-toast-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-grow-x: tip-grow-x 600ms cubic-bezier(0.16, 1, 0.3, 1);
 
   --font-weight-book: var(--type-weight-book);
 
@@ -302,11 +308,85 @@
   }
 }
 
+@keyframes tip-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* slides in from the right edge; the drawer is docked, so only X moves */
+@keyframes tip-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes tip-drawer-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes tip-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tip-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tip-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* stagger is a delay helper, not an animation; --i is set per row/card */
+.stagger {
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-shimmer,
   .animate-sheet-in,
   .animate-fade-in,
+  .animate-fade-out,
+  .animate-drawer-in,
+  .animate-drawer-out,
+  .animate-rise-in,
+  .animate-toast-in,
+  .animate-grow-x,
   .animate-spin {
     animation: none;
+  }
+
+  .stagger {
+    animation-delay: 0ms;
   }
 }

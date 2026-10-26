@@ -149,7 +149,9 @@ export default function DataTable<T>({
                   {columns.map((column) => (
                     <td
                       key={column.id}
-                      className={`px-lg py-md align-middle text-cell text-text-primary ${column.align === 'right' ? 'text-right' : ''}`}
+                      className={`px-lg py-md align-middle text-cell text-text-primary ${
+                        column.align === 'right' ? 'text-right tabular-nums' : ''
+                      }`}
                     >
                       {column.render(row)}
                     </td>
