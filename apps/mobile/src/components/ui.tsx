@@ -39,7 +39,7 @@ export function Button({
       ]}
     >
       {busy ? (
-        <ActivityIndicator color={variant === 'secondary' ? colors.text : '#fff'} />
+        <ActivityIndicator color={variant === 'secondary' ? colors.text : colors.onAccent} />
       ) : (
         <Text style={[styles.buttonLabel, variant === 'secondary' && styles.buttonLabelSecondary]}>{label}</Text>
       )}
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   buttonSecondary: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   buttonDanger: { backgroundColor: colors.danger },
   buttonDim: { opacity: 0.6 },
-  buttonLabel: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonLabel: { color: colors.onAccent, fontSize: 16, fontWeight: '600' },
   buttonLabelSecondary: { color: colors.text },
   pill: {
     minHeight: 44,
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   pillActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   pillLabel: { fontSize: 13, color: colors.text },
-  pillLabelActive: { color: '#fff', fontWeight: '600' },
+  pillLabelActive: { color: colors.onAccent, fontWeight: '600' },
   badge: { alignSelf: 'flex-start', borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 2 },
   badgeLabel: { fontSize: 12, fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space(8), gap: space(2) },

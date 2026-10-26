@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { CAMPUSES, PROGRAMS, YEAR_LEVELS } from '@tipalit/services/seed'
 import type { CampusId, Profile } from '@tipalit/services/types'
 import { useSession } from '../session'
-import { colors, radius, space } from '../theme'
+import { colors, radius, typography, space } from '../theme'
 import { Button, Pill, Screen } from '../components/ui'
 
 export default function OnboardingScreen() {
@@ -90,10 +90,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const styles = StyleSheet.create({
   content: { padding: space(5), gap: space(5) },
-  heading: { fontSize: 24, fontWeight: '700', color: colors.text },
-  sub: { fontSize: 14, color: colors.muted, marginTop: -space(3) },
+  heading: { ...typography.title, color: colors.text },
+  sub: { ...typography.labelSm, color: colors.muted, marginTop: -space(3) },
   field: { gap: space(2) },
-  label: { fontSize: 13, fontWeight: '600', color: colors.text },
+  label: { ...typography.labelSm, fontWeight: '600', color: colors.text },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -101,9 +101,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: space(3),
     paddingVertical: space(3),
-    fontSize: 16,
+    ...typography.input,
     color: colors.text,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
-  error: { color: colors.danger, fontSize: 14 },
+  error: { ...typography.labelSm, color: colors.danger },
 })

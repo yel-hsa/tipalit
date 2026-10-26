@@ -17,6 +17,7 @@ type SessionContextValue = {
   signOutReason: SignOutReason | null
   expiresAt: number | null
   signIn: () => Promise<AuthResult>
+  signInWithEmail: (email: string, password: string) => Promise<AuthResult>
   signOut: (reason?: SignOutReason) => Promise<void>
   registerAccountPicker: (picker: (() => Promise<GoogleAccount | null>) | null) => void
 }
@@ -139,6 +140,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    const result = await services.auth.signInWithEmail(email, password)
+    if (result.ok) {
+      if (result.session.role !== 'admin') {
+        await services.auth.signOut().catch(() => undefined)
+        return result
+      }
+      if (mounted.current) {
+        setSession(result.session)
+        setStatus('signed-in')
+        setSignOutReason(null)
+      }
+    }
+    return result
+  }, [])
+
   const value = useMemo<SessionContextValue>(
     () => ({
       status,
@@ -146,10 +163,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       signOutReason,
       expiresAt: session ? expiryOf(session) : null,
       signIn,
+      signInWithEmail,
       signOut,
       registerAccountPicker,
     }),
-    [status, session, signOutReason, signIn, signOut, registerAccountPicker],
+    [status, session, signOutReason, signIn, signInWithEmail, signOut, registerAccountPicker],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

@@ -3,7 +3,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { services } from '@tipalit/services'
 import { timeAgo } from '@tipalit/services/seed'
 import type { Listing, Thread } from '@tipalit/services/types'
-import { colors, radius, space } from '../theme'
+import { colors, radius, typography, space } from '../theme'
 import { EmptyState, Loading, Screen } from '../components/ui'
 
 type Row = { thread: Thread; listing: Listing | null; preview: string; at: string }
@@ -86,7 +86,7 @@ export default function ChatListScreen({ onOpen }: { onOpen: (threadId: string) 
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: space(4), paddingTop: space(4) },
-  heading: { fontSize: 24, fontWeight: '700', color: colors.text },
+  heading: { ...typography.page, color: colors.text },
   list: { padding: space(4), gap: space(2), flexGrow: 1 },
   row: {
     flexDirection: 'row',
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: colors.accent, fontWeight: '700', fontSize: 16 },
   body: { flex: 1, gap: 2 },
-  title: { fontSize: 15, fontWeight: '600', color: colors.text },
-  preview: { fontSize: 13, color: colors.muted },
-  time: { fontSize: 12, color: colors.muted },
+  title: { ...typography.cellStrong, color: colors.text },
+  preview: { ...typography.meta, color: colors.muted },
+  time: { ...typography.meta, color: colors.muted },
 })

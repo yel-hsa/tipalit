@@ -1,7 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { priceLabel, timeAgo } from '@tipalit/services/seed'
 import type { Listing } from '@tipalit/services/types'
-import { colors, radius, space } from '../theme'
+import { colors, radius, typography, space } from '../theme'
 import { Badge } from './ui'
 
 export default function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => void }) {
@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
   photo: { width: 88, height: 88, borderRadius: radius.md, backgroundColor: '#eee' },
   body: { flex: 1, gap: space(1) },
-  title: { fontSize: 15, fontWeight: '600', color: colors.text },
-  price: { fontSize: 15, fontWeight: '700', color: colors.accent },
+  title: { ...typography.cellStrong, color: colors.text },
+  price: { ...typography.cellStrong, color: colors.accent },
   meta: { flexDirection: 'row', justifyContent: 'space-between', gap: space(2) },
-  metaText: { fontSize: 12, color: colors.muted, flexShrink: 1 },
+  metaText: { ...typography.meta, color: colors.muted, flexShrink: 1 },
 })

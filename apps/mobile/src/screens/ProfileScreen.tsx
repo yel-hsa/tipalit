@@ -4,7 +4,7 @@ import { services } from '@tipalit/services'
 import { campusLabel, formatMonthYear } from '@tipalit/services/seed'
 import type { Listing } from '@tipalit/services/types'
 import { useSession } from '../session'
-import { colors, space } from '../theme'
+import { colors, typography, space } from '../theme'
 import ListingCard from '../components/ListingCard'
 import { Badge, Button, Card, EmptyState, Loading, Screen } from '../components/ui'
 
@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: colors.accent, fontWeight: '700', fontSize: 18 },
   identityBody: { flex: 1, gap: 2 },
-  name: { fontSize: 18, fontWeight: '700', color: colors.text },
-  meta: { fontSize: 13, color: colors.muted },
-  section: { fontSize: 16, fontWeight: '700', color: colors.text },
+  name: { ...typography.heading, fontWeight: '600', color: colors.text },
+  meta: { ...typography.meta, color: colors.muted },
+  section: { ...typography.label, fontWeight: '600', color: colors.text },
   list: { gap: space(3) },
 })

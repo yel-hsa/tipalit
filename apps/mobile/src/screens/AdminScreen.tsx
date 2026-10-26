@@ -3,10 +3,12 @@ import { Alert, FlatList, ScrollView, StyleSheet, Text, View } from 'react-nativ
 import { services } from '@tipalit/services'
 import { campusLabel, timeAgo } from '@tipalit/services/seed'
 import type { AnalyticsOverview, AuditEntry, MemberSummary, Report, ReportAction } from '@tipalit/services/types'
-import { colors, radius, space } from '../theme'
+import { colors, radius, space, typography } from '../theme'
 import { Badge, Button, Card, EmptyState, Loading, Pill, Screen } from '../components/ui'
 
 type Tab = 'reports' | 'members' | 'audit'
+
+const TAB_LABELS: Record<Tab, string> = { reports: 'Reports', members: 'Members', audit: 'Audit' }
 
 const ACTIONS: { value: ReportAction; label: string; note: string }[] = [
   { value: 'remove_listing', label: 'Remove listing', note: 'Removed after review' },
@@ -14,6 +16,12 @@ const ACTIONS: { value: ReportAction; label: string; note: string }[] = [
   { value: 'dismiss', label: 'Dismiss', note: 'No action needed' },
 ]
 
+/**
+ * Mobile mirror of the web admin console (apps/web/screens/AdminConsole.tsx):
+ * charcoal header band with gold accents, white 16px-radius surface cards,
+ * soft-tint status badges, 12px uppercase meta headers. Same moderation flows
+ * as before — reports queue, member moderation, audit log.
+ */
 export default function AdminScreen() {
   const [tab, setTab] = useState<Tab>('reports')
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null)
@@ -77,8 +85,10 @@ export default function AdminScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text style={styles.heading}>Moderation</Text>
+      {/* charcoal console header, mirroring the web AdminShell band */}
+      <View style={styles.consoleHeader}>
+        <Text style={styles.consoleKicker}>TIPalit · Office of Student Affairs</Text>
+        <Text style={styles.consoleTitle}>Moderation</Text>
         {overview && (
           <View style={styles.stats}>
             <Stat label="Open reports" value={overview.openReports} />
@@ -87,9 +97,15 @@ export default function AdminScreen() {
           </View>
         )}
       </View>
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
         {(['reports', 'members', 'audit'] as Tab[]).map((item) => (
-          <Pill key={item} label={item[0].toUpperCase() + item.slice(1)} active={tab === item} onPress={() => setTab(item)} />
+          <Pill
+            key={item}
+            label={TAB_LABELS[item]}
+            active={tab === item}
+            onPress={() => setTab(item)}
+          />
         ))}
       </ScrollView>
       {error && <Text style={styles.error}>{error}</Text>}
@@ -103,15 +119,17 @@ export default function AdminScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <Card style={styles.report}>
-                <View style={styles.reportHead}>
-                  <Text style={styles.reportTitle}>{item.target.label}</Text>
+              <Card style={styles.row}>
+                <View style={styles.rowHead}>
+                  <Text style={styles.rowTitle}>{item.target.label}</Text>
                   <Badge label={item.status} tone={item.status === 'open' ? 'warning' : 'neutral'} />
                 </View>
+                <Text style={styles.sectionLabel}>Report</Text>
                 <Text style={styles.meta}>
                   {item.reason} · {campusLabel(item.campus)} · {timeAgo(item.createdAt)}
                 </Text>
                 {item.details !== '' && <Text style={styles.details}>{item.details}</Text>}
+                <Text style={styles.sectionLabel}>People</Text>
                 <Text style={styles.meta}>
                   Reported by {item.reporterName} · subject {item.subjectName}
                 </Text>
@@ -157,15 +175,17 @@ export default function AdminScreen() {
             keyExtractor={(item) => item.userId}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <Card style={styles.report}>
-                <View style={styles.reportHead}>
-                  <Text style={styles.reportTitle}>{item.name}</Text>
+              <Card style={styles.row}>
+                <View style={styles.rowHead}>
+                  <Text style={styles.rowTitle}>{item.name}</Text>
                   <Badge label={item.status} tone={item.status === 'active' ? 'accent' : 'danger'} />
                 </View>
+                <Text style={styles.sectionLabel}>Member</Text>
                 <Text style={styles.meta}>{item.email}</Text>
                 <Text style={styles.meta}>
                   {item.program} · {item.year} · {item.campus ? campusLabel(item.campus) : 'No campus'}
                 </Text>
+                <Text style={styles.sectionLabel}>Activity</Text>
                 <Text style={styles.meta}>
                   {item.activeListings} listings · {item.openReports} open reports · {item.role}
                 </Text>
@@ -199,13 +219,14 @@ export default function AdminScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <View style={styles.auditRow}>
-                <Text style={styles.reportTitle}>{item.summary}</Text>
+              <Card style={styles.row}>
+                <Text style={styles.rowTitle}>{item.summary}</Text>
+                <Text style={styles.sectionLabel}>Action</Text>
                 <Text style={styles.meta}>
                   {item.action} · {item.actorName} · {timeAgo(item.at)}
                 </Text>
                 {item.note && <Text style={styles.details}>{item.note}</Text>}
-              </View>
+              </Card>
             )}
             ListEmptyComponent={<EmptyState title="No activity" body="Moderation actions are recorded here." />}
           />
@@ -224,36 +245,41 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: space(4), paddingTop: space(4), gap: space(3) },
-  heading: { fontSize: 24, fontWeight: '700', color: colors.text },
+  consoleHeader: {
+    backgroundColor: colors.brandPrimary,
+    paddingHorizontal: space(4),
+    paddingTop: space(4),
+    paddingBottom: space(4),
+    gap: space(2),
+  },
+  consoleKicker: { ...typography.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1 },
+  consoleTitle: { ...typography.page, color: colors.onBrand },
   stats: { flexDirection: 'row', gap: space(2) },
   stat: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceDark,
+    borderRadius: radius.lg,
     padding: space(3),
     gap: 2,
   },
-  statValue: { fontSize: 20, fontWeight: '700', color: colors.accent },
-  statLabel: { fontSize: 12, color: colors.muted },
+  statValue: { ...typography.metric, color: colors.accent },
+  statLabel: { ...typography.meta, color: colors.onBrand, opacity: 0.7 },
   tabs: { paddingHorizontal: space(4), paddingVertical: space(3), gap: space(2) },
   list: { paddingHorizontal: space(4), paddingBottom: space(10), gap: space(3), flexGrow: 1 },
-  report: { gap: space(2) },
-  reportHead: { flexDirection: 'row', justifyContent: 'space-between', gap: space(2), alignItems: 'flex-start' },
-  reportTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
-  meta: { fontSize: 12, color: colors.muted },
-  details: { fontSize: 14, color: colors.text },
+  row: { gap: space(2), padding: space(4) },
+  rowHead: { flexDirection: 'row', justifyContent: 'space-between', gap: space(2), alignItems: 'flex-start' },
+  rowTitle: { flex: 1, ...typography.cellStrong, color: colors.text },
+  sectionLabel: {
+    ...typography.meta,
+    color: colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontWeight: '500',
+    marginTop: space(1),
+  },
+  meta: { ...typography.meta, color: colors.textSecondary },
+  details: { ...typography.inputSm, color: colors.text },
   actions: { flexDirection: 'row', gap: space(2), marginTop: space(1) },
   action: { flex: 1 },
-  auditRow: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: space(3),
-    gap: 2,
-  },
   error: { color: colors.danger, fontSize: 13, paddingHorizontal: space(4) },
 })

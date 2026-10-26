@@ -10,6 +10,9 @@ export type Platform = {
   storage: KeyValueStore
   setTimeout: (fn: () => void, ms: number) => unknown
   clearTimeout: (handle: unknown) => void
+  // native hosts register a Google sign-in handler (e.g. expo-auth-session ->
+  // Firebase credential); when absent, the firebase adapter falls back to popup
+  googleSignIn?: () => Promise<{ idToken: string } | null>
 }
 
 const memory = new Map<string, string>()

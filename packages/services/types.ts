@@ -133,7 +133,19 @@ export type Profile = {
 
 export type AuthResult =
   | { ok: true; session: Session }
-  | { ok: false; reason: 'cancelled' | 'domain' | 'unverified' | 'network' | 'suspended'; email?: string }
+  | {
+      ok: false
+      reason:
+        | 'cancelled'
+        | 'domain'
+        | 'unverified'
+        | 'network'
+        | 'suspended'
+        // email/password sign-in failures
+        | 'invalid-credentials'
+        | 'too-many-attempts'
+      email?: string
+    }
 
 export type Theme = 'light' | 'dark'
 export type Prefs = { theme: Theme; introSeen: boolean }
@@ -235,6 +247,8 @@ export interface AnalyticsService {
 export interface AuthService {
   getSession(): Promise<Session | null>
   signInWithGoogle(): Promise<AuthResult>
+  // admin path: Firebase Email/Password; the same domain/verified/active gates apply
+  signInWithEmail(email: string, password: string): Promise<AuthResult>
   signOut(): Promise<void>
 }
 

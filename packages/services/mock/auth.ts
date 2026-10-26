@@ -10,6 +10,11 @@ import { hasShape, read, remove, write } from './storage'
 // ux only; a real backend must verify the `hd` claim on the id token
 const TIP_DOMAIN = /@tip\.edu\.ph$/i
 
+// DEMO ONLY — the seeded admin account for the mock adapter so the admin
+// console works without Firebase. Never present in the Firebase adapter.
+export const DEMO_ADMIN_EMAIL = 'osa.admin@tip.edu.ph'
+export const DEMO_ADMIN_PASSWORD = 'tipalit-demo'
+
 const isSessionShape = hasShape<Session>({ userId: 'string', email: 'string', name: 'string', initials: 'string' })
 const isSession = (value: unknown): value is Session | null => value === null || isSessionShape(value)
 
@@ -67,6 +72,29 @@ export function createMockAuth({ onSignOut }: { onSignOut: () => void }): AuthSe
       }
       write('session', session)
       return { ok: true, session }
+    },
+
+    async signInWithEmail(email: string, password: string) {
+      await delay()
+      const normalized = email.trim().toLowerCase()
+      // demo-only admin path; production admins use Firebase Email/Password
+      if (normalized !== DEMO_ADMIN_EMAIL || password !== DEMO_ADMIN_PASSWORD) {
+        return { ok: false as const, reason: 'invalid-credentials' as const, email: normalized }
+      }
+      const name = 'Office of Student Affairs'
+      const userId = userIdFor(normalized)
+      if (isSuspended(userId)) return { ok: false as const, reason: 'suspended' as const, email: normalized }
+      if (!loadProfiles()[userId]) saveProfile(createSignInProfile(userId, name, normalized))
+      const session: Session = {
+        userId,
+        email: normalized,
+        name,
+        initials: initialsOf(name),
+        issuedAt: new Date().toISOString(),
+        role: 'admin',
+      }
+      write('session', session)
+      return { ok: true as const, session }
     },
 
     async signOut() {

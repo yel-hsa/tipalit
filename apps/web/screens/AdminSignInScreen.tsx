@@ -1,4 +1,4 @@
-import { Button } from '@figma/astraui'
+import { Button, InputField } from '@figma/astraui'
 import { Ban, Clock, RotateCcw, ShieldCheck, WifiOff } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ADMIN_ACCOUNT } from '@tipalit/services/seed'
@@ -8,16 +8,26 @@ import AccountChooser from '../components/admin/AccountChooser'
 import InlineAlert from '../components/InlineAlert'
 import Spinner from '../components/Spinner'
 import Wordmark from '../components/Wordmark'
+import { useSession } from '../session'
 import type { SignOutReason } from '../session'
 
 type AuthState =
   | { kind: 'idle' }
   | { kind: 'pending' }
+  | { kind: 'email-pending' }
   | { kind: 'domain'; email: string }
   | { kind: 'unverified'; email: string }
   | { kind: 'suspended'; email: string }
   | { kind: 'forbidden'; email: string }
   | { kind: 'network' }
+  | { kind: 'invalid-credentials' }
+  | { kind: 'too-many-attempts' }
+
+const EMAIL_ERRORS: Partial<Record<Extract<AuthResult, { ok: false }>['reason'], string>> = {
+  'invalid-credentials': 'Incorrect email or password.',
+  'too-many-attempts': 'Too many attempts, try again shortly.',
+  network: "Couldn't reach the sign-in service. Check your connection and try again.",
+}
 
 type AdminSignInScreenProps = {
   onSignIn: () => Promise<AuthResult>
@@ -33,11 +43,16 @@ const ENDED_NOTICE: Partial<Record<SignOutReason, { icon: typeof Clock; text: st
 }
 
 export default function AdminSignInScreen({ onSignIn, registerAccountPicker, signOutReason }: AdminSignInScreenProps) {
+  const { signInWithEmail } = useSession()
   const [state, setState] = useState<AuthState>({ kind: 'idle' })
   const [choosing, setChoosing] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [emailError, setEmailError] = useState<string | null>(null)
   const mounted = useRef(true)
   const pickerResolve = useRef<((account: GoogleAccount | null) => void) | null>(null)
   const pending = state.kind === 'pending'
+  const emailPending = state.kind === 'email-pending'
   const ended = signOutReason ? ENDED_NOTICE[signOutReason] : undefined
 
   useEffect(() => {
@@ -80,6 +95,37 @@ export default function AdminSignInScreen({ onSignIn, registerAccountPicker, sig
     else if (result.reason === 'unverified') setState({ kind: 'unverified', email: result.email ?? 'This account' })
     else if (result.reason === 'network') setState({ kind: 'network' })
     else setState({ kind: 'idle' })
+  }
+
+  const submitEmail = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (emailPending) return
+    setState({ kind: 'email-pending' })
+    setEmailError(null)
+    let result: AuthResult
+    try {
+      result = await signInWithEmail(email.trim(), password)
+    } catch {
+      result = { ok: false, reason: 'network' }
+    }
+    if (!mounted.current || result.ok) return
+
+    if (result.reason === 'invalid-credentials') {
+      setState({ kind: 'invalid-credentials' })
+      setEmailError(EMAIL_ERRORS['invalid-credentials'] ?? null)
+    } else if (result.reason === 'too-many-attempts') {
+      setState({ kind: 'too-many-attempts' })
+      setEmailError(EMAIL_ERRORS['too-many-attempts'] ?? null)
+    } else if (result.reason === 'network') {
+      setState({ kind: 'network' })
+      setEmailError(EMAIL_ERRORS.network ?? null)
+    } else if (result.reason === 'suspended') {
+      setState({ kind: 'suspended', email: result.email ?? 'This account' })
+    } else if (result.reason === 'unverified') {
+      setState({ kind: 'unverified', email: result.email ?? 'This account' })
+    } else {
+      setState({ kind: 'idle' })
+    }
   }
 
   const googleIcon = <img src={googleMark} alt="" className="size-4" />
@@ -168,6 +214,50 @@ export default function AdminSignInScreen({ onSignIn, registerAccountPicker, sig
           {state.kind === 'network' && (
             <InlineAlert icon={WifiOff}>Couldn&rsquo;t reach Google. Check your connection and try again.</InlineAlert>
           )}
+
+          <form noValidate onSubmit={submitEmail} className="flex flex-col gap-md">
+            <InputField
+              label="Email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="you@tip.edu.ph"
+              value={email}
+              disabled={emailPending}
+              aria-invalid={emailError ? true : undefined}
+              onChange={(value) => {
+                setEmail(value)
+                if (emailError) setEmailError(null)
+              }}
+            />
+            <InputField
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Your staff password"
+              value={password}
+              disabled={emailPending}
+              aria-invalid={emailError ? true : undefined}
+              onChange={(value) => {
+                setPassword(value)
+                if (emailError) setEmailError(null)
+              }}
+            />
+            {emailError && (
+              <p role="alert" className="text-caption-sm text-danger">
+                {emailError}
+              </p>
+            )}
+            <Button type="submit" variant="primary" disabled={emailPending} aria-busy={emailPending || undefined} iconStart={emailPending ? <Spinner /> : undefined} className="w-full">
+              {emailPending ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
+
+          <div className="flex items-center gap-md" role="separator" aria-label="or">
+            <span className="h-px flex-1 bg-border-primary" />
+            <span className="text-caption-sm text-text-secondary">or</span>
+            <span className="h-px flex-1 bg-border-primary" />
+          </div>
 
           <div className="flex flex-col gap-md">
             <Button

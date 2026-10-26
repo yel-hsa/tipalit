@@ -10,6 +10,7 @@ type SessionState = {
   // admins get the moderation drawer alongside the student tabs
   isAdmin: boolean
   signIn: () => Promise<string | null>
+  signInWithEmail: (email: string, password: string) => Promise<string | null>
   signOut: () => Promise<void>
   saveProfile: (profile: Profile) => Promise<void>
   refreshProfile: () => Promise<void>
@@ -51,6 +52,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return null
   }, [loadProfile])
 
+  // admin path: Firebase Email/Password — same gates as the web admin console
+  const signInWithEmail = useCallback(
+    async (email: string, password: string) => {
+      const result = await services.auth.signInWithEmail(email, password)
+      if (!result.ok) return result.reason
+      setSession(result.session)
+      await loadProfile(result.session.userId)
+      return null
+    },
+    [loadProfile],
+  )
+
   const signOut = useCallback(async () => {
     await services.auth.signOut()
     setSession(null)
@@ -72,11 +85,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       loading,
       isAdmin: session?.role === 'admin',
       signIn,
+      signInWithEmail,
       signOut,
       saveProfile,
       refreshProfile,
     }),
-    [session, profile, loading, signIn, signOut, saveProfile, refreshProfile],
+    [session, profile, loading, signIn, signInWithEmail, signOut, saveProfile, refreshProfile],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

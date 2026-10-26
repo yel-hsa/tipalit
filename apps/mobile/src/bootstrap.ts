@@ -39,4 +39,11 @@ setPlatform({
   },
   setTimeout: (fn, ms) => setTimeout(fn, ms),
   clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+  // TODO(native-google-auth): signInWithPopup cannot run on Expo native. Wire a
+  // real handler here once Google OAuth client IDs are configured (expo-auth-
+  // session's useAuthRequest with EXPO_PUBLIC_GOOGLE_* client IDs, exchanged
+  // for a Firebase credential). It must resolve { idToken } or null on cancel:
+  //   googleSignIn: async () => { ... return { idToken } }
+  // Until then the firebase adapter's signInWithGoogle surfaces a network
+  // failure on native; students should sign in on web or via the handler above.
 })

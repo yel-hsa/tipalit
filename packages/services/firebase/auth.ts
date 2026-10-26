@@ -1,12 +1,15 @@
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  signInWithCredential,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   type User,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { initialsOf } from '../profile'
+import { getPlatform } from '../platform'
 import type { AuthService, AuthResult, Role, Session } from '../types'
 import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from './config'
 
@@ -43,6 +46,52 @@ function sessionFromUser(user: User, role: Role): Session {
 export function createFirebaseAuth(): AuthService {
   const auth = getFirebaseAuth()
   const db = getFirebaseDb()
+
+  // shared gates for every sign-in path: @tip.edu.ph, verified email, active
+  // users_profile doc, role from custom claims (non-admins get 'member' and
+  // the admin UI must deny on its own)
+  const completeSignIn = async (user: User): Promise<AuthResult> => {
+    const email = (user.email || '').trim().toLowerCase()
+
+    if (!TIP_DOMAIN.test(email)) {
+      await firebaseSignOut(auth).catch(() => {})
+      return { ok: false, reason: 'domain', email }
+    }
+
+    if (!user.emailVerified) {
+      await firebaseSignOut(auth).catch(() => {})
+      return { ok: false, reason: 'unverified', email }
+    }
+
+    const userDocRef = doc(db, 'users_profile', user.uid)
+    const userSnapshot = await getDoc(userDocRef)
+
+    let role: Role = 'member'
+    if (userSnapshot.exists()) {
+      const profileData = userSnapshot.data()
+      if (profileData.status !== 'active') {
+        await firebaseSignOut(auth).catch(() => {})
+        return { ok: false, reason: 'suspended', email }
+      }
+      const token = await user.getIdTokenResult()
+      role = roleFromClaims(token.claims)
+    } else {
+      // rules pin create to role 'member'; leaving campus unset keeps onboarding running
+      await setDoc(userDocRef, {
+        user_id: user.uid,
+        email,
+        full_name: nameFromUser(user),
+        is_verified: user.emailVerified,
+        role: 'member',
+        status: 'active',
+        joinedAt: new Date().toISOString(),
+      })
+      const token = await user.getIdTokenResult()
+      role = roleFromClaims(token.claims)
+    }
+
+    return { ok: true, session: sessionFromUser(user, role) }
+  }
 
   return {
     async getSession(): Promise<Session | null> {
@@ -111,49 +160,20 @@ export function createFirebaseAuth(): AuthService {
       })
 
       try {
-        const result = await signInWithPopup(auth, provider)
-        const user = result.user
-        const email = (user.email || '').trim().toLowerCase()
-
-        if (!TIP_DOMAIN.test(email)) {
-          await firebaseSignOut(auth).catch(() => {})
-          return { ok: false, reason: 'domain', email }
-        }
-
-        if (!user.emailVerified) {
-          await firebaseSignOut(auth).catch(() => {})
-          return { ok: false, reason: 'unverified', email }
-        }
-
-        const userDocRef = doc(db, 'users_profile', user.uid)
-        const userSnapshot = await getDoc(userDocRef)
-
-        let role: Role = 'member'
-        if (userSnapshot.exists()) {
-          const profileData = userSnapshot.data()
-          if (profileData.status !== 'active') {
-            await firebaseSignOut(auth).catch(() => {})
-            return { ok: false, reason: 'suspended', email }
-          }
-          const token = await user.getIdTokenResult()
-          role = roleFromClaims(token.claims)
+        // native hosts register a googleSignIn handler on the platform; popup
+        // cannot work outside a browser, so prefer the hook when installed
+        const nativeHandler = getPlatform().googleSignIn
+        let user: User
+        if (nativeHandler) {
+          const credential = await nativeHandler()
+          if (!credential) return { ok: false, reason: 'cancelled' }
+          const result = await signInWithCredential(auth, GoogleAuthProvider.credential(credential.idToken))
+          user = result.user
         } else {
-          // rules pin create to role 'member'; leaving campus unset keeps onboarding running
-          await setDoc(userDocRef, {
-            user_id: user.uid,
-            email,
-            full_name: nameFromUser(user),
-            is_verified: user.emailVerified,
-            role: 'member',
-            status: 'active',
-            joinedAt: new Date().toISOString(),
-          })
-          const token = await user.getIdTokenResult()
-          role = roleFromClaims(token.claims)
+          const result = await signInWithPopup(auth, provider)
+          user = result.user
         }
-
-        const session = sessionFromUser(user, role)
-        return { ok: true, session }
+        return await completeSignIn(user)
       } catch (error: unknown) {
         const firebaseErr = error as { code?: string; message?: string }
         console.error('[TIPalit Firebase Auth] Sign-in error:', firebaseErr)
@@ -166,6 +186,33 @@ export function createFirebaseAuth(): AuthService {
         }
 
         return { ok: false, reason: 'network' }
+      }
+    },
+
+    async signInWithEmail(email: string, password: string): Promise<AuthResult> {
+      if (!isFirebaseConfigured()) {
+        return { ok: false, reason: 'network' }
+      }
+
+      try {
+        const result = await signInWithEmailAndPassword(auth, email.trim(), password)
+        return await completeSignIn(result.user)
+      } catch (error: unknown) {
+        const firebaseErr = error as { code?: string; message?: string }
+        console.error('[TIPalit Firebase Auth] Email sign-in error:', firebaseErr)
+
+        switch (firebaseErr.code) {
+          case 'auth/invalid-credential':
+          case 'auth/wrong-password':
+          case 'auth/user-not-found':
+            return { ok: false, reason: 'invalid-credentials', email }
+          case 'auth/too-many-requests':
+            return { ok: false, reason: 'too-many-attempts', email }
+          case 'auth/network-request-failed':
+            return { ok: false, reason: 'network' }
+          default:
+            return { ok: false, reason: 'network' }
+        }
       }
     },
 

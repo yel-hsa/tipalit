@@ -4,7 +4,7 @@ import { services } from '@tipalit/services'
 import { CATEGORIES, campusLabel } from '@tipalit/services/seed'
 import type { Listing } from '@tipalit/services/types'
 import { useSession } from '../session'
-import { colors, space } from '../theme'
+import { colors, typography, space } from '../theme'
 import ListingCard from '../components/ListingCard'
 import { EmptyState, Loading, Pill, Screen } from '../components/ui'
 
@@ -74,8 +74,8 @@ export default function FeedScreen({ onOpen }: Props) {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: space(4), paddingTop: space(4), gap: 2 },
-  heading: { fontSize: 24, fontWeight: '700', color: colors.text },
-  sub: { fontSize: 13, color: colors.muted },
+  heading: { ...typography.page, color: colors.text },
+  sub: { ...typography.meta, color: colors.muted },
   filters: { paddingHorizontal: space(4), paddingVertical: space(3), gap: space(2) },
   list: { paddingHorizontal: space(4), paddingBottom: space(8), gap: space(3), flexGrow: 1 },
 })

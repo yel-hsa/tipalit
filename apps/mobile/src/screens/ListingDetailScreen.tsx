@@ -4,7 +4,7 @@ import { services } from '@tipalit/services'
 import { campusLabel, priceLabel, timeAgo } from '@tipalit/services/seed'
 import type { Listing, Seller } from '@tipalit/services/types'
 import { useSession } from '../session'
-import { colors, radius, space } from '../theme'
+import { colors, radius, typography, space } from '../theme'
 import { Badge, Button, Card, Screen } from '../components/ui'
 
 type Props = {
@@ -110,17 +110,17 @@ const styles = StyleSheet.create({
   hero: { width: '100%', aspectRatio: 1.2, backgroundColor: '#eee' },
   body: { padding: space(4), gap: space(3) },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', gap: space(3), alignItems: 'flex-start' },
-  title: { flex: 1, fontSize: 20, fontWeight: '700', color: colors.text },
-  price: { fontSize: 20, fontWeight: '700', color: colors.accent },
+  title: { flex: 1, ...typography.heading, fontWeight: '600', color: colors.text },
+  price: { ...typography.heading, fontWeight: '600', color: colors.accent },
   badges: { flexDirection: 'row', gap: space(2), flexWrap: 'wrap' },
-  meta: { fontSize: 13, color: colors.muted },
-  description: { fontSize: 15, lineHeight: 22, color: colors.text },
+  meta: { ...typography.meta, color: colors.muted },
+  description: { ...typography.cell, lineHeight: 22, color: colors.text },
   seller: { gap: 2 },
-  sellerName: { fontSize: 15, fontWeight: '600', color: colors.text },
-  sellerMeta: { fontSize: 13, color: colors.muted },
-  label: { fontSize: 12, fontWeight: '600', color: colors.muted, textTransform: 'uppercase' },
-  value: { fontSize: 15, color: colors.text },
-  error: { color: colors.danger, fontSize: 14 },
+  sellerName: { ...typography.cellStrong, color: colors.text },
+  sellerMeta: { ...typography.meta, color: colors.muted },
+  label: { ...typography.meta, fontWeight: '600', color: colors.muted, textTransform: 'uppercase' },
+  value: { ...typography.cell, color: colors.text },
+  error: { ...typography.labelSm, color: colors.danger },
   footer: {
     flexDirection: 'row',
     gap: space(3),

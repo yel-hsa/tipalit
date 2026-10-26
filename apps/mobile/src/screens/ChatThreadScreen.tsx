@@ -3,7 +3,7 @@ import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, 
 import { services } from '@tipalit/services'
 import { createId } from '@tipalit/services/ids'
 import type { ChatItem, Thread } from '@tipalit/services/types'
-import { colors, radius, space } from '../theme'
+import { colors, radius, typography, space } from '../theme'
 import { Button, Loading, Screen } from '../components/ui'
 
 export default function ChatThreadScreen({ threadId, onBack }: { threadId: string; onBack: () => void }) {
@@ -108,13 +108,13 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: '80%', borderRadius: radius.lg, paddingHorizontal: space(3), paddingVertical: space(2) },
   bubbleMine: { alignSelf: 'flex-end', backgroundColor: colors.accent },
   bubbleTheirs: { alignSelf: 'flex-start', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  bubbleText: { fontSize: 15, color: colors.text },
-  bubbleTextMine: { color: '#fff' },
+  bubbleText: { ...typography.cell, color: colors.text },
+  bubbleTextMine: { color: colors.onAccent },
   meetup: { alignSelf: 'center', borderRadius: radius.md, padding: space(3), gap: 2, borderWidth: 1 },
   meetupMine: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
   meetupTheirs: { backgroundColor: colors.warningSoft, borderColor: colors.warning },
-  meetupTitle: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', color: colors.text },
-  meetupBody: { fontSize: 13, color: colors.text },
+  meetupTitle: { ...typography.meta, fontWeight: '600', textTransform: 'uppercase', color: colors.text },
+  meetupBody: { ...typography.labelSm, fontWeight: '400', color: colors.text },
   composer: {
     flexDirection: 'row',
     gap: space(2),
@@ -132,8 +132,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: space(3),
     paddingVertical: space(2),
-    fontSize: 15,
+    ...typography.input,
     color: colors.text,
   },
-  error: { color: colors.danger, fontSize: 13, paddingHorizontal: space(4) },
+  error: { ...typography.meta, color: colors.danger, paddingHorizontal: space(4) },
 })

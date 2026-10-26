@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { Listing } from '@tipalit/services/types'
 import { useSession } from './session'
-import { colors, space } from './theme'
+import { colors, typography, space } from './theme'
 import FeedScreen from './screens/FeedScreen'
 import ListingDetailScreen from './screens/ListingDetailScreen'
 import SellScreen from './screens/SellScreen'
@@ -10,6 +10,7 @@ import ChatListScreen from './screens/ChatListScreen'
 import ChatThreadScreen from './screens/ChatThreadScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import AdminScreen from './screens/AdminScreen'
+import AdminSignInScreen from './screens/AdminSignInScreen'
 
 type Tab = 'feed' | 'sell' | 'chats' | 'profile' | 'admin'
 type Overlay =
@@ -31,7 +32,7 @@ export default function AppShell() {
   const [overlay, setOverlay] = useState<Overlay>(null)
   const [feedVersion, setFeedVersion] = useState(0)
 
-  const tabs = isAdmin ? [...TABS, { id: 'admin' as Tab, label: 'Admin' }] : TABS
+  const tabs = [...TABS, { id: 'admin' as Tab, label: 'Admin' }]
 
   if (overlay?.kind === 'listing') {
     return (
@@ -78,7 +79,7 @@ export default function AppShell() {
         )}
         {tab === 'chats' && <ChatListScreen onOpen={(threadId) => setOverlay({ kind: 'thread', threadId })} />}
         {tab === 'profile' && <ProfileScreen onOpen={(listing) => setOverlay({ kind: 'listing', listing })} />}
-        {tab === 'admin' && isAdmin && <AdminScreen />}
+        {tab === 'admin' && (isAdmin ? <AdminScreen /> : <AdminSignInScreen onBack={() => setTab('feed')} />)}
       </View>
       <View style={styles.tabBar}>
         {tabs.map((item) => (
@@ -111,6 +112,6 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'android' ? space(4) : space(2),
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 48, paddingVertical: space(3) },
-  tabLabel: { fontSize: 12, color: colors.muted },
-  tabLabelActive: { color: colors.accent, fontWeight: '700' },
+  tabLabel: { ...typography.meta, color: colors.muted },
+  tabLabelActive: { color: colors.accent, fontWeight: '600' },
 })

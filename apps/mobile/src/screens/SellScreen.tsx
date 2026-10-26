@@ -12,7 +12,7 @@ import type {
   TransactionType,
 } from '@tipalit/services/types'
 import { useSession } from '../session'
-import { colors, radius, space } from '../theme'
+import { colors, radius, typography, space } from '../theme'
 import { Button, Card, Pill, Screen } from '../components/ui'
 
 const MAX_PHOTOS = 5
@@ -275,14 +275,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const styles = StyleSheet.create({
   content: { padding: space(4), gap: space(4), paddingBottom: space(10) },
-  heading: { fontSize: 24, fontWeight: '700', color: colors.text },
+  heading: { ...typography.title, color: colors.text },
   photos: { gap: space(2) },
   photoRow: { gap: space(2), alignItems: 'center' },
   photo: { width: 84, height: 84, borderRadius: radius.md, backgroundColor: '#eee' },
   photoActions: { gap: space(2) },
-  hint: { fontSize: 12, color: colors.muted },
+  hint: { ...typography.meta, color: colors.muted },
   field: { gap: space(2) },
-  label: { fontSize: 13, fontWeight: '600', color: colors.text },
+  label: { ...typography.labelSm, fontWeight: '600', color: colors.text },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: space(3),
     paddingVertical: space(3),
-    fontSize: 16,
+    ...typography.input,
     color: colors.text,
   },
   multiline: { minHeight: 96, textAlignVertical: 'top' },
@@ -298,5 +298,5 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: space(3) },
   cancelAction: { flex: 1 },
   saveAction: { flex: 2 },
-  error: { color: colors.danger, fontSize: 14 },
+  error: { ...typography.labelSm, color: colors.danger },
 })
