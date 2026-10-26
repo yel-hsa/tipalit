@@ -34,6 +34,7 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `e110a52` | Made the admin data-table sticky header opaque: moved stickiness onto the `<th>` cells (works under `border-collapse`), gave them `bg-surface-bg` and `z-10`, and put the bottom border on the cells so scrolling rows no longer show through. |
 | `b793458` | Standardized admin UI tokens from a 25-agent audit: added the missing `--warning-soft` token (warning badges had transparent backgrounds), gave EmptyState the standard card border, normalized section gaps and icon-chip tones, aligned badge variants, and replaced raw `text-white`/`bg-black/40` with `text-on-brand`/`bg-modal-scrim`. |
 | `80e309c` | Rebuilt the mobile app in the web gold design (theme tokens, IntroScreen carousel, all student screens restyled, mock account picker removed from student sign-in) and added real auth: additive `AuthService.signInWithEmail` for admin email/password (Firebase + mock demo `osa.admin@tip.edu.ph` / `tipalit-demo`), native-capable Google sign-in via an optional `platform.googleSignIn` hook, mobile admin sign-in + restyled admin console, and an email/password form as the web admin sign-in primary path. |
+| `0d49e3d` | Ported the web student marketplace to Expo element-by-element (1:1): a shared ported-component layer reproduces the Astra kit and web shared components with exact px values, and all nine student screens are translated from their web source with identical structure, copy, and token values. Fidelity-audit fixes applied after a side-by-side QA pass. Web untouched. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
@@ -188,6 +189,17 @@ The green mobile design is fully replaced by the web gold design, executed by a 
 - Mobile admin: new `AdminSignInScreen` (email/password, mirrors the web admin sign-in card) and restyled `AdminScreen` in the web console's gold language. Web admin sign-in gained an email/password form as the primary path (Google button and mock chooser kept as secondary).
 
 Verified: typecheck, tests, and build pass across all workspaces; `.env` untouched. Out of scope (needs approval): provisioning the real admin account in production Firebase and the Expo Google client-ID configuration.
+
+## Mobile 1:1 port (committed in `0d49e3d`)
+
+The mobile student app is now a pixel-faithful, element-by-element port of the web student marketplace — not a re-design. Executed by an 11-agent workflow (foundation + 9 screen ports + fidelity QA).
+
+- **Shared ported-component layer** (`apps/mobile/src/components/ported/`): the Astra kit primitives (Button, IconButton, Badge, Avatar, InputField, TextareaField, RadioGroup, Checkbox, Modal, Tabs, Toast) and the web shared components (ListingCard/ProductCard, EmptyState, BottomSheet, ConfirmModal, SelectField, Wordmark, MessageBubble, SellerTrustCard, MeetupLocationBlock, ImageDropzone, ProfileFields, skeletons, etc.) reproduced with exact px values extracted from `global.css` and the kit's compiled CSS. `tokens.ts` is the value cheat-sheet (spacePx 4/6/8/12/16/24, cornerPx 4/8/16/999, typePx, shadows, scrim).
+- **Nine screens ported 1:1** from their web source (Intro, Onboarding, Sign-in, Feed, Listing detail, Sell, Chat list, Chat thread, Profile): same JSX tree, same element order, same copy, every Tailwind class mapped to its exact value.
+- **Fidelity QA** (side-by-side web vs port) found 12 mismatches; all fixed: exact `spacePx` on the sign-in hero/card, LogOut confirm icons, SearchX empty-state glyph, two-column feed grid, full SponsorBanner array, curly quotes in the delete modal, caption weight, always-rendered campus-spot pill, gold star rating, listing-card navigation, composer/section accessibility labels.
+- **Documented platform deviations** (not fidelity failures): icons render as glyphs (no RN lucide, no new deps), Instrument Sans not loaded (system font), hover→pressed, expo-image-picker replaces the file input, FlatList paging replaces pointer-swipe.
+
+Verified: typecheck, tests (95), and build pass across all workspaces. Web is frozen/untouched.
 
 ## Exact next action
 
