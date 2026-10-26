@@ -78,8 +78,8 @@ export default function DataTable<T>({
       <div className="max-h-[calc(100dvh-19rem)] overflow-auto">
         <table className="w-full table-fixed border-collapse text-left">
           <caption className="sr-only">{label}</caption>
-          <thead className="sticky top-0 z-10">
-            <tr className="border-b border-border-primary bg-bg-faint">
+          <thead>
+            <tr>
               {columns.map((column) => {
                 const active = sort?.id === column.id
                 const sortable = Boolean(column.sortValue)
@@ -88,7 +88,9 @@ export default function DataTable<T>({
                     key={column.id}
                     scope="col"
                     aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
-                    className={`px-lg py-md text-th uppercase tracking-wide text-text-secondary ${column.width ?? ''} ${
+                    // sticky on the cell (not thead/tr) so it works with border-collapse; the opaque
+                    // surface bg + z-10 keep scrolling rows from showing through the header
+                    className={`sticky top-0 z-10 border-b border-border-primary bg-surface-bg px-lg py-md text-th uppercase tracking-wide text-text-secondary ${column.width ?? ''} ${
                       column.align === 'right' ? 'text-right' : ''
                     }`}
                   >
