@@ -1,8 +1,9 @@
-import { InputField, RadioGroup, SelectField } from '@figma/astraui'
+import { InputField, RadioGroup } from '@figma/astraui'
 import { useId } from 'react'
 import { CAMPUSES, PROGRAMS, YEAR_LEVELS } from '@tipalit/services/seed'
 import type { CampusId, Profile } from '@tipalit/services/types'
 import FormField, { errorIdFor } from './FormField'
+import SelectField from './SelectField'
 
 export type ProfileDraft = { name: string; campus: CampusId | ''; program: string; year: string }
 export type ProfileFieldKey = keyof ProfileDraft

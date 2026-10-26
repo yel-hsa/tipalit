@@ -1,6 +1,7 @@
-import { InputField, SelectField } from '@figma/astraui'
+import { InputField } from '@figma/astraui'
 import { Search, X } from 'lucide-react'
 import type { ReactNode } from 'react'
+import SelectField from '../SelectField'
 
 type FilterOption = { value: string; label: string }
 

@@ -1,6 +1,7 @@
-import { Button, InputField, RadioGroup, SelectField, TextareaField } from '@figma/astraui'
+import { Button, InputField, RadioGroup, TextareaField } from '@figma/astraui'
 import { AlertCircle } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import SelectField from '../components/SelectField'
 import FormField, { errorIdFor } from '../components/FormField'
 import ImageDropzone from '../components/ImageDropzone'
 import ScreenHeader from '../components/ScreenHeader'
