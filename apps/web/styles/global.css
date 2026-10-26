@@ -173,14 +173,18 @@
   --color-overlay-control: var(--overlay-control-bg);
   --color-overlay-control-hover: var(--overlay-control-hover);
   --color-on-overlay: var(--on-overlay);
+  /* dark badge over a photo + the white text on it; same pair as overlay-control */
+  --color-scrim: var(--overlay-control-bg);
+  --color-on-scrim: var(--on-overlay);
   --color-switch-off: var(--switch-track-off);
   --color-switch-on: var(--switch-track-on);
   --color-switch-thumb: var(--switch-thumb);
   --color-switch-thumb-on: var(--switch-thumb-on);
 
   --spacing-xs: var(--space-xs);
-  --spacing-sm: var(--space-sm);
-  --spacing-md: var(--space-md);
+  /* half-step below xs for the tightest icon/caption gaps; aliases xs (4px), no new value */
+  --spacing-2xs: var(--space-xs);
+  --spacing-sm: var(--space-sm);--spacing-md: var(--space-md);
   --spacing-lg: var(--space-lg);
   --spacing-xl: var(--space-xl);
   --spacing-2xl: var(--space-2xl);
@@ -237,6 +241,27 @@
   --text-caption-sm: var(--type-meta-size);
   --text-caption-sm--line-height: normal;
   --text-caption-sm--font-weight: var(--type-weight-regular);
+
+  /* admin-console text roles imported from the Figma Make export; values reuse the
+     existing type scale so nothing new is invented and dark mode stays intact */
+  --text-cell: var(--type-label-size);
+  --text-cell--line-height: var(--type-line-height);
+  --text-cell--font-weight: var(--type-weight-regular);
+  --text-cell-strong: var(--type-label-size);
+  --text-cell-strong--line-height: var(--type-line-height);
+  --text-cell-strong--font-weight: var(--type-weight-semibold);
+  --text-metric: var(--type-title-size);
+  --text-metric--line-height: var(--type-line-height);
+  --text-metric--font-weight: var(--type-weight-semibold);
+  --text-section: var(--type-heading-size);
+  --text-section--line-height: var(--type-line-height);
+  --text-section--font-weight: var(--type-weight-medium);
+  --text-th: var(--type-meta-size);
+  --text-th--line-height: normal;
+  --text-th--font-weight: var(--type-weight-medium);
+  --text-page: var(--type-title-size);
+  --text-page--line-height: var(--type-line-height);
+  --text-page--font-weight: var(--type-weight-semibold);
 }
 
 @layer base {
