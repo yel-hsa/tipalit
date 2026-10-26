@@ -60,7 +60,13 @@ export default function AppShell() {
   }
 
   if (overlay?.kind === 'thread') {
-    return <ChatThreadScreen threadId={overlay.threadId} onBack={() => setOverlay(null)} />
+    return (
+      <ChatThreadScreen
+        threadId={overlay.threadId}
+        onBack={() => setOverlay(null)}
+        onOpenListing={(listing) => setOverlay({ kind: 'listing', listing })}
+      />
+    )
   }
 
   return (
@@ -78,7 +84,13 @@ export default function AppShell() {
           />
         )}
         {tab === 'chats' && <ChatListScreen onOpen={(threadId) => setOverlay({ kind: 'thread', threadId })} />}
-        {tab === 'profile' && <ProfileScreen onOpen={(listing) => setOverlay({ kind: 'listing', listing })} />}
+        {tab === 'profile' && (
+          <ProfileScreen
+            onOpen={(listing) => setOverlay({ kind: 'listing', listing })}
+            onOpenPromotion={() => undefined}
+            onSell={() => setTab('sell')}
+          />
+        )}
         {tab === 'admin' && (isAdmin ? <AdminScreen /> : <AdminSignInScreen onBack={() => setTab('feed')} />)}
       </View>
       <View style={styles.tabBar}>

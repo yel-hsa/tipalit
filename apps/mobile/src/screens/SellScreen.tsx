@@ -1,9 +1,20 @@
-import { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+/**
+ * 1:1 port of apps/web/screens/AddListingScreen.tsx (create/edit listing form).
+ * Element order, nesting, copy, and styling values match the web source;
+ * Tailwind classes are converted with the values in components/ported/tokens.ts.
+ *
+ * Mobile deviations (documented):
+ * - Web's hidden <input type="file"> becomes expo-image-picker (image library),
+ *   matching the web dropzone's "Tap to browse" affordance.
+ * - Web's canvas downscale becomes expo-image-manipulator (same 900px/0.82 jpeg).
+ * - focusField scrollIntoView becomes ScrollView.scrollTo + input focus.
+ */
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
 import { services } from '@tipalit/services'
-import { CATEGORY_LIST, CONDITIONS, SUBJECT_CODES } from '@tipalit/services/seed'
+import { CATEGORY_FALLBACK_IMAGES, CATEGORY_LIST, SUBJECT_CODES, campusLabel } from '@tipalit/services/seed'
 import type {
   Category,
   Condition,
@@ -12,291 +23,389 @@ import type {
   TransactionType,
 } from '@tipalit/services/types'
 import { useSession } from '../session'
-import { colors, radius, typography, space } from '../theme'
-import { Button, Card, Pill, Screen } from '../components/ui'
+import {
+  Button,
+  FormField,
+  Icon,
+  ImageDropzone,
+  InputField,
+  RadioGroup,
+  ScreenHeader,
+  SelectField,
+  Spinner,
+  TextareaField,
+  colors,
+  radius,
+  spacing,
+  typography,
+} from '../components/ported'
 
-const MAX_PHOTOS = 5
-const MAX_EDGE = 900
-const TRANSACTIONS: { value: TransactionType; label: string }[] = [
-  { value: 'sale', label: 'For sale' },
-  { value: 'free', label: 'Free' },
-  { value: 'trade', label: 'Trade' },
+const CONDITION_OPTIONS = [
+  { value: 'New', label: 'New', description: 'Unused, sealed or bought new' },
+  { value: 'Like New', label: 'Like New', description: 'Barely used, no visible marks' },
+  { value: 'Good', label: 'Good', description: 'Light wear, works perfectly' },
+  { value: 'Fair', label: 'Fair', description: 'Visible wear, priced to move' },
 ]
+
+const TRANSACTION_OPTIONS = [
+  { value: 'sale', label: 'For sale', description: 'Fixed price in pesos' },
+  { value: 'free', label: 'Free', description: 'Giving it away, no payment' },
+  { value: 'trade', label: 'Trade', description: 'Swap for something similar' },
+] satisfies { value: TransactionType; label: string; description: string }[]
+
+const toOptions = (values: readonly string[]) => values.map((value) => ({ value, label: value }))
+
+const FALLBACK_IMAGES = new Set(Object.values(CATEGORY_FALLBACK_IMAGES))
+
+// the adapter swaps in a stock photo when a doc has no images; seeding it would save it back on edit
+const realPhotos = (urls: string[] | undefined): string[] => {
+  const photos = urls ?? []
+  return photos.some((url) => !FALLBACK_IMAGES.has(url)) ? photos : []
+}
+
+type FieldKey = 'title' | 'price' | 'category' | 'subject'
+type Errors = Partial<Record<FieldKey, string>>
+const FIELD_ORDER: FieldKey[] = ['title', 'price', 'category', 'subject']
+const MAX_PRICE = 999999
+const MAX_PHOTO_EDGE = 900
+const MAX_PHOTOS = 5
 
 // downscale to a jpeg data url so the photo fits inside the listing document
 const toDataUrl = async (uri: string): Promise<string> => {
-  const context = ImageManipulator.manipulate(uri).resize({ width: MAX_EDGE })
+  const context = ImageManipulator.manipulate(uri).resize({ width: MAX_PHOTO_EDGE })
   const image = await context.renderAsync()
   const result = await image.saveAsync({ compress: 0.82, format: SaveFormat.JPEG, base64: true })
   return `data:image/jpeg;base64,${result.base64}`
 }
 
-export default function SellScreen({
-  listing,
-  onPublished,
-  onCancel,
-}: {
+type SellScreenProps = {
   listing?: Listing
   onPublished: () => void
   onCancel?: () => void
-}) {
+  // demo hook: show validation errors immediately
+  autoValidate?: boolean
+}
+
+export default function SellScreen({ listing, onPublished, onCancel, autoValidate }: SellScreenProps) {
   const { session, profile } = useSession()
-  const [title, setTitle] = useState(listing?.title ?? '')
-  const [price, setPrice] = useState(
-    listing && listing.transactionType === 'sale' ? String(listing.price) : '',
-  )
-  const [transactionType, setTransactionType] = useState<TransactionType>(
-    listing?.transactionType ?? 'sale',
-  )
-  const [category, setCategory] = useState<Category>(listing?.category ?? 'Textbooks')
-  const [condition, setCondition] = useState<Condition>(listing?.condition ?? 'Good')
-  const [courseCode, setCourseCode] = useState(
-    listing?.courseCode ?? SUBJECT_CODES[0],
-  )
-  const [meetupSpot, setMeetupSpot] = useState(listing?.meetupSpot ?? '')
+  const editing = !!listing
+  const campus = profile?.campus ?? ''
+  const campusText = campus ? campusLabel(campus) : ''
   const [spots, setSpots] = useState<string[]>([])
+  const [spot, setSpot] = useState(listing?.meetupSpot ?? '')
+  const [photoUrls, setPhotoUrls] = useState<string[]>(() => realPhotos(listing?.imageUrls))
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [title, setTitle] = useState(listing?.title ?? '')
+  const [price, setPrice] = useState(listing ? String(listing.price) : '')
+  const [transactionType, setTransactionType] = useState<TransactionType>(listing?.transactionType ?? 'sale')
+  const [category, setCategory] = useState<string>(listing?.category ?? '')
+  const [subject, setSubject] = useState(listing?.courseCode ?? '')
+  const [condition, setCondition] = useState<Condition>(listing?.condition ?? 'Good')
   const [description, setDescription] = useState(listing?.description ?? '')
-  const [photos, setPhotos] = useState<string[]>(listing?.imageUrls ?? [])
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+
+  const [submitted, setSubmitted] = useState(false)
+  const [pending, setPending] = useState(false)
+
+  const scrollRef = useRef<{ scrollTo: (options: { y: number; animated?: boolean }) => void } | null>(null)
+  const fieldYs = useRef<Partial<Record<FieldKey, number>>>({})
 
   useEffect(() => {
-    if (!profile?.campus) return
+    if (!campus) return
     services.settings
       .getMeetupSpots()
-      .then((all) => {
-        const list = all[profile.campus!] ?? []
-        setSpots(list)
-        if (!listing) {
-          setMeetupSpot((current) => current || list[0] || '')
-        }
-      })
+      .then((all) => setSpots(all[campus] ?? []))
       .catch(() => setSpots([]))
-  }, [listing, profile?.campus])
+  }, [campus])
 
-  const addPhoto = async (source: 'camera' | 'library') => {
-    if (photos.length >= MAX_PHOTOS) return
-    const permission =
-      source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync()
+  const spotOptions =
+    listing && listing.meetupSpot && !spots.includes(listing.meetupSpot)
+      ? [listing.meetupSpot, ...spots]
+      : spots
+  const effectiveSpot = spot || spotOptions[0] || ''
+
+  const selectPhoto = async () => {
+    setPhotoError(null)
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      setError(source === 'camera' ? 'Camera access is needed to take a photo.' : 'Photo access is needed to pick an image.')
+      setPhotoError('Photo access is needed to pick an image.')
       return
     }
-    const result =
-      source === 'camera'
-        ? await ImagePicker.launchCameraAsync({ quality: 1 })
-        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 })
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 })
     if (result.canceled || !result.assets[0]) return
     try {
       const dataUrl = await toDataUrl(result.assets[0].uri)
-      setPhotos((current) => [...current, dataUrl])
-      setError(null)
+      setPhotoUrls((urls) => (urls.length >= MAX_PHOTOS ? urls : [...urls, dataUrl]))
     } catch {
-      setError('That photo could not be processed. Try another.')
+      setPhotoError("Couldn't read that photo. Try a JPG or PNG.")
     }
   }
 
-  const priceValue = Number(price.replace(/[^0-9.]/g, ''))
-  const valid =
-    title.trim().length > 2 &&
-    meetupSpot &&
-    description.trim().length > 0 &&
-    (transactionType !== 'sale' || (priceValue > 0 && priceValue <= 999999))
+  const removePhoto = (index: number) => {
+    setPhotoUrls((urls) => urls.filter((_, i) => i !== index))
+  }
 
-  const publish = async () => {
-    if (!session || !profile?.campus || !valid) return
-    setBusy(true)
-    setError(null)
+  const priceValue = Number(price)
+  const errors = useMemo<Errors>(() => {
+    const next: Errors = {}
+    const trimmed = title.trim()
+    if (!trimmed) next.title = 'Add a title'
+    else if (trimmed.length < 3) next.title = 'Title must be at least 3 characters'
+    // free and trade listings have no price; a sale needs a positive one
+    if (transactionType === 'sale' && (!price || priceValue === 0)) next.price = 'Enter a price'
+    else if (priceValue > MAX_PRICE) next.price = 'Max ₱999,999'
+    if (!category) next.category = 'Choose a category'
+    if (!subject) next.subject = 'Choose a subject code'
+    return next
+  }, [title, price, priceValue, transactionType, category, subject])
+
+  // errors stay hidden until the first submit, then update live
+  const shown = submitted ? errors : {}
+  const errorCount = Object.keys(shown).length
+
+  const focusField = (key: FieldKey) => {
+    const y = fieldYs.current[key]
+    if (y !== undefined) scrollRef.current?.scrollTo({ y: Math.max(0, y - 60), animated: true })
+  }
+
+  const validate = () => {
+    setSubmitted(true)
+    const first = FIELD_ORDER.find((key) => errors[key])
+    if (first) focusField(first)
+    return !first
+  }
+
+  useEffect(() => {
+    if (autoValidate) validate()
+    // mount only: demo launcher
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleSubmit = async () => {
+    if (pending || !validate()) return
+    if (!session || !campus || !effectiveSpot) return
+    setPending(true)
     const draft: ListingDraft = {
       title: title.trim(),
       price: transactionType === 'sale' ? priceValue : 0,
       transactionType,
-      category,
-      courseCode,
-      meetupSpot,
+      category: category as Category,
+      courseCode: subject,
+      meetupSpot: effectiveSpot,
       condition,
       description: description.trim(),
-      imageUrls: photos,
+      imageUrls: photoUrls,
     }
     try {
       if (listing) {
         await services.listings.update(listing.id, draft)
       } else {
-        await services.listings.create(draft, {
-          userId: session.userId,
-          campus: profile.campus,
-        })
+        await services.listings.create(draft, { userId: session.userId, campus })
       }
-      setTitle('')
-      setPrice('')
-      setDescription('')
-      setPhotos([])
       onPublished()
     } catch {
-      setError('We could not publish your listing. Try again.')
-    } finally {
-      setBusy(false)
+      // failure keeps the form values
+      setPending(false)
     }
   }
 
+  const trackField = (key: FieldKey) => (event: { nativeEvent: { layout: { y: number } } }) => {
+    fieldYs.current[key] = event.nativeEvent.layout.y
+  }
+
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.heading}>
-          {listing ? 'Edit listing' : 'Sell an item'}
-        </Text>
+    <View style={styles.root}>
+      <ScreenHeader
+        title={editing ? 'Edit listing' : 'New listing'}
+        subtitle={editing ? `Listed at ${campusText}` : `Sell to verified students at ${campusText}`}
+        onBack={onCancel}
+      />
 
-        <Card style={styles.photos}>
-          <Text style={styles.label}>Photos ({photos.length}/{MAX_PHOTOS})</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
-            {photos.map((uri, index) => (
-              <Pressable
-                key={`${index}-${uri.slice(-12)}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Remove photo ${index + 1}`}
-                hitSlop={8}
-                onPress={() => setPhotos((current) => current.filter((_, i) => i !== index))}
-              >
-                <Image source={{ uri }} style={styles.photo} accessibilityIgnoresInvertColors />
-              </Pressable>
-            ))}
-            {photos.length < MAX_PHOTOS && (
-              <View style={styles.photoActions}>
-                <Button label="Camera" variant="secondary" onPress={() => addPhoto('camera')} />
-                <Button label="Library" variant="secondary" onPress={() => addPhoto('library')} />
-              </View>
-            )}
-          </ScrollView>
-          <Text style={styles.hint}>Tap a photo to remove it.</Text>
-        </Card>
-
-        <Field label="Title">
-          <TextInput value={title} onChangeText={setTitle} style={styles.input} placeholder="e.g. Calculus 8th edition" />
-        </Field>
-
-        <Field label="Transaction">
-          <View style={styles.row}>
-            {TRANSACTIONS.map((item) => (
-              <Pill
-                key={item.value}
-                label={item.label}
-                active={transactionType === item.value}
-                onPress={() => setTransactionType(item.value)}
-              />
-            ))}
-          </View>
-        </Field>
-
-        {transactionType === 'sale' && (
-          <Field label="Price (PHP)">
-            <TextInput
-              value={price}
-              onChangeText={setPrice}
-              style={styles.input}
-              keyboardType="numeric"
-              placeholder="0"
-            />
-          </Field>
-        )}
-
-        <Field label="Category">
-          <View style={styles.row}>
-            {CATEGORY_LIST.map((item) => (
-              <Pill key={item} label={item} active={category === item} onPress={() => setCategory(item)} />
-            ))}
-          </View>
-        </Field>
-
-        <Field label="Condition">
-          <View style={styles.row}>
-            {CONDITIONS.map((item) => (
-              <Pill key={item} label={item} active={condition === item} onPress={() => setCondition(item)} />
-            ))}
-          </View>
-        </Field>
-
-        <Field label="Course code">
-          <View style={styles.row}>
-            {SUBJECT_CODES.slice(0, 8).map((item) => (
-              <Pill key={item} label={item} active={courseCode === item} onPress={() => setCourseCode(item)} />
-            ))}
-          </View>
-        </Field>
-
-        <Field label="Meetup spot">
-          <View style={styles.row}>
-            {spots.map((item) => (
-              <Pill key={item} label={item} active={meetupSpot === item} onPress={() => setMeetupSpot(item)} />
-            ))}
-          </View>
-        </Field>
-
-        <Field label="Description">
-          <TextInput
-            value={description}
-            onChangeText={setDescription}
-            style={[styles.input, styles.multiline]}
-            multiline
-            placeholder="Condition details, edition, what's included"
+      <ScrollView
+        ref={scrollRef as never}
+        style={styles.scroll}
+        contentContainerStyle={styles.form}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.section} accessibilityLabel="Photos">
+          <Text style={styles.sectionTitle}>Photos</Text>
+          <ImageDropzone
+            previewUrls={photoUrls}
+            maxPhotos={MAX_PHOTOS}
+            onAdd={selectPhoto}
+            onRemove={removePhoto}
           />
-        </Field>
-
-        {error && <Text style={styles.error}>{error}</Text>}
-        <View style={styles.actions}>
-          {listing && onCancel && (
-            <View style={styles.cancelAction}>
-              <Button label="Cancel" variant="secondary" onPress={onCancel} />
+          {photoError && (
+            <View style={styles.errorRow} accessibilityRole="alert">
+              <Icon name="alert-circle" size={16} color={colors.danger} />
+              <Text style={styles.errorText}>{photoError}</Text>
             </View>
           )}
-          <View style={styles.saveAction}>
-            <Button
-              label={listing ? 'Save changes' : 'Publish listing'}
-              onPress={publish}
-              disabled={!valid}
-              busy={busy}
+          {photoUrls.length === 0 && (
+            <Text style={styles.caption}>No photos? We&rsquo;ll use a category image.</Text>
+          )}
+        </View>
+
+        <View style={styles.section} accessibilityLabel="Details">
+          <Text style={styles.sectionTitle}>Details</Text>
+          <View onLayout={trackField('title')}>
+            <FormField error={shown.title}>
+              <InputField
+                label="Title"
+                placeholder="e.g. Casio fx-991ES Plus"
+                value={title}
+                maxLength={80}
+                onChange={setTitle}
+                disabled={pending}
+              />
+            </FormField>
+          </View>
+          <View style={styles.grid2}>
+            <View onLayout={trackField('price')}>
+              <FormField error={shown.price}>
+                {transactionType === 'sale' ? (
+                  <InputField
+                    label="Price"
+                    placeholder="0"
+                    keyboardType="numeric"
+                    prefix={<Text style={styles.prefix}>₱</Text>}
+                    value={price}
+                    onChange={(value) => setPrice(value.replace(/\D/g, '').slice(0, 7))}
+                    disabled={pending}
+                  />
+                ) : (
+                  <View style={styles.noPriceBox}>
+                    <Text style={styles.noPriceText}>
+                      {transactionType === 'free' ? 'Free — no payment' : 'Trade — offer a swap'}
+                    </Text>
+                  </View>
+                )}
+              </FormField>
+            </View>
+            <View onLayout={trackField('category')}>
+              <FormField error={shown.category}>
+                <SelectField
+                  label="Category"
+                  placeholder="Choose"
+                  options={toOptions(CATEGORY_LIST)}
+                  value={category}
+                  onChange={setCategory}
+                  disabled={pending}
+                />
+              </FormField>
+            </View>
+          </View>
+          <View onLayout={trackField('subject')}>
+            <SelectField
+              label="Subject code"
+              placeholder="Choose"
+              options={toOptions(SUBJECT_CODES)}
+              value={subject}
+              onChange={setSubject}
+              disabled={pending}
             />
           </View>
+          <TextareaField
+            label="Description"
+            placeholder={
+              transactionType === 'trade'
+                ? 'What it is, its condition, and what you want in return...'
+                : "Edition, wear, what's included..."
+            }
+            rows={4}
+            value={description}
+            onChange={setDescription}
+          />
+        </View>
+
+        <View style={styles.section} accessibilityLabel="Transaction type">
+          <Text style={styles.sectionTitle}>Transaction type</Text>
+          <RadioGroup
+            options={TRANSACTION_OPTIONS}
+            value={transactionType}
+            onChange={(value) => setTransactionType(value as TransactionType)}
+            disabled={pending}
+          />
+        </View>
+
+        <View style={styles.section} accessibilityLabel="Condition">
+          <Text style={styles.sectionTitle}>Condition</Text>
+          <RadioGroup
+            options={CONDITION_OPTIONS}
+            value={condition}
+            onChange={(value) => setCondition(value as Condition)}
+            disabled={pending}
+          />
+        </View>
+
+        <View style={styles.section} accessibilityLabel="Meetup">
+          <SelectField
+            label="Meetup spot"
+            description={`Approved spots at ${campusText}. Buyers see this as your preferred spot.`}
+            options={toOptions(spotOptions)}
+            value={effectiveSpot}
+            onChange={setSpot}
+          />
+        </View>
+
+        <View style={styles.submitCol}>
+          {errorCount > 0 && (
+            <View style={styles.errorRowCentered} accessibilityRole="alert">
+              <Icon name="alert-circle" size={16} color={colors.danger} />
+              <Text style={styles.errorText}>
+                Fix {errorCount} {errorCount === 1 ? 'field' : 'fields'} to publish
+              </Text>
+            </View>
+          )}
+          <Button
+            label={pending ? (editing ? 'Saving…' : 'Publishing…') : editing ? 'Save changes' : 'Post listing'}
+            variant="primary"
+            disabled={pending}
+            busy={pending}
+            iconStart={pending ? <Spinner color="#ffffff" /> : undefined}
+            style={styles.submitButton}
+            onPress={handleSubmit}
+          />
         </View>
       </ScrollView>
-    </Screen>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      {children}
     </View>
   )
 }
 
+// form: flex flex-col gap-xl(16) px-xl(16) pb-xl(16)
+// section: flex flex-col gap-lg(12) rounded-corner-lg(16) bg-surface-bg p-xl(16)
 const styles = StyleSheet.create({
-  content: { padding: space(4), gap: space(4), paddingBottom: space(10) },
-  heading: { ...typography.title, color: colors.text },
-  photos: { gap: space(2) },
-  photoRow: { gap: space(2), alignItems: 'center' },
-  photo: { width: 84, height: 84, borderRadius: radius.md, backgroundColor: '#eee' },
-  photoActions: { gap: space(2) },
-  hint: { ...typography.meta, color: colors.muted },
-  field: { gap: space(2) },
-  label: { ...typography.labelSm, fontWeight: '600', color: colors.text },
-  input: {
+  root: { flex: 1, backgroundColor: colors.brandTertiary },
+  scroll: { flex: 1 },
+  form: { gap: spacing.xl, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
+  section: {
+    gap: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    padding: spacing.xl,
+  },
+  sectionTitle: { ...typography.label, fontWeight: '600', color: colors.text },
+  grid2: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
+  prefix: { ...typography.inputSm, color: colors.textSecondary },
+  noPriceBox: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    paddingHorizontal: space(3),
-    paddingVertical: space(3),
-    ...typography.input,
-    color: colors.text,
+    backgroundColor: colors.bgFaint,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
-  multiline: { minHeight: 96, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
-  actions: { flexDirection: 'row', gap: space(3) },
-  cancelAction: { flex: 1 },
-  saveAction: { flex: 2 },
-  error: { ...typography.labelSm, color: colors.danger },
+  noPriceText: { ...typography.labelSm, fontWeight: '500', color: colors.textSecondary },
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  errorRowCentered: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  errorText: { ...typography.labelSm, color: colors.danger },
+  caption: { ...typography.meta, fontWeight: '400', color: colors.textSecondary },
+  submitCol: { gap: spacing.md },
+  submitButton: { alignSelf: 'stretch', width: '100%' },
 })
