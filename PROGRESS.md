@@ -33,6 +33,7 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `46d964b` | Replaced the Astra `SelectField` with an accessible local version: unique per-instance IDs via `useId` and a real accessible name, fixing the kit's hardcoded duplicate `select-list` IDs and unassociated label across the Reports filters and every multi-select screen. |
 | `e110a52` | Made the admin data-table sticky header opaque: moved stickiness onto the `<th>` cells (works under `border-collapse`), gave them `bg-surface-bg` and `z-10`, and put the bottom border on the cells so scrolling rows no longer show through. |
 | `b793458` | Standardized admin UI tokens from a 25-agent audit: added the missing `--warning-soft` token (warning badges had transparent backgrounds), gave EmptyState the standard card border, normalized section gaps and icon-chip tones, aligned badge variants, and replaced raw `text-white`/`bg-black/40` with `text-on-brand`/`bg-modal-scrim`. |
+| `80e309c` | Rebuilt the mobile app in the web gold design (theme tokens, IntroScreen carousel, all student screens restyled, mock account picker removed from student sign-in) and added real auth: additive `AuthService.signInWithEmail` for admin email/password (Firebase + mock demo `osa.admin@tip.edu.ph` / `tipalit-demo`), native-capable Google sign-in via an optional `platform.googleSignIn` hook, mobile admin sign-in + restyled admin console, and an email/password form as the web admin sign-in primary path. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
@@ -175,6 +176,18 @@ Open decision items (need the user; none are safe to auto-apply):
 - 'Sold' status renders as three different badge variants across surfaces (admin-neutral vs student-danger).
 - Badge success/danger soft-tint pairs fall short of 4.5:1 contrast in light theme.
 - AuditSection day headings use the table-header type token; icon tiles use two shape/size combos; shell header insets differ; Toolbar uses fragile baseline nudges; no table-level loading skeleton.
+
+## Mobile gold rebuild (committed in `80e309c`)
+
+The green mobile design is fully replaced by the web gold design, executed by a 6-agent workflow:
+
+- `apps/mobile/src/theme.ts` mirrors `apps/web/styles/global.css` exactly: gold `#f9c80e` accent (+soft `#fdf3c4`, on-accent `#1e1e1e`), charcoal `#2b2a28`/`#1c1b1a`, warm neutrals, web radii {4/8/16/999}, explicit spacing {4/6/8/12/16/24}, and a `typography` object matching the web type scale. Zero green tokens remain (QA-verified sweep).
+- New mobile `IntroScreen` mirrors the web "Get started" carousel (same 3 slides, copy, photos, gold chips); all student screens restyled to the web hierarchy; the mock account picker is removed — student sign-in is Google-only.
+- Real auth, additive to the service contract: `AuthService.signInWithEmail(email, password)` with the same gates as Google sign-in (TIP domain, verified email, active profile, admin claims); new reason codes `invalid-credentials`/`too-many-attempts`. Mock adapter exposes a demo-only admin (`osa.admin@tip.edu.ph` / `tipalit-demo`).
+- Native Google sign-in: `signInWithPopup` kept on web; on native, `signInWithGoogle()` uses an optional `platform.googleSignIn` hook. The Expo handler (expo-auth-session with Google client IDs) is a documented TODO in `apps/mobile/src/bootstrap.ts` — until wired, native Google sign-in surfaces a network error rather than crashing.
+- Mobile admin: new `AdminSignInScreen` (email/password, mirrors the web admin sign-in card) and restyled `AdminScreen` in the web console's gold language. Web admin sign-in gained an email/password form as the primary path (Google button and mock chooser kept as secondary).
+
+Verified: typecheck, tests, and build pass across all workspaces; `.env` untouched. Out of scope (needs approval): provisioning the real admin account in production Firebase and the Expo Google client-ID configuration.
 
 ## Exact next action
 
