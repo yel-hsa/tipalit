@@ -28,6 +28,7 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `09e7857` | Reconciled the handoff docs with the committed demo journeys. |
 | `3bc0471` | Polished the admin console UI/UX: defined the six animation utilities the components already referenced, added a drawer exit animation, inline confirm states with aria-labels on destructive moderation actions, and clear-filters recovery in every section's empty state. |
 | `6ac8808` | Gave `BottomSheet` the exit animation `SlideOver` already had, and fixed both overlays painting a stale exit frame when reopened. |
+| `28d9a10` | Defined the admin shell's missing `w-sidebar`, `max-w-content`, and `skip-link` classes; the unpositioned skip link was rendering as a full-height flex child and collapsing the console layout. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
