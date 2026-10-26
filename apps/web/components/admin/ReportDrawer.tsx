@@ -91,7 +91,7 @@ export default function ReportDrawer({
               className={
                 action === 'dismiss'
                   ? undefined
-                  : 'border-danger bg-danger text-white hover:border-danger hover:bg-danger/90'
+                  : 'border-danger bg-danger text-on-brand hover:border-danger hover:bg-danger/90'
               }
             >
               {pending ? 'Applying…' : confirmLabel}

@@ -196,7 +196,7 @@ export default function MembersSection({ members, onOpen, onToggleStatus }: Memb
                   aria-label={`Confirm suspending ${member.name}`}
                   iconStart={busy ? <Spinner size={14} /> : <Ban size={14} />}
                   onClick={() => void toggle(member)}
-                  className="border-danger bg-danger text-white hover:border-danger hover:bg-danger/90"
+                  className="border-danger bg-danger text-on-brand hover:border-danger hover:bg-danger/90"
                 >
                   {busy ? 'Saving…' : 'Suspend'}
                 </Button>

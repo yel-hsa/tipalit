@@ -19,7 +19,7 @@ export default function AccountChooser({ accounts, onPick, onCancel }: AccountCh
   useDialogFocus(true, bodyRef, { onClose: onCancel })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-modal-scrim px-xl">
       <div
         ref={bodyRef}
         role="dialog"

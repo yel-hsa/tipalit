@@ -114,7 +114,7 @@ export default function AuditSection({ audit }: AuditSectionProps) {
                   return (
                     <li
                       key={entry.id}
-                      className="flex items-start gap-lg border-b border-border-secondary px-xl py-md last:border-b-0"
+                      className="flex items-start gap-lg border-b border-border-secondary px-lg py-md last:border-b-0"
                     >
                       <span
                         aria-hidden="true"

@@ -188,7 +188,7 @@ export default function ReportsSection({
                   aria-label={`Confirm taking down ${report.target.label}`}
                   iconStart={busy ? <Spinner size={14} /> : <X size={14} />}
                   onClick={() => void run(report.id, 'remove_listing')}
-                  className="border-danger bg-danger text-white hover:border-danger hover:bg-danger/90"
+                  className="border-danger bg-danger text-on-brand hover:border-danger hover:bg-danger/90"
                 >
                   Take down
                 </Button>

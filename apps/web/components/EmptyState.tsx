@@ -12,7 +12,7 @@ type EmptyStateProps = {
 export default function EmptyState({ icon: Icon, title, body, action, className = '' }: EmptyStateProps) {
   return (
     <div
-      className={`flex flex-col items-center gap-md rounded-corner-lg bg-surface-bg px-xl py-2xl text-center ${className}`}
+      className={`flex flex-col items-center gap-md rounded-corner-lg border border-border-primary bg-surface-bg px-xl py-2xl text-center ${className}`}
     >
       {/* Flat two-shape illustration behind the icon */}
       <div aria-hidden="true" className="relative mb-sm flex size-20 items-center justify-center">

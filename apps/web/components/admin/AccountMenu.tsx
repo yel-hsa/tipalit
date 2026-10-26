@@ -121,7 +121,7 @@ export default function AccountMenu({ session, theme, onToggleTheme, onSignOut, 
             </Button>
             <Button
               variant="primary"
-              className="border-danger bg-danger text-white hover:border-danger hover:bg-danger/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
+              className="border-danger bg-danger text-on-brand hover:border-danger hover:bg-danger/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
               onClick={() => {
                 setConfirming(false)
                 onSignOut()

@@ -75,6 +75,7 @@
   --warning: #f5a524;
   --danger: #e5484d;
   --danger-soft: #e5484d14;
+  --warning-soft: #f5a5241f;
   --success-soft: #3cc77414;
 
   --control-fg: var(--brand-primary);
@@ -123,6 +124,7 @@
   --bg-hover: #ffffff1a;
 
   --danger-soft: #e5484d26;
+  --warning-soft: #f5a5242b;
   --success-soft: #3cc77426;
   --modal-scrim: #00000099;
 
@@ -165,6 +167,7 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-warning-soft: var(--warning-soft);
   --color-success-soft: var(--success-soft);
   --color-input-bg: var(--input-bg);
   --color-modal-scrim: var(--modal-scrim);

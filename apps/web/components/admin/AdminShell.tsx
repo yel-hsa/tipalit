@@ -75,13 +75,11 @@ export default function AdminShell({
                   <item.icon size={18} className="shrink-0" aria-hidden="true" />
                   <span className="flex-1 truncate text-cell-strong">{item.label}</span>
                   {count > 0 && (
-                    <span
-                      className={`shrink-0 rounded-corner-full px-sm py-xs text-caption-sm font-semibold tabular-nums ${
-                        item.id === 'reports' ? 'bg-danger-soft text-danger' : 'bg-bg-subtle text-text-secondary'
-                      }`}
-                    >
-                      {count}
-                    </span>
+                    <Badge
+                      variant={item.id === 'reports' ? 'danger' : 'default'}
+                      label={count}
+                      className="tabular-nums"
+                    />
                   )}
                 </button>
               </li>

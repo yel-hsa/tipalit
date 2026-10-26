@@ -69,7 +69,7 @@ export default function ListingDrawer({
                 disabled={pending}
                 aria-busy={pending || undefined}
                 iconStart={pending ? <Spinner /> : <PackageX size={16} />}
-                className="border-danger bg-danger text-white hover:border-danger hover:bg-danger/90"
+                className="border-danger bg-danger text-on-brand hover:border-danger hover:bg-danger/90"
               >
                 {pending ? 'Removing…' : 'Remove listing'}
               </Button>

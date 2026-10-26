@@ -69,7 +69,7 @@ function Metric({
         <span
           aria-hidden="true"
           className={`flex size-8 items-center justify-center rounded-corner-md ${
-            tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-accent-soft text-brand-primary'
+            tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-bg-subtle text-text-secondary'
           }`}
         >
           {icon}
@@ -154,7 +154,7 @@ export default function DashboardSection({
   const reserved = listings.filter((listing) => listing.status === 'reserved').length
 
   return (
-    <div className="flex flex-col gap-xl">
+    <div className="flex flex-col gap-lg">
       <div className="grid grid-cols-4 gap-lg">
         <Metric
           icon={<Package size={16} />}

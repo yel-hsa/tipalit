@@ -82,7 +82,7 @@ export default function MemberDrawer({
               aria-busy={pending || undefined}
               iconStart={pending ? <Spinner /> : suspended ? <RotateCcw size={16} /> : <Ban size={16} />}
               onClick={submit}
-              className={suspended ? undefined : 'border-danger bg-danger text-white hover:border-danger hover:bg-danger/90'}
+              className={suspended ? undefined : 'border-danger bg-danger text-on-brand hover:border-danger hover:bg-danger/90'}
             >
               {pending ? 'Saving…' : done ? 'Saved' : suspended ? `Reinstate ${first}` : `Suspend ${first}`}
             </Button>
@@ -101,7 +101,7 @@ export default function MemberDrawer({
             <div className="flex flex-wrap gap-sm">
               {member.campus && <Badge variant="brand" label={campusLabel(member.campus)} />}
               {isAdmin && <Badge variant="secondary" label="Admin" />}
-              <Badge variant={suspended ? 'danger' : 'brand'} label={suspended ? 'Suspended' : 'Active'} />
+              <Badge variant={suspended ? 'danger' : 'success'} label={suspended ? 'Suspended' : 'Active'} />
             </div>
           </div>
         </div>
