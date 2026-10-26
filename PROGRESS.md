@@ -30,6 +30,7 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `6ac8808` | Gave `BottomSheet` the exit animation `SlideOver` already had, and fixed both overlays painting a stale exit frame when reopened. |
 | `28d9a10` | Defined the admin shell's missing `w-sidebar`, `max-w-content`, and `skip-link` classes; the unpositioned skip link was rendering as a full-height flex child and collapsing the console layout. |
 | `6110c7e` | Defined the admin console's nine missing design tokens (`text-cell`, `text-cell-strong`, `text-metric`, `text-section`, `text-th`, `text-page`, `gap-2xs`, `bg-scrim`, `text-on-scrim`) derived by a 30-agent workflow; all reuse existing type/space scales, cells stay 16px so the 84 cell usages are a no-op except weight emphasis. |
+| `46d964b` | Replaced the Astra `SelectField` with an accessible local version: unique per-instance IDs via `useId` and a real accessible name, fixing the kit's hardcoded duplicate `select-list` IDs and unassociated label across the Reports filters and every multi-select screen. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
@@ -129,7 +130,7 @@ Verified in the running app with DOM assertions (no layout screenshots):
 - No horizontal overflow at 1536×770 (`document.scrollWidth === window.innerWidth === 1536`).
 - Both overlays verified in the running app: `SlideOver` plays `tip-drawer-in` (260 ms) and `tip-drawer-out` (200 ms); `BottomSheet` plays `tip-sheet-in` (200 ms) and `tip-sheet-out` (180 ms) with the scrim fading in and out. Each unmounts after its exit and replays the entrance on reopen.
 
-Known upstream defect, not patched: Astra's `SelectField` hardcodes `id="select-list"` and `aria-controls="select-list"`, so the three Reports filters produce duplicate IDs. It also renders `label` as a visible `<span>` rather than an accessible name.
+The Astra `SelectField` duplicate-ID / missing-accessible-name defect is fixed in `46d964b` by a local accessible replacement; see the section below.
 
 ## Admin design tokens (committed in `6110c7e`)
 
@@ -149,7 +150,13 @@ Final mapping (all reuse existing tokens; no new values, no palette change):
 | `bg-scrim` | `--overlay-control-bg` | dark scrim |
 | `text-on-scrim` | `--on-overlay` | white |
 
-Verified: typecheck, tests, and build pass; all nine classes generate in the built CSS; DOM assertions on the running console confirm `text-cell` 16/400, `text-cell-strong` 16/600, `text-metric` 24/600, `text-section` 20/500, `text-th` 12/500.
+Verified: typecheck, tests, and build pass; all nine classes generate in the built CSS; DOM assertions on the running console confirm `text-cell` 16/400, `text-cell-strong` 16/600, `text-metric` 24/600, `text-section` 20/500, `text-th` 12/500, `text-page` 24/600, `gap-2xs` 4px, `bg-scrim` #1c1b1aa6, `text-on-scrim` white.
+
+## Accessible SelectField (committed in `46d964b`)
+
+The Astra kit's `SelectField` hardcoded `id="select-list"` / `aria-controls="select-list"` and rendered its label as an unassociated `<span>`, so the three Reports filters produced duplicate IDs and the comboboxes had no accessible name. The kit accepts no `id`/`aria-*` passthrough, so the fix is a local drop-in replacement (`apps/web/components/SelectField.tsx`) that mirrors the kit's visuals and full keyboard interaction but generates unique IDs via `useId` and wires `aria-labelledby` / `aria-controls` / `aria-activedescendant` correctly. The three consumers (`Toolbar`, `AddListingScreen`, `ProfileFields`) now import it.
+
+Verified in the browser on the Moderation queue: three comboboxes each get a unique `aria-labelledby`, accessible names resolve to Status / Target / Campus, and there are zero duplicate IDs in the DOM. Typecheck, tests, and build pass.
 
 ## Exact next action
 
