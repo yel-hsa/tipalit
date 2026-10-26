@@ -31,6 +31,8 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `28d9a10` | Defined the admin shell's missing `w-sidebar`, `max-w-content`, and `skip-link` classes; the unpositioned skip link was rendering as a full-height flex child and collapsing the console layout. |
 | `6110c7e` | Defined the admin console's nine missing design tokens (`text-cell`, `text-cell-strong`, `text-metric`, `text-section`, `text-th`, `text-page`, `gap-2xs`, `bg-scrim`, `text-on-scrim`) derived by a 30-agent workflow; all reuse existing type/space scales, cells stay 16px so the 84 cell usages are a no-op except weight emphasis. |
 | `46d964b` | Replaced the Astra `SelectField` with an accessible local version: unique per-instance IDs via `useId` and a real accessible name, fixing the kit's hardcoded duplicate `select-list` IDs and unassociated label across the Reports filters and every multi-select screen. |
+| `e110a52` | Made the admin data-table sticky header opaque: moved stickiness onto the `<th>` cells (works under `border-collapse`), gave them `bg-surface-bg` and `z-10`, and put the bottom border on the cells so scrolling rows no longer show through. |
+| `b793458` | Standardized admin UI tokens from a 25-agent audit: added the missing `--warning-soft` token (warning badges had transparent backgrounds), gave EmptyState the standard card border, normalized section gaps and icon-chip tones, aligned badge variants, and replaced raw `text-white`/`bg-black/40` with `text-on-brand`/`bg-modal-scrim`. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
@@ -157,6 +159,22 @@ Verified: typecheck, tests, and build pass; all nine classes generate in the bui
 The Astra kit's `SelectField` hardcoded `id="select-list"` / `aria-controls="select-list"` and rendered its label as an unassociated `<span>`, so the three Reports filters produced duplicate IDs and the comboboxes had no accessible name. The kit accepts no `id`/`aria-*` passthrough, so the fix is a local drop-in replacement (`apps/web/components/SelectField.tsx`) that mirrors the kit's visuals and full keyboard interaction but generates unique IDs via `useId` and wires `aria-labelledby` / `aria-controls` / `aria-activedescendant` correctly. The three consumers (`Toolbar`, `AddListingScreen`, `ProfileFields`) now import it.
 
 Verified in the browser on the Moderation queue: three comboboxes each get a unique `aria-labelledby`, accessible names resolve to Status / Target / Campus, and there are zero duplicate IDs in the DOM. Typecheck, tests, and build pass.
+
+## UI/UX consistency audit (committed in `e110a52` + `b793458`)
+
+A 25-agent audit (4 auditors across sticky/tables, badges/status, spacing/alignment, and token-parity lenses; a synthesizer; then 2 QA lenses per proposed fix) cataloged 34 findings. 8 tokenized fixes passed both QA lenses and are applied; all keep the existing design language intact and use existing tokens.
+
+Applied: the sticky-header opaque fix (`e110a52`); the missing `--warning-soft` token (warning badges rendered with no background); EmptyState card border; Dashboard section-gap and icon-chip tone normalization; Audit row-padding alignment; member-badge variant alignment; and `text-white`/`bg-black/40` → `text-on-brand`/`bg-modal-scrim`. Browser-verified; typecheck, tests, and build pass.
+
+Two proposed fixes were rejected by QA and deferred: the Dashboard Panel-header `px-xl→px-lg` change would misalign the header from its `p-xl` body, and the "Needs attention" row-density change rested on a wrong premise (the compact preview density appears intentional).
+
+Open decision items (need the user; none are safe to auto-apply):
+- Mobile palette diverges from web (green `#1f6f4a` vs gold `#f9c80e`) — recoloring mobile conflicts with "keep palette intact".
+- Border-radius scales share names but not values (web 4/8/16/999 vs mobile 8/12/18/999).
+- Mobile spacing/typography scales are structurally different (space(n)=n*4, no Instrument Sans).
+- 'Sold' status renders as three different badge variants across surfaces (admin-neutral vs student-danger).
+- Badge success/danger soft-tint pairs fall short of 4.5:1 contrast in light theme.
+- AuditSection day headings use the table-header type token; icon tiles use two shape/size combos; shell header insets differ; Toolbar uses fragile baseline nudges; no table-level loading skeleton.
 
 ## Exact next action
 
