@@ -25,6 +25,8 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `d83aff7` | Added real callable/Firestore emulator coverage for authoritative reports and moderation concurrency; added a no-write-by-default administrator-claim tool. |
 | `1cdf3f4` | Secured listing media for emulator demos: trusted reservation/finalization/deletion, canonical photo metadata and thumbnails, durable cleanup, local rules/callable coverage, and emulator-only migration verification. |
 | `e45f895` | Completed the student and admin demo journeys: emulator connectors and lazy adapter initialization, mobile listing edit mode and owner-facing edit action, required moderation audit notes, trusted `removeListingAsAdmin`, and emulator-aware media URLs. |
+| `09e7857` | Reconciled the handoff docs with the committed demo journeys. |
+| `3bc0471` | Polished the admin console UI/UX: defined the six animation utilities the components already referenced, added a drawer exit animation, inline confirm states with aria-labels on destructive moderation actions, and clear-filters recovery in every section's empty state. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
@@ -112,6 +114,18 @@ Seeded demo accounts:
 Student: Bea Lim <bea.lim@tip.edu.ph> — TIP Manila, BS Computer Science, 3rd year
 Admin:   Office of Student Affairs <osa.admin@tip.edu.ph>
 ```
+
+## Admin console polish (committed in `3bc0471`)
+
+Verified in the running app with DOM assertions (no layout screenshots):
+
+- All six animation utilities resolve to real keyframes with the intended durations; `.stagger` produces cascading delays of 0–196 ms across eight member rows.
+- Drawer exit animation runs `tip-drawer-out` and unmounts after 200 ms; `prefers-reduced-motion` skips the delay and closes immediately.
+- Drawer focus trap: `aria-modal="true"`, focus lands inside the dialog, three sibling regions become `inert`, and the destructive action renders in danger red against a neutral Cancel.
+- Empty-state recovery restores all 17 rows and clears the search box; the Clear filters button then disappears.
+- No horizontal overflow at 1536×770 (`document.scrollWidth === window.innerWidth === 1536`).
+
+Known upstream defect, not patched: Astra's `SelectField` hardcodes `id="select-list"` and `aria-controls="select-list"`, so the three Reports filters produce duplicate IDs. It also renders `label` as a visible `<span>` rather than an accessible name.
 
 ## Exact next action
 
