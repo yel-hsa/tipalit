@@ -18,6 +18,8 @@ const cleanupJob = (listingId: string, operationId: string, paths: string[]) => 
 })
 
 const bucketName = (): string =>
+  process.env.FIREBASE_STORAGE_BUCKET ||
+  process.env.STORAGE_BUCKET ||
   `${process.env.GCLOUD_PROJECT ?? 'demo-tipalit'}.appspot.com`
 
 type MediaBucket = {

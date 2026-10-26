@@ -332,6 +332,43 @@ export const resolveReport = onCall(async (request) => {
   return { report: reportFromData(reportId, report, status, resolution) }
 })
 
+export const removeListingAsAdmin = onCall(async (request) => {
+  const admin = await assertActiveAdmin(request.auth)
+  const data = request.data as Record<string, unknown>
+  const listingId = readRequiredString(data.listingId, 'listingId', 180)
+  const note = readRequiredString(data.note, 'note', 1000)
+  const listingRef = db.collection('listings').doc(listingId)
+  const actorName = actorNameFrom(admin.token)
+  const auditRef = db.collection('audit_log').doc()
+  const at = new Date().toISOString()
+
+  await db.runTransaction(async (tx) => {
+    const listingSnap = await tx.get(listingRef)
+    if (!listingSnap.exists) {
+      throw new HttpsError('not-found', 'Listing not found.')
+    }
+    if (listingSnap.data()?.status === 'removed') return
+
+    tx.update(listingRef, {
+      status: 'removed',
+      moderated_at: FieldValue.serverTimestamp(),
+      moderated_by: admin.uid,
+      moderated_reason: 'admin_action',
+      updated_at: FieldValue.serverTimestamp(),
+    })
+    tx.create(auditRef, {
+      at,
+      actor_id: admin.uid,
+      actorName,
+      action: 'listing_removed',
+      summary: `${actorName} removed listing ${listingId}.`,
+      note,
+      listing_id: listingId,
+      server_timestamp: FieldValue.serverTimestamp(),
+    })
+  })
+})
+
 export const setMemberStatus = onCall(async (request) => {
   const admin = await assertActiveAdmin(request.auth)
   const data = request.data as Record<string, unknown>

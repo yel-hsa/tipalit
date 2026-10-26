@@ -38,12 +38,12 @@ export default function MemberSheet({ member, openReports, onClose, onSetStatus,
   const first = firstNameOf(member.name)
   const isAdmin = member.role === 'admin'
   const suspended = member.status === 'suspended'
-  const noteError = submitted && !suspended && !note.trim() ? 'Add a reason. It goes in the activity log.' : undefined
+  const noteError = submitted && !note.trim() ? 'Add a reason. It goes in the activity log.' : undefined
 
   const submit = async () => {
     if (pending) return
     setSubmitted(true)
-    if (!suspended && !note.trim()) {
+    if (!note.trim()) {
       document.getElementById(noteId)?.focus()
       return
     }
@@ -134,7 +134,7 @@ export default function MemberSheet({ member, openReports, onClose, onSetStatus,
             <FormField id={noteId} error={noteError}>
               <TextareaField
                 id={noteId}
-                label={suspended ? 'Note (optional)' : 'Reason for suspension'}
+                label={suspended ? 'Reason for reinstatement' : 'Reason for suspension'}
                 placeholder={suspended ? 'For example: appeal accepted' : 'For example: repeated no-shows at meetups'}
                 rows={3}
                 maxLength={NOTE_LIMIT}

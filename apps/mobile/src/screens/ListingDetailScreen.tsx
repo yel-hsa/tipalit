@@ -7,9 +7,19 @@ import { useSession } from '../session'
 import { colors, radius, space } from '../theme'
 import { Badge, Button, Card, Screen } from '../components/ui'
 
-type Props = { listing: Listing; onBack: () => void; onMessage: (threadId: string) => void }
+type Props = {
+  listing: Listing
+  onBack: () => void
+  onEdit: (listing: Listing) => void
+  onMessage: (threadId: string) => void
+}
 
-export default function ListingDetailScreen({ listing, onBack, onMessage }: Props) {
+export default function ListingDetailScreen({
+  listing,
+  onBack,
+  onEdit,
+  onMessage,
+}: Props) {
   const { session } = useSession()
   const [seller, setSeller] = useState<Seller | null>(null)
   const [busy, setBusy] = useState(false)
@@ -79,10 +89,16 @@ export default function ListingDetailScreen({ listing, onBack, onMessage }: Prop
         <View style={styles.footerBack}>
           <Button label="Back" variant="secondary" onPress={onBack} />
         </View>
-        {!isMine && listing.status === 'active' && (
+        {isMine ? (
           <View style={styles.footerMain}>
-            <Button label="Message seller" onPress={message} busy={busy} />
+            <Button label="Edit listing" onPress={() => onEdit(listing)} />
           </View>
+        ) : (
+          listing.status === 'active' && (
+            <View style={styles.footerMain}>
+              <Button label="Message seller" onPress={message} busy={busy} />
+            </View>
+          )
         )}
       </View>
     </Screen>

@@ -110,6 +110,23 @@ export function createMockAdmin(): AdminService {
       return [...loadListings()].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     },
 
+    async removeListing(id, note) {
+      const actor = admin()
+      await delay(500)
+      const listings = loadListings()
+      const listing = listings.find((item) => item.id === id)
+      if (!listing) {
+        throw new ServiceError('not_found', 'This listing no longer exists.')
+      }
+      saveListings(listings.filter((item) => item.id !== id))
+      log({
+        action: 'listing_removed',
+        actorName: actor.name,
+        summary: `Removed “${listing.title}”`,
+        note,
+      })
+    },
+
     async setMemberStatus(userId, status, note) {
       const actor = admin()
       await delay(600)

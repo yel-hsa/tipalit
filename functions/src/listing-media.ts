@@ -109,8 +109,22 @@ const operationPath = (
   fileName: string,
 ): string => `item_photos/${ownerId}/${listingId}/${operationId}/${fileName}`
 
-const downloadUrlFor = (bucket: string, storagePath: string, token: string): string =>
-  `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}?alt=media&token=${encodeURIComponent(token)}`
+const downloadUrlFor = (
+  bucket: string,
+  storagePath: string,
+  token: string,
+): string => {
+  const emulatorHost = process.env.FIREBASE_STORAGE_EMULATOR_HOST
+  const origin = emulatorHost
+    ? `http://${emulatorHost.replace(/^https?:\/\//, '')}`
+    : 'https://firebasestorage.googleapis.com'
+  return `${origin}/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}?alt=media&token=${encodeURIComponent(token)}`
+}
+
+const bucketName = (): string =>
+  process.env.FIREBASE_STORAGE_BUCKET ||
+  process.env.STORAGE_BUCKET ||
+  `${process.env.GCLOUD_PROJECT ?? 'demo-tipalit'}.appspot.com`
 
 const THUMBNAIL_SIZE = 640
 
@@ -322,7 +336,7 @@ export const createListingMediaCallables = ({ db, assertActiveMember }: MediaDep
       throw new HttpsError('deadline-exceeded', 'That media upload reservation expired.')
     }
 
-    const bucket = getStorage().bucket(`${process.env.GCLOUD_PROJECT ?? 'demo-tipalit'}.appspot.com`)
+    const bucket = getStorage().bucket(bucketName())
     const verifiedPhotos = await Promise.all(
       Object.entries(operation.file_specs ?? {}).map(async ([fileName, rawSpec]) => {
         const spec = asRecord(rawSpec)

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { services } from '@tipalit/services'
-import { ADMIN_ACCOUNT } from '@tipalit/services/seed'
+import { GOOGLE_TEST_ACCOUNTS } from '@tipalit/services/seed'
 import { useSession } from '../session'
 import { colors, space } from '../theme'
 import { Button, Screen } from '../components/ui'
@@ -21,7 +21,7 @@ export default function SignInScreen() {
 
   // the mock adapter has no native Google sheet, so it asks this picker for an account
   useEffect(() => {
-    services.demo?.registerAccountPicker(async () => ADMIN_ACCOUNT)
+    services.demo?.registerAccountPicker(async () => GOOGLE_TEST_ACCOUNTS[0])
     return () => services.demo?.registerAccountPicker(null)
   }, [])
 

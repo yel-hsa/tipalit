@@ -30,6 +30,21 @@ type SubmitReportResult = { report: Report }
 type SetMemberStatusResult = { member: MemberSummary }
 type SaveMeetupSpotsResult = { spots: MeetupSpots }
 
+export const callRemoveListingAsAdmin = async (
+  listingId: string,
+  note: string,
+): Promise<void> => {
+  try {
+    const callable = httpsCallable<
+      { listingId: string; note: string },
+      Record<string, never>
+    >(getFirebaseFunctions(), 'removeListingAsAdmin')
+    await callable({ listingId, note })
+  } catch (error) {
+    throw toServiceError(error, "Couldn't remove listing.")
+  }
+}
+
 export const callSubmitReport = async (
   kind: 'listing' | 'user',
   targetId: string,

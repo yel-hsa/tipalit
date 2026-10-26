@@ -4,9 +4,11 @@ import type { Services } from './types'
 
 // host apps set this before importing the services; unset auto-detects
 let adapterOverride: string | undefined
+let servicesInstance: Services | null = null
 
 export const setDataAdapter = (adapter: string | undefined): void => {
   adapterOverride = adapter
+  servicesInstance = null
 }
 
 const pickAdapter = (): Services => {
@@ -28,7 +30,12 @@ const pickAdapter = (): Services => {
   return createMockServices()
 }
 
-export const services: Services = pickAdapter()
+export const services: Services = new Proxy({} as Services, {
+  get(_target, property) {
+    servicesInstance ??= pickAdapter()
+    return servicesInstance[property as keyof Services]
+  },
+})
 
 export * from './types'
 export { ServiceError } from './errors'

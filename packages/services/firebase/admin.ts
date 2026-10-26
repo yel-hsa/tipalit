@@ -1,6 +1,11 @@
 import { collection, getDocs } from 'firebase/firestore'
 import { ServiceError } from '../errors'
-import { callResolveReport, callSaveMeetupSpots, callSetMemberStatus } from './admin-callables'
+import {
+  callRemoveListingAsAdmin,
+  callResolveReport,
+  callSaveMeetupSpots,
+  callSetMemberStatus,
+} from './admin-callables'
 import { toListing } from './listings'
 import type {
   AccountStatus,
@@ -131,6 +136,14 @@ export function createFirebaseAdmin(): AdminService {
         console.warn('[TIPalit Firebase Admin] listListings error:', err)
         throw new ServiceError('network', "Couldn't load listings.")
       }
+    },
+
+    async removeListing(id: string, note: string): Promise<void> {
+      await checkAdmin()
+      if (!isFirebaseConfigured()) {
+        throw new ServiceError('network', 'Firebase is not configured.')
+      }
+      await callRemoveListingAsAdmin(id, note)
     },
 
     async setMemberStatus(userId: string, status: AccountStatus, note: string): Promise<MemberSummary> {

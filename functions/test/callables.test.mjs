@@ -24,6 +24,7 @@ const fft = functionsTest({ projectId: PROJECT_ID })
 const {
   deleteListingMedia,
   finalizeListingMedia,
+  removeListingAsAdmin,
   reserveListingMedia,
   resolveReport,
   submitReport,
@@ -33,6 +34,7 @@ const callSubmitReport = fft.wrap(submitReport)
 const callResolveReport = fft.wrap(resolveReport)
 const callReserveListingMedia = fft.wrap(reserveListingMedia)
 const callFinalizeListingMedia = fft.wrap(finalizeListingMedia)
+const callRemoveListingAsAdmin = fft.wrap(removeListingAsAdmin)
 const callDeleteListingMedia = fft.wrap(deleteListingMedia)
 const bucket = getStorage(adminApp).bucket(`${PROJECT_ID}.appspot.com`)
 
@@ -173,6 +175,10 @@ describe('listing media callables', () => {
     assert.match(listingSnap.data()?.media_paths?.[1], /thumb-photo-one[.]webp$/)
     assert.equal(listingSnap.data()?.photos?.[0]?.width, 2)
     assert.equal(listingSnap.data()?.photos?.[0]?.height, 2)
+    assert.match(
+      listingSnap.data()?.photos?.[0]?.download_url ?? '',
+      /^http:\/\/127[.]0[.]0[.]1:9199\/v0\/b\//,
+    )
   })
 
   test('returns the persisted reservation after a concurrent duplicate create', async () => {
@@ -452,6 +458,47 @@ describe('listing media cleanup', () => {
       .get()
     assert.deepEqual(deleted, [firstPath])
     assert.equal(jobSnap.data()?.state, 'done')
+  })
+})
+
+describe('administrator listing moderation', () => {
+  test('removes a listing through an active claimed administrator and records audit', async () => {
+    await seedProfile('administrator', { role: 'admin' })
+    await seedProfile('seller')
+    await seedListing('listing-admin-remove', 'seller')
+
+    await callRemoveListingAsAdmin({
+      data: {
+        listingId: 'listing-admin-remove',
+        note: 'Prohibited listing in the demo queue.',
+      },
+      auth: authData('administrator', { admin: true }),
+    })
+
+    const listingSnap = await db.collection('listings').doc('listing-admin-remove').get()
+    const audit = await db
+      .collection('audit_log')
+      .where('listing_id', '==', 'listing-admin-remove')
+      .get()
+    assert.equal(listingSnap.data()?.status, 'removed')
+    assert.equal(audit.size, 1)
+    assert.equal(audit.docs[0].data().action, 'listing_removed')
+  })
+
+  test('rejects ordinary members removing another seller listing', async () => {
+    await seedProfile('member')
+    await seedListing('listing-admin-denied', 'seller')
+
+    await expectHttpsCode(
+      callRemoveListingAsAdmin({
+        data: {
+          listingId: 'listing-admin-denied',
+          note: 'Unauthorized removal attempt.',
+        },
+        auth: authData('member'),
+      }),
+      'permission-denied',
+    )
   })
 })
 

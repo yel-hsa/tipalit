@@ -298,6 +298,8 @@ export interface AdminService {
   listMembers(): Promise<MemberSummary[]>
   // every listing across both campuses, including reserved and sold; newest first
   listListings(): Promise<Listing[]>
+  // removes a listing through the trusted administrator boundary
+  removeListing(id: string, note: string): Promise<void>
   setMemberStatus(userId: string, status: AccountStatus, note: string): Promise<MemberSummary>
   saveMeetupSpots(campus: CampusId, spots: string[]): Promise<MeetupSpots>
   // newest first

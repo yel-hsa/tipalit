@@ -4,7 +4,13 @@ import * as ImagePicker from 'expo-image-picker'
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
 import { services } from '@tipalit/services'
 import { CATEGORY_LIST, CONDITIONS, SUBJECT_CODES } from '@tipalit/services/seed'
-import type { Category, Condition, ListingDraft, TransactionType } from '@tipalit/services/types'
+import type {
+  Category,
+  Condition,
+  Listing,
+  ListingDraft,
+  TransactionType,
+} from '@tipalit/services/types'
 import { useSession } from '../session'
 import { colors, radius, space } from '../theme'
 import { Button, Card, Pill, Screen } from '../components/ui'
@@ -25,18 +31,32 @@ const toDataUrl = async (uri: string): Promise<string> => {
   return `data:image/jpeg;base64,${result.base64}`
 }
 
-export default function SellScreen({ onPublished }: { onPublished: () => void }) {
+export default function SellScreen({
+  listing,
+  onPublished,
+  onCancel,
+}: {
+  listing?: Listing
+  onPublished: () => void
+  onCancel?: () => void
+}) {
   const { session, profile } = useSession()
-  const [title, setTitle] = useState('')
-  const [price, setPrice] = useState('')
-  const [transactionType, setTransactionType] = useState<TransactionType>('sale')
-  const [category, setCategory] = useState<Category>('Textbooks')
-  const [condition, setCondition] = useState<Condition>('Good')
-  const [courseCode, setCourseCode] = useState(SUBJECT_CODES[0])
-  const [meetupSpot, setMeetupSpot] = useState('')
+  const [title, setTitle] = useState(listing?.title ?? '')
+  const [price, setPrice] = useState(
+    listing && listing.transactionType === 'sale' ? String(listing.price) : '',
+  )
+  const [transactionType, setTransactionType] = useState<TransactionType>(
+    listing?.transactionType ?? 'sale',
+  )
+  const [category, setCategory] = useState<Category>(listing?.category ?? 'Textbooks')
+  const [condition, setCondition] = useState<Condition>(listing?.condition ?? 'Good')
+  const [courseCode, setCourseCode] = useState(
+    listing?.courseCode ?? SUBJECT_CODES[0],
+  )
+  const [meetupSpot, setMeetupSpot] = useState(listing?.meetupSpot ?? '')
   const [spots, setSpots] = useState<string[]>([])
-  const [description, setDescription] = useState('')
-  const [photos, setPhotos] = useState<string[]>([])
+  const [description, setDescription] = useState(listing?.description ?? '')
+  const [photos, setPhotos] = useState<string[]>(listing?.imageUrls ?? [])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,10 +67,12 @@ export default function SellScreen({ onPublished }: { onPublished: () => void })
       .then((all) => {
         const list = all[profile.campus!] ?? []
         setSpots(list)
-        setMeetupSpot((current) => current || list[0] || '')
+        if (!listing) {
+          setMeetupSpot((current) => current || list[0] || '')
+        }
       })
       .catch(() => setSpots([]))
-  }, [profile?.campus])
+  }, [listing, profile?.campus])
 
   const addPhoto = async (source: 'camera' | 'library') => {
     if (photos.length >= MAX_PHOTOS) return
@@ -99,7 +121,14 @@ export default function SellScreen({ onPublished }: { onPublished: () => void })
       imageUrls: photos,
     }
     try {
-      await services.listings.create(draft, { userId: session.userId, campus: profile.campus })
+      if (listing) {
+        await services.listings.update(listing.id, draft)
+      } else {
+        await services.listings.create(draft, {
+          userId: session.userId,
+          campus: profile.campus,
+        })
+      }
       setTitle('')
       setPrice('')
       setDescription('')
@@ -115,7 +144,9 @@ export default function SellScreen({ onPublished }: { onPublished: () => void })
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.heading}>Sell an item</Text>
+        <Text style={styles.heading}>
+          {listing ? 'Edit listing' : 'Sell an item'}
+        </Text>
 
         <Card style={styles.photos}>
           <Text style={styles.label}>Photos ({photos.length}/{MAX_PHOTOS})</Text>
@@ -213,7 +244,21 @@ export default function SellScreen({ onPublished }: { onPublished: () => void })
         </Field>
 
         {error && <Text style={styles.error}>{error}</Text>}
-        <Button label="Publish listing" onPress={publish} disabled={!valid} busy={busy} />
+        <View style={styles.actions}>
+          {listing && onCancel && (
+            <View style={styles.cancelAction}>
+              <Button label="Cancel" variant="secondary" onPress={onCancel} />
+            </View>
+          )}
+          <View style={styles.saveAction}>
+            <Button
+              label={listing ? 'Save changes' : 'Publish listing'}
+              onPress={publish}
+              disabled={!valid}
+              busy={busy}
+            />
+          </View>
+        </View>
       </ScrollView>
     </Screen>
   )
@@ -250,5 +295,8 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 96, textAlignVertical: 'top' },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+  actions: { flexDirection: 'row', gap: space(3) },
+  cancelAction: { flex: 1 },
+  saveAction: { flex: 2 },
   error: { color: colors.danger, fontSize: 14 },
 })

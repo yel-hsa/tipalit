@@ -149,7 +149,10 @@ export default function AdminConsole({ session, expiresAt, onSignOut }: AdminCon
 
   const removeListing = async (id: string) => {
     try {
-      await services.listings.remove(id)
+      await services.admin.removeListing(
+        id,
+        'Removed from the administrator listing review.',
+      )
     } catch (error) {
       notify(errorMessage(error, "Couldn't remove the listing. Try again."), 'error')
       return false
@@ -199,7 +202,9 @@ export default function AdminConsole({ session, expiresAt, onSignOut }: AdminCon
         members={data.members}
         listingsById={Object.fromEntries(data.listings.map((listing) => [listing.id, listing]))}
         onOpen={setReportId}
-        onQuickAction={(id, action) => resolveReport(id, action, '')}
+        onQuickAction={(id, action) =>
+          resolveReport(id, action, 'Resolved from the report queue.')
+        }
       />
     ) : section === 'listings' ? (
       <ListingsSection listings={data.listings} members={data.members} onOpen={setListingId} />
@@ -207,7 +212,15 @@ export default function AdminConsole({ session, expiresAt, onSignOut }: AdminCon
       <MembersSection
         members={data.members}
         onOpen={setMemberId}
-        onToggleStatus={(userId, next) => setMemberStatus(userId, next, '')}
+        onToggleStatus={(userId, next) =>
+          setMemberStatus(
+            userId,
+            next,
+            next === 'suspended'
+              ? 'Suspended from the member queue.'
+              : 'Reinstated from the member queue.',
+          )
+        }
       />
     ) : (
       <AuditSection audit={data.audit} />

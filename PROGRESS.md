@@ -23,51 +23,95 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `e557a18` | Enforced active accounts in Firestore/Storage rules and made student listing queries positively prove public statuses. |
 | `7bb207f` | Moved administrator authority, report submission, moderation, account state, and meetup settings behind trusted callable Functions with atomic audit writes. |
 | `d83aff7` | Added real callable/Firestore emulator coverage for authoritative reports and moderation concurrency; added a no-write-by-default administrator-claim tool. |
-
-Working tree checkpoint pending: trusted listing-media reservation/finalization/deletion, canonical photo metadata and thumbnails, durable cleanup, local rules/callable coverage, and emulator-only migration verification.
+| `1cdf3f4` | Secured listing media for emulator demos: trusted reservation/finalization/deletion, canonical photo metadata and thumbnails, durable cleanup, local rules/callable coverage, and emulator-only migration verification. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
+## Demo journey fixes (uncommitted working tree)
+
+The working tree carries the student, admin, emulator, and media-URL fixes that make the demo journeys runnable:
+
+- Lazy shared-service adapter initialization, so host bootstraps configure the adapter before first use.
+- Auth, Firestore, Functions, and Storage emulator connectors, plus web and Expo emulator opt-in environment variables.
+- Mobile mock sign-in uses a normal student account instead of the administrator seed.
+- Mobile listing edit mode and edit overlay; owner-facing **Edit listing** action on listing details.
+- Required audit notes for report and member moderation.
+- Trusted `removeListingAsAdmin` callable with shared Firebase/mock adapter methods; administrator listing removal routed through `services.admin.removeListing(...)`.
+- Emulator-aware listing-media download URLs and configurable Functions Storage bucket selection.
+- Callable coverage for administrator listing removal and emulator media URLs.
+
 ## Verified on 2026-10-26
 
-The following commands passed from the repository root after the current media changes:
+The following commands passed from the repository root after the current changes:
 
 ```text
 corepack pnpm run typecheck
-corepack pnpm run build
 corepack pnpm run test
+corepack pnpm run build
 git diff --check
 ```
 
 Coverage confirmed:
 
-- Shared services, actual web source, Expo mobile, and Cloud Functions typecheck.
-- Vite emits student and admin pages; Functions compile; Expo exports web, iOS, and Android bundles.
+- Shared services, web, Expo mobile, and Cloud Functions typecheck.
 - Function helper tests: 6/6 passed.
-- Callable/emulator integration tests: 15/15 passed, including media create/edit/delete, idempotency, duplicate reservation, optimistic concurrency, cleanup expiration/retry/reference checks, and existing report/moderation flows.
+- Callable/emulator integration tests: 17/17 passed, including media create/edit/delete, idempotency, duplicate reservation, optimistic concurrency, cleanup expiration/retry/reference checks, administrator listing removal, emulator media URLs, and existing report/moderation flows.
 - Shape tests: 17/17 passed.
 - Firestore rules tests: 47/47 passed.
 - Storage rules tests: 8/8 passed.
 - Listing-photo migration fixture passed dry run, apply, and idempotent rerun against emulators, including dimensions, thumbnails, Storage objects, and mixed-array blocking.
+- Vite emits student and admin pages; Functions compile; Expo exports web, iOS, and Android bundles.
 - `git diff --check` passed; Git printed only LF-to-CRLF checkout warnings.
+
+## Browser verification performed
+
+Student web journey verified end-to-end in the running Vite app with mock data: sign in → browse feed → create listing → edit listing → view listing detail → chat.
+
+Admin moderation verified locally with the seeded administrator: view reports, resolve/dismiss a report with a required note, view listings and remove one through the trusted callable, view members and suspend/reinstate with a required note, and confirm non-admin users get a clear denied state.
+
+Desktop layout verified by DOM measurement at 1440×900 (bounding boxes and `scrollWidth` only, no screenshots):
+
+| Screen | Shell / main width | Horizontal overflow | Overflowing elements |
+| --- | --- | --- | --- |
+| Feed | 390 px phone shell, centered | none | 0 |
+| Listing detail | 390 px phone shell, centered | none | 0 |
+| Edit listing | 390 px phone shell, centered | none | 0 |
+| Chats | 390 px phone shell, centered | none | 0 |
+| Admin console | 778 px main, no clipping | none | 0 |
+
+The student web app is constrained by `PhoneShell` to a 390 px centered frame at desktop widths; the admin console uses the full desktop width.
+
+Mobile: Expo web export builds and the mock journey is the supported local path. Native Expo Firebase authentication still uses a web-oriented popup implementation, so native OAuth is not a supported demo path.
 
 ## Scope decisions and known non-blockers
 
-- This is now a portfolio/demo prototype, not a production-readiness program.
+- This is a portfolio/demo prototype, not a production-readiness program.
 - Use mock/emulator data when credentials or production infrastructure are unavailable.
-- The shared web JavaScript chunk is approximately 951 kB minified and Expo web is approximately 1.7 MB. Builds pass; bundle optimization is deferred because it does not block the local demo.
+- The shared web JavaScript chunk is approximately 952 kB minified and the Expo web bundle is approximately 1.8 MB. Builds pass; bundle optimization is deferred because it does not block the local demo.
 - Firebase emulator output includes JDK `sun.misc.Unsafe` and Node `url.parse()` deprecation warnings. Tests pass; dependency-runtime cleanup is deferred.
 - Member-status token-revocation failure testing, meetup contention, App Check, exhaustive cleanup edge cases, production migrations, deployment infrastructure, notifications, exchanges, advanced search, analytics, and privacy automation are explicitly deferred.
 - No live migration, Firebase production mutation, role provisioning, push, deployment, or app-store action has occurred.
 
-## Remaining prototype phases
+## Local launch
 
-1. Checkpoint the verified media/security working tree.
-2. Verify and fix only blockers in the student journey: sign in → browse → create/edit listing → view listing → chat.
-3. Verify and fix only blockers in basic report/listing/member moderation in the existing admin dashboard.
-4. Apply focused responsive, loading/error/empty, accessibility, and TIPalit-brand consistency fixes on demonstrated screens.
-5. Re-run typecheck, tests, builds, browser/device demo checks, and document launch steps.
+From the repository root:
+
+```text
+corepack pnpm dev          # web on http://127.0.0.1:8443/
+corepack pnpm dev:mobile   # Metro; scan the QR code with Expo Go
+```
+
+The desktop admin console is served at `http://127.0.0.1:8443/admin.html`.
+
+Mock is the default when Firebase configuration is absent. Emulator clients are enabled with the existing host flags; see `apps/web/bootstrap.ts` and `apps/mobile/src/bootstrap.ts` for the exact variables.
+
+Seeded demo accounts:
+
+```text
+Student: Bea Lim <bea.lim@tip.edu.ph> — TIP Manila, BS Computer Science, 3rd year
+Admin:   Office of Student Affairs <osa.admin@tip.edu.ph>
+```
 
 ## Exact next action
 
-Review the current media/security diff for blocker-level issues, checkpoint it locally with required attribution, then run the existing student web and mobile demo journeys using mock/emulator data before making any broader UI changes.
+None required for the agreed demo scope. The remaining work is explicitly deferred production hardening listed above; any deployment, push, live Firebase change, or role provisioning needs explicit approval first.

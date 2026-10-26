@@ -35,7 +35,9 @@ export default function ReportDrawer({
 }: ReportDrawerProps) {
   const [action, setAction] = useState<ReportAction | ''>('')
   const [note, setNote] = useState('')
+  const [submitted, setSubmitted] = useState(false)
   const [pending, setPending] = useState(false)
+  const noteId = useId()
   const decisionLabelId = useId()
 
   const isListing = report.target.kind === 'listing'
@@ -55,6 +57,11 @@ export default function ReportDrawer({
 
   const submit = async () => {
     if (!action || pending) return
+    setSubmitted(true)
+    if (!note.trim()) {
+      document.getElementById(noteId)?.focus()
+      return
+    }
     setPending(true)
     const done = await onResolve(action, note.trim())
     if (!done) setPending(false)
@@ -190,16 +197,25 @@ export default function ReportDrawer({
                 </p>
               )}
             </section>
-            <TextareaField
-              label="Note for the activity log (optional)"
-              placeholder="What you checked and why you decided this"
-              rows={3}
-              maxLength={NOTE_LIMIT}
-              value={note}
-              onChange={setNote}
-              disabled={pending}
-              description={`${note.length}/${NOTE_LIMIT}`}
-            />
+            <div className="flex flex-col gap-xs">
+              <TextareaField
+                id={noteId}
+                label="Note for the activity log"
+                placeholder="What you checked and why you decided this"
+                rows={3}
+                maxLength={NOTE_LIMIT}
+                value={note}
+                onChange={setNote}
+                disabled={pending}
+                aria-invalid={submitted && !note.trim() ? true : undefined}
+                description={`${note.length}/${NOTE_LIMIT}`}
+              />
+              {submitted && !note.trim() && (
+                <p role="alert" className="text-caption-sm text-danger">
+                  Add a note explaining the decision.
+                </p>
+              )}
+            </div>
           </>
         ) : (
           report.resolution && (

@@ -1,8 +1,24 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
-import { getAuth, type Auth } from 'firebase/auth'
-import { getFirestore, type Firestore } from 'firebase/firestore'
-import { getFunctions, type Functions } from 'firebase/functions'
-import { getStorage, type FirebaseStorage } from 'firebase/storage'
+import {
+  connectAuthEmulator,
+  getAuth,
+  type Auth,
+} from 'firebase/auth'
+import {
+  connectFirestoreEmulator,
+  getFirestore,
+  type Firestore,
+} from 'firebase/firestore'
+import {
+  connectFunctionsEmulator,
+  getFunctions,
+  type Functions,
+} from 'firebase/functions'
+import {
+  connectStorageEmulator,
+  getStorage,
+  type FirebaseStorage,
+} from 'firebase/storage'
 
 export interface FirebaseConfig {
   apiKey: string
@@ -11,6 +27,14 @@ export interface FirebaseConfig {
   storageBucket: string
   messagingSenderId: string
   appId: string
+}
+
+export interface FirebaseEmulatorConfig {
+  host: string
+  authPort?: number
+  firestorePort?: number
+  functionsPort?: number
+  storagePort?: number
 }
 
 const EMPTY_CONFIG: FirebaseConfig = {
@@ -24,9 +48,16 @@ const EMPTY_CONFIG: FirebaseConfig = {
 
 // host apps inject their config; vite reads import.meta.env, expo reads process.env
 let injectedConfig: FirebaseConfig | null = null
+let emulatorConfig: FirebaseEmulatorConfig | null = null
 
 export const setFirebaseConfig = (config: FirebaseConfig): void => {
   injectedConfig = config
+}
+
+export const setFirebaseEmulatorConfig = (
+  config: FirebaseEmulatorConfig | null,
+): void => {
+  emulatorConfig = config
 }
 
 export const getFirebaseConfig = (): FirebaseConfig => injectedConfig ?? EMPTY_CONFIG
@@ -70,6 +101,13 @@ export const getFirebaseApp = (): FirebaseApp => {
 export const getFirebaseAuth = (): Auth => {
   if (!authInstance) {
     authInstance = getAuth(getFirebaseApp())
+    if (emulatorConfig?.authPort) {
+      connectAuthEmulator(
+        authInstance,
+        `http://${emulatorConfig.host}:${emulatorConfig.authPort}`,
+        { disableWarnings: true },
+      )
+    }
   }
   return authInstance
 }
@@ -77,6 +115,13 @@ export const getFirebaseAuth = (): Auth => {
 export const getFirebaseDb = (): Firestore => {
   if (!dbInstance) {
     dbInstance = getFirestore(getFirebaseApp())
+    if (emulatorConfig?.firestorePort) {
+      connectFirestoreEmulator(
+        dbInstance,
+        emulatorConfig.host,
+        emulatorConfig.firestorePort,
+      )
+    }
   }
   return dbInstance
 }
@@ -84,6 +129,13 @@ export const getFirebaseDb = (): Firestore => {
 export const getFirebaseFunctions = (): Functions => {
   if (!functionsInstance) {
     functionsInstance = getFunctions(getFirebaseApp())
+    if (emulatorConfig?.functionsPort) {
+      connectFunctionsEmulator(
+        functionsInstance,
+        emulatorConfig.host,
+        emulatorConfig.functionsPort,
+      )
+    }
   }
   return functionsInstance
 }
@@ -91,6 +143,13 @@ export const getFirebaseFunctions = (): Functions => {
 export const getFirebaseStorage = (): FirebaseStorage => {
   if (!storageInstance) {
     storageInstance = getStorage(getFirebaseApp())
+    if (emulatorConfig?.storagePort) {
+      connectStorageEmulator(
+        storageInstance,
+        emulatorConfig.host,
+        emulatorConfig.storagePort,
+      )
+    }
   }
   return storageInstance
 }

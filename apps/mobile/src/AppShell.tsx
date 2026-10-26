@@ -12,7 +12,11 @@ import ProfileScreen from './screens/ProfileScreen'
 import AdminScreen from './screens/AdminScreen'
 
 type Tab = 'feed' | 'sell' | 'chats' | 'profile' | 'admin'
-type Overlay = { kind: 'listing'; listing: Listing } | { kind: 'thread'; threadId: string } | null
+type Overlay =
+  | { kind: 'listing'; listing: Listing }
+  | { kind: 'edit'; listing: Listing }
+  | { kind: 'thread'; threadId: string }
+  | null
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'feed', label: 'Feed' },
@@ -34,7 +38,22 @@ export default function AppShell() {
       <ListingDetailScreen
         listing={overlay.listing}
         onBack={() => setOverlay(null)}
+        onEdit={(listing) => setOverlay({ kind: 'edit', listing })}
         onMessage={(threadId) => setOverlay({ kind: 'thread', threadId })}
+      />
+    )
+  }
+
+  if (overlay?.kind === 'edit') {
+    return (
+      <SellScreen
+        listing={overlay.listing}
+        onCancel={() => setOverlay({ kind: 'listing', listing: overlay.listing })}
+        onPublished={() => {
+          setFeedVersion((version) => version + 1)
+          setOverlay(null)
+          setTab('profile')
+        }}
       />
     )
   }

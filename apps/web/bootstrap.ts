@@ -1,4 +1,7 @@
-import { setFirebaseConfig } from '@tipalit/services/firebase'
+import {
+  setFirebaseConfig,
+  setFirebaseEmulatorConfig,
+} from '@tipalit/services/firebase'
 import { setDataAdapter } from '@tipalit/services'
 import { setPlatform } from '@tipalit/services/platform'
 
@@ -22,5 +25,15 @@ setFirebaseConfig({
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
   appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
 })
+
+if (import.meta.env.VITE_FIREBASE_EMULATORS === 'true') {
+  setFirebaseEmulatorConfig({
+    host: import.meta.env.VITE_FIREBASE_EMULATOR_HOST ?? '127.0.0.1',
+    authPort: 9099,
+    firestorePort: 8080,
+    functionsPort: 5001,
+    storagePort: 9199,
+  })
+}
 
 setDataAdapter(import.meta.env.VITE_DATA_ADAPTER)
