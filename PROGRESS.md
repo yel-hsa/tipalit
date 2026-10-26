@@ -27,6 +27,7 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `e45f895` | Completed the student and admin demo journeys: emulator connectors and lazy adapter initialization, mobile listing edit mode and owner-facing edit action, required moderation audit notes, trusted `removeListingAsAdmin`, and emulator-aware media URLs. |
 | `09e7857` | Reconciled the handoff docs with the committed demo journeys. |
 | `3bc0471` | Polished the admin console UI/UX: defined the six animation utilities the components already referenced, added a drawer exit animation, inline confirm states with aria-labels on destructive moderation actions, and clear-filters recovery in every section's empty state. |
+| `6ac8808` | Gave `BottomSheet` the exit animation `SlideOver` already had, and fixed both overlays painting a stale exit frame when reopened. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
@@ -124,6 +125,7 @@ Verified in the running app with DOM assertions (no layout screenshots):
 - Drawer focus trap: `aria-modal="true"`, focus lands inside the dialog, three sibling regions become `inert`, and the destructive action renders in danger red against a neutral Cancel.
 - Empty-state recovery restores all 17 rows and clears the search box; the Clear filters button then disappears.
 - No horizontal overflow at 1536×770 (`document.scrollWidth === window.innerWidth === 1536`).
+- Both overlays verified in the running app: `SlideOver` plays `tip-drawer-in` (260 ms) and `tip-drawer-out` (200 ms); `BottomSheet` plays `tip-sheet-in` (200 ms) and `tip-sheet-out` (180 ms) with the scrim fading in and out. Each unmounts after its exit and replays the entrance on reopen.
 
 Known upstream defect, not patched: Astra's `SelectField` hardcodes `id="select-list"` and `aria-controls="select-list"`, so the three Reports filters produce duplicate IDs. It also renders `label` as a visible `<span>` rather than an accessible name.
 
