@@ -20,6 +20,9 @@
   --type-weight-semibold: 600;
 
   --layout-phone: 390px;
+  --layout-sidebar: 264px;
+  /* keeps admin tables and panels from stretching across a wide monitor */
+  --layout-content: 1440px;
   /* kit modals use fixed 360/480px widths; this keeps them inside the phone frame */
   --modal-width: min(calc(100vw - 2 * var(--space-xl)), calc(var(--layout-phone) - 2 * var(--space-xl)));
   /* minimum hit area for every interactive control (WCAG 2.5.5) */
@@ -192,6 +195,8 @@
   --radius-corner-full: var(--corner-full);
 
   --container-phone: var(--layout-phone);
+  --container-content: var(--layout-content);
+  --spacing-sidebar: var(--layout-sidebar);
   --aspect-intro: var(--intro-photo-ratio);
 
   --shadow-raised: var(--elevation-raised);
@@ -264,6 +269,28 @@
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* off-screen until focused; must be absolutely positioned or it renders as a
+   full-height flex child and pushes the whole admin shell sideways */
+@utility skip-link {
+  position: absolute;
+  left: var(--space-md);
+  top: var(--space-md);
+  z-index: 100;
+  transform: translateY(-200%);
+  border-radius: var(--corner-md);
+  background-color: var(--brand-primary);
+  padding: var(--space-sm) var(--space-lg);
+  color: var(--on-brand);
+  font-size: var(--type-label-sm-size);
+  font-weight: var(--type-weight-semibold);
+
+  &:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 }
 
