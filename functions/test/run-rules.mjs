@@ -21,6 +21,7 @@ const specs = readdirSync(HERE)
   .filter(
     (name) =>
       name.endsWith('-rules.test.mjs') &&
+      name !== 'storage-rules.test.mjs' &&
       name.includes(filter),
   )
   .map((name) => `functions/test/${name}`)

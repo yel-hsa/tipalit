@@ -38,6 +38,20 @@ export type Review = {
   createdAt: string
 }
 
+export type ListingPhoto = {
+  id: string
+  storagePath: string
+  downloadUrl: string
+  thumbnailPath?: string
+  thumbnailUrl?: string
+  width: number
+  height: number
+  contentType: 'image/jpeg' | 'image/png' | 'image/webp'
+  sizeBytes: number
+  sortOrder: number
+  schemaVersion: 1
+}
+
 export type Listing = {
   id: string
   title: string
@@ -48,6 +62,8 @@ export type Listing = {
   department: Department
   condition: Condition
   description: string
+  photos?: ListingPhoto[]
+  listingVersion?: number
   imageUrl: string
   imageUrls: string[]
   sellerId: string

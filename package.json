@@ -17,6 +17,8 @@
     "test:callables": "node functions/test/run-callables.mjs",
     "test:shapes": "node --test functions/test/shapes.test.mjs",
     "test:rules": "node functions/test/run-rules.mjs",
-    "test": "corepack pnpm run test:functions && corepack pnpm run test:callables && corepack pnpm run test:shapes && corepack pnpm run test:rules"
+    "test:storage": "node functions/test/run-storage-rules.mjs",
+    "test:media-migration": "node functions/test/run-media-migration.mjs",
+    "test": "corepack pnpm run test:functions && corepack pnpm run test:callables && corepack pnpm run test:shapes && corepack pnpm run test:rules && corepack pnpm run test:storage && corepack pnpm run test:media-migration"
   }
 }

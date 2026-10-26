@@ -20,6 +20,8 @@ import {
   reportTarget,
   requireAdmin,
 } from './admin'
+import { createListingMediaCallables } from './listing-media'
+import { createMediaCleanupWorker } from './media-cleanup'
 
 initializeApp()
 const db = getFirestore()
@@ -432,3 +434,11 @@ export const saveMeetupSpots = onCall(async (request) => {
 
   return { spots: allSpots }
 })
+
+export const {
+  reserveListingMedia,
+  finalizeListingMedia,
+  deleteListingMedia,
+} = createListingMediaCallables({ db, assertActiveMember })
+
+export const cleanupListingMedia = createMediaCleanupWorker(db)

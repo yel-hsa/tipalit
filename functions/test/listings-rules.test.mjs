@@ -164,6 +164,49 @@ describe('listings — active-account enforcement', () => {
   })
 })
 
+describe('listings — trusted media authority', () => {
+  const photo = (sortOrder) => ({
+    id: `photo-${sortOrder}`,
+    storage_path: `item_photos/${SELLER.uid}/listing/photo-${sortOrder}.jpg`,
+    download_url: `https://firebasestorage.googleapis.com/photo-${sortOrder}.jpg`,
+    thumbnail_path: null,
+    thumbnail_url: null,
+    width: 1200,
+    height: 900,
+    content_type: 'image/jpeg',
+    size_bytes: 1024,
+    sort_order: sortOrder,
+    schema_version: 1,
+  })
+
+  test('seller cannot create a listing directly', async () => {
+    const result = await sellerClient().create(
+      'listings',
+      listingDoc({ photos: [], photo_schema_version: 0 }),
+    )
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('seller cannot forge canonical photo metadata directly', async () => {
+    const id = await seedListing({
+      photos: [photo(0)],
+      photo_schema_version: 1,
+      media_paths: [photo(0).storage_path],
+    })
+    const result = await sellerClient().update(`listings/${id}`, {
+      photos: [photo(1)],
+      media_paths: [photo(1).storage_path],
+    })
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+
+  test('seller cannot delete a listing directly', async () => {
+    const id = await seedListing()
+    const result = await sellerClient().remove(`listings/${id}`)
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
+  })
+})
+
 describe('listings — report_count is server-only', () => {
   test('seller cannot bump report_count while editing their own listing', async () => {
     const id = await seedListing()
@@ -177,13 +220,13 @@ describe('listings — report_count is server-only', () => {
     assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 
-  test('seller CAN still edit a non-moderated field (control)', async () => {
+  test('seller cannot bypass the trusted callable for a content edit', async () => {
     const id = await seedListing()
     const result = await sellerClient().update(`listings/${id}`, { price: 700 })
-    assert.ok(isOk(result), `expected 200, got ${result.status}: ${result.text}`)
+    assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })
 
-  test('seller create with report_count > 0 is rejected', async () => {
+  test('seller cannot create with a forged report_count', async () => {
     const result = await sellerClient().create('listings', listingDoc({ report_count: 2 }))
     assert.ok(isForbidden(result), `expected 403, got ${result.status}: ${result.text}`)
   })

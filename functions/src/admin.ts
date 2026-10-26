@@ -21,10 +21,14 @@ export const USER_REPORT_REASONS = [
 ] as const
 export const REPORT_RATE_LIMIT_MAX = 5
 export const REPORT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
+export const LISTING_PHOTO_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
+export const MAX_LISTING_PHOTOS = 5
+export const MAX_LISTING_PHOTO_BYTES = 5 * 1024 * 1024
 
 export type ReportAction = (typeof REPORT_ACTIONS)[number]
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number]
 export type CampusId = (typeof CAMPUSES)[number]
+export type ListingPhotoContentType = (typeof LISTING_PHOTO_CONTENT_TYPES)[number]
 
 type CallableAuth = {
   uid: string
@@ -50,6 +54,58 @@ export function readRequiredString(value: unknown, field: string, maxLength: num
     throw new HttpsError('invalid-argument', `${field} must be between 1 and ${maxLength} characters.`)
   }
   return cleaned
+}
+
+export type ListingPhotoSpec = {
+  id: string
+  fileName: string
+  contentType: ListingPhotoContentType
+  sizeBytes: number
+  sortOrder: number
+}
+
+export function parseListingPhotoSpecs(value: unknown): ListingPhotoSpec[] {
+  if (!Array.isArray(value) || value.length > MAX_LISTING_PHOTOS) {
+    throw new HttpsError('invalid-argument', `Provide at most ${MAX_LISTING_PHOTOS} listing photos.`)
+  }
+
+  const seenIds = new Set<string>()
+  const seenOrders = new Set<number>()
+  return value.map((candidate, index) => {
+    if (!candidate || typeof candidate !== 'object') {
+      throw new HttpsError('invalid-argument', `photos[${index}] must be an object.`)
+    }
+    const photo = candidate as Record<string, unknown>
+    const id = readRequiredString(photo.id, `photos[${index}].id`, 80)
+    const contentType = photo.contentType
+    const sizeBytes = photo.sizeBytes
+    const sortOrder = photo.sortOrder
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(id)) {
+      throw new HttpsError('invalid-argument', `photos[${index}].id is invalid.`)
+    }
+    if (!LISTING_PHOTO_CONTENT_TYPES.includes(contentType as ListingPhotoContentType)) {
+      throw new HttpsError('invalid-argument', `photos[${index}].contentType is invalid.`)
+    }
+    if (!Number.isInteger(sizeBytes) || Number(sizeBytes) <= 0 || Number(sizeBytes) >= MAX_LISTING_PHOTO_BYTES) {
+      throw new HttpsError('invalid-argument', `photos[${index}].sizeBytes is invalid.`)
+    }
+    if (!Number.isInteger(sortOrder) || Number(sortOrder) < 0 || Number(sortOrder) >= MAX_LISTING_PHOTOS) {
+      throw new HttpsError('invalid-argument', `photos[${index}].sortOrder is invalid.`)
+    }
+    if (seenIds.has(id) || seenOrders.has(Number(sortOrder))) {
+      throw new HttpsError('invalid-argument', 'Listing photo ids and sort orders must be unique.')
+    }
+    seenIds.add(id)
+    seenOrders.add(Number(sortOrder))
+    const extension = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg'
+    return {
+      id,
+      fileName: `${id}.${extension}`,
+      contentType: contentType as ListingPhotoContentType,
+      sizeBytes: Number(sizeBytes),
+      sortOrder: Number(sortOrder),
+    }
+  })
 }
 
 export function parseReportAction(value: unknown): ReportAction {

@@ -8,40 +8,110 @@ service firebase.storage {
         request.auth.token.email_verified == true;
     }
 
-    function profilePath() {
-      return /databases/(default)/documents/users_profile/$(request.auth.uid);
+    function listingPath(listingId) {
+      return /databases/(default)/documents/listings/$(listingId);
+    }
+
+    function mediaOperationPath(operationId) {
+      return /databases/(default)/documents/listing_media_operations/$(operationId);
+    }
+
+    function mediaOperation(operationId) {
+      return firestore.get(mediaOperationPath(operationId)).data;
+    }
+
+    function hasMediaOperation(operationId) {
+      return firestore.exists(mediaOperationPath(operationId));
+    }
+
+    function ownsListing(listingId, userId) {
+      return firestore.exists(listingPath(listingId)) &&
+        firestore.get(listingPath(listingId)).data.seller_id == userId;
     }
 
     function hasActiveAccount() {
       return isTipStudent() &&
-        firestore.exists(profilePath()) &&
-        firestore.get(profilePath()).data.status == 'active';
+        firestore.exists(
+          /databases/(default)/documents/users_profile/$(request.auth.uid)
+        ) &&
+        firestore.get(
+          /databases/(default)/documents/users_profile/$(request.auth.uid)
+        ).data.status == 'active';
     }
 
     function isAdmin() {
-      return hasActiveAccount() && request.auth.token.admin == true;
+      return hasActiveAccount() &&
+        request.auth.token.get('admin', false) == true;
+    }
+
+    function isListingImageName(fileName) {
+      return fileName.matches('^[A-Za-z0-9][A-Za-z0-9_-]{0,79}[.](jpg|jpeg|png|webp)$');
     }
 
     function isImage() {
-      return request.resource.contentType.matches('image/(jpeg|jpg|png|webp)') &&
+      return request.resource != null &&
+        request.resource.contentType.matches('image/(jpeg|png|webp)') &&
+        request.resource.size > 0 &&
         request.resource.size < 5 * 1024 * 1024;
     }
 
-    // PRD Section 5.2: item_photos/{userId}/{listingId}/{fileName}
-    match /item_photos/{userId}/{listingId}/{fileName} {
-      allow read: if hasActiveAccount();
-      allow write: if hasActiveAccount() &&
+    // Reserved uploads are immutable and operation-scoped, so retries and
+    // concurrent edits cannot overwrite one another. Finalization verifies the
+    // objects and publishes their exact paths in the listing document.
+    match /item_photos/{userId}/{listingId}/{operationId}/{fileName} {
+      allow read: if hasActiveAccount() && (
+        (
+          hasMediaOperation(operationId) &&
+          request.auth.uid == userId &&
+          mediaOperation(operationId).owner_id == userId &&
+          mediaOperation(operationId).listing_id == listingId &&
+          mediaOperation(operationId).state == 'reserved' &&
+          request.time < mediaOperation(operationId).expires_at
+        ) || (
+          firestore.exists(listingPath(listingId)) &&
+          firestore.get(listingPath(listingId)).data.seller_id == userId &&
+          firestore.get(listingPath(listingId)).data.media_paths.hasAny([
+            'item_photos/' + userId + '/' + listingId + '/' + operationId + '/' + fileName
+          ])
+        )
+      );
+
+      allow create: if resource == null &&
+        hasActiveAccount() &&
         request.auth.uid == userId &&
+        hasMediaOperation(operationId) &&
+        mediaOperation(operationId).owner_id == userId &&
+        mediaOperation(operationId).listing_id == listingId &&
+        mediaOperation(operationId).state == 'reserved' &&
+        request.time < mediaOperation(operationId).expires_at &&
+        mediaOperation(operationId).file_specs.keys().hasAll([fileName]) &&
+        request.resource.contentType == mediaOperation(operationId).file_specs[fileName].content_type &&
+        request.resource.size == mediaOperation(operationId).file_specs[fileName].size_bytes &&
+        listingId.matches('^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$') &&
+        operationId.matches('^[A-Za-z0-9][A-Za-z0-9_-]{7,127}$') &&
+        isListingImageName(fileName) &&
         isImage();
+
+      allow update, delete: if false;
+    }
+
+    // Temporary compatibility for existing three-segment objects. New objects
+    // cannot be created here; owners/admins may remove legacy objects during
+    // verified migration and cleanup.
+    match /item_photos/{userId}/{listingId}/{fileName} {
+      allow read: if hasActiveAccount() && ownsListing(listingId, userId);
+      allow create, update: if false;
       allow delete: if hasActiveAccount() && (
         request.auth.uid == userId || isAdmin()
       );
     }
 
-    // PRD Section 5.2: promo_assets/{fileName}
     match /promo_assets/{fileName} {
       allow read: if hasActiveAccount();
-      allow write: if isAdmin() && isImage();
+      allow create, update: if isAdmin() &&
+        isListingImageName(fileName) &&
+        isImage();
+      allow delete: if isAdmin();
     }
   }
 }

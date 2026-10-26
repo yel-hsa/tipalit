@@ -37,3 +37,7 @@ jobs:
       - run: pnpm run test:shapes
 
       - run: pnpm run test:rules
+
+      - run: pnpm run test:storage
+
+      - run: pnpm run test:media-migration

@@ -2,6 +2,7 @@ import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
 import { getAuth, type Auth } from 'firebase/auth'
 import { getFirestore, type Firestore } from 'firebase/firestore'
 import { getFunctions, type Functions } from 'firebase/functions'
+import { getStorage, type FirebaseStorage } from 'firebase/storage'
 
 export interface FirebaseConfig {
   apiKey: string
@@ -39,6 +40,7 @@ let appInstance: FirebaseApp | null = null
 let authInstance: Auth | null = null
 let dbInstance: Firestore | null = null
 let functionsInstance: Functions | null = null
+let storageInstance: FirebaseStorage | null = null
 
 export const getFirebaseApp = (): FirebaseApp => {
   if (appInstance) return appInstance
@@ -84,4 +86,11 @@ export const getFirebaseFunctions = (): Functions => {
     functionsInstance = getFunctions(getFirebaseApp())
   }
   return functionsInstance
+}
+
+export const getFirebaseStorage = (): FirebaseStorage => {
+  if (!storageInstance) {
+    storageInstance = getStorage(getFirebaseApp())
+  }
+  return storageInstance
 }

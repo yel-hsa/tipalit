@@ -24,7 +24,7 @@ const build = spawnSync('corepack pnpm --filter tipalit-functions build', {
 if (build.status !== 0) process.exit(build.status ?? 1)
 
 const command =
-  'npx firebase emulators:exec --only auth,firestore --project demo-tipalit "node --test functions/test/callables.test.mjs"'
+  'npx firebase emulators:exec --only auth,firestore,storage --project demo-tipalit "node --test functions/test/callables.test.mjs"'
 
 const result = spawnSync(command, {
   cwd: ROOT,
@@ -36,6 +36,7 @@ const result = spawnSync(command, {
     PATH: `${path.join(javaHome, 'bin')}${path.delimiter}${process.env.PATH ?? ''}`,
     FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',
     FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
+    FIREBASE_STORAGE_EMULATOR_HOST: '127.0.0.1:9199',
     GCLOUD_PROJECT: 'demo-tipalit',
   },
 })

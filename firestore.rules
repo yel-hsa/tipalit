@@ -94,26 +94,22 @@ service cloud.firestore {
         resource.data.seller_id == request.auth.uid ||
         isAdmin()
       );
-      // Sellers create their own listings; moderation fields start clean.
-      allow create: if hasActiveAccount()
-        && request.resource.data.seller_id == request.auth.uid
-        && request.resource.data.report_count == 0
-        && request.resource.data.status == 'active';
-      // Only two moderated values exist: 'removed' (admin takedown) and, as
-      // legacy, 'hidden'. Neither is writable by a seller — a seller may only
-      // move between the three public states. An admin may additionally write
-      // 'removed'. This is the entire takedown mechanism: there is no
-      // auto-hide, so nothing else ever sets a moderated status.
-      //
-      // report_count is intentionally unwritable by EVERYONE, sellers and
-      // admins alike. It is a server-maintained counter; with no Cloud
-      // Functions it currently never moves (see INFO.md), and a client write
-      // would let a seller reset their own flag count.
+      // Listing content and canonical media are authored by trusted media
+      // callables. Direct clients may only move between public statuses.
+      allow create: if false;
       allow update: if listingOwner()
-        && !request.resource.data.diff(resource.data).affectedKeys()
-             .hasAny(['report_count'])
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'updated_at'])
         && request.resource.data.status in ['active', 'reserved', 'sold'];
-      allow delete: if listingOwner();
+      allow delete: if false;
+    }
+
+    match /listing_media_operations/{operationId} {
+      allow read, write: if false;
+    }
+
+    match /media_cleanup_jobs/{jobId} {
+      allow read, write: if false;
     }
 
     // ---------- 3. chats + 4. messages ----------

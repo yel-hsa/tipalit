@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 
 import { applicationDefault, deleteApp, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-import { getFirestore } from 'firebase-admin/firestore'
+import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore'
+import { getStorage } from 'firebase-admin/storage'
 import functionsTest from 'firebase-functions-test'
 
 const PROJECT_ID = 'demo-tipalit'
@@ -20,9 +21,20 @@ const adminApp = initializeApp(
 const db = getFirestore(adminApp)
 const auth = getAuth(adminApp)
 const fft = functionsTest({ projectId: PROJECT_ID })
-const { resolveReport, submitReport } = await import('../lib/src/index.js')
+const {
+  deleteListingMedia,
+  finalizeListingMedia,
+  reserveListingMedia,
+  resolveReport,
+  submitReport,
+} = await import('../lib/src/index.js')
+const { runMediaCleanup } = await import('../lib/src/media-cleanup.js')
 const callSubmitReport = fft.wrap(submitReport)
 const callResolveReport = fft.wrap(resolveReport)
+const callReserveListingMedia = fft.wrap(reserveListingMedia)
+const callFinalizeListingMedia = fft.wrap(finalizeListingMedia)
+const callDeleteListingMedia = fft.wrap(deleteListingMedia)
+const bucket = getStorage(adminApp).bucket(`${PROJECT_ID}.appspot.com`)
 
 const authData = (uid, claims = {}) => ({
   uid,
@@ -72,6 +84,48 @@ const expectHttpsCode = async (promise, code) => {
   await assert.rejects(promise, (error) => error?.code === code)
 }
 
+const mediaMutation = (overrides = {}) => ({
+  title: 'Statics, 14th Ed.',
+  description: 'Light pencil notes.',
+  price: 850,
+  transactionType: 'sale',
+  courseCode: 'CIV 101',
+  category: 'Textbooks',
+  department: 'Engineering',
+  condition: 'Good',
+  meetupSpot: 'Library Plaza',
+  campus: 'qc',
+  ...overrides,
+})
+
+const reserveMedia = (uid, input = {}) => callReserveListingMedia({
+  data: {
+    operationId: input.operationId ?? `operation-${uid}-12345678`,
+    kind: input.kind ?? 'create',
+    listingId: input.listingId,
+    expectedListingVersion: input.expectedListingVersion ?? 0,
+    mutation: input.mutation ?? mediaMutation(),
+    retainedPhotoIds: input.retainedPhotoIds ?? [],
+    photos: input.photos ?? [],
+  },
+  auth: authData(uid),
+})
+
+const finalizeMedia = (uid, operationId) => callFinalizeListingMedia({
+  data: { operationId },
+  auth: authData(uid),
+})
+
+const JPEG_BYTES = Buffer.from(
+  '/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAACAAIDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABgf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCrgIYXP//Z',
+  'base64',
+)
+
+const uploadReserved = async (reservation, bytes = JPEG_BYTES, contentType = 'image/jpeg') => {
+  const upload = reservation.uploads[0]
+  await bucket.file(upload.path).save(bytes, { contentType })
+}
+
 before(async () => {
   await db.listCollections().then((collections) =>
     Promise.all(collections.map((collection) => collection.listDocuments().then((docs) =>
@@ -88,11 +142,317 @@ beforeEach(async () => {
       await Promise.all(docs.map((doc) => doc.delete()))
     }),
   )
+  await bucket.deleteFiles({ force: true })
 })
 
 after(async () => {
   fft.cleanup()
   await deleteApp(adminApp)
+})
+
+describe('listing media callables', () => {
+  test('reserves uploads before listing creation and finalizes idempotently', async () => {
+    await seedProfile('seller')
+    const operationId = 'media-create-idempotent'
+    const photo = { id: 'photo-one', contentType: 'image/jpeg', sizeBytes: JPEG_BYTES.length, sortOrder: 0 }
+    const firstReservation = await reserveMedia('seller', { operationId, photos: [photo] })
+    const duplicateReservation = await reserveMedia('seller', { operationId, photos: [photo] })
+    assert.equal(firstReservation.listingId, duplicateReservation.listingId)
+    assert.equal(firstReservation.uploads[0].path, duplicateReservation.uploads[0].path)
+
+    await uploadReserved(firstReservation)
+    const first = await finalizeMedia('seller', operationId)
+    const retry = await finalizeMedia('seller', operationId)
+    const listingSnap = await db.collection('listings').doc(first.listingId).get()
+
+    assert.deepEqual(retry, first)
+    assert.equal(first.listingVersion, 1)
+    assert.equal(listingSnap.data()?.seller_id, 'seller')
+    assert.equal(listingSnap.data()?.photos?.length, 1)
+    assert.equal(listingSnap.data()?.media_paths?.[0], firstReservation.uploads[0].path)
+    assert.match(listingSnap.data()?.media_paths?.[1], /thumb-photo-one[.]webp$/)
+    assert.equal(listingSnap.data()?.photos?.[0]?.width, 2)
+    assert.equal(listingSnap.data()?.photos?.[0]?.height, 2)
+  })
+
+  test('returns the persisted reservation after a concurrent duplicate create', async () => {
+    await seedProfile('seller')
+    const operationId = 'media-concurrent-reservation'
+    const photo = {
+      id: 'photo-race',
+      contentType: 'image/jpeg',
+      sizeBytes: JPEG_BYTES.length,
+      sortOrder: 0,
+    }
+
+    const [first, second] = await Promise.all([
+      reserveMedia('seller', { operationId, photos: [photo] }),
+      reserveMedia('seller', { operationId, photos: [photo] }),
+    ])
+
+    assert.equal(first.listingId, second.listingId)
+    assert.equal(first.expiresAtMs, second.expiresAtMs)
+    assert.deepEqual(first.uploads, second.uploads)
+    const operations = await db.collection('listing_media_operations').get()
+    assert.equal(operations.size, 1)
+    assert.equal(operations.docs[0].data().listing_id, first.listingId)
+  })
+
+  test('rejects finalization when an upload is missing or mismatched', async () => {
+    await seedProfile('seller')
+    const missing = await reserveMedia('seller', {
+      operationId: 'media-missing-upload',
+      photos: [{ id: 'missing-photo', contentType: 'image/jpeg', sizeBytes: 64, sortOrder: 0 }],
+    })
+    await expectHttpsCode(finalizeMedia('seller', 'media-missing-upload'), 'failed-precondition')
+
+    await bucket.file(missing.uploads[0].path).save(Buffer.alloc(63), { contentType: 'image/jpeg' })
+    await expectHttpsCode(finalizeMedia('seller', 'media-missing-upload'), 'failed-precondition')
+  })
+
+  test('only one concurrent update at a listing version wins', async () => {
+    await seedProfile('seller')
+    await seedListing('listing-media-update', 'seller', {
+      listing_version: 1,
+      photos: [],
+      media_paths: [],
+      photo_schema_version: 0,
+    })
+    const firstOperation = 'media-update-first'
+    const secondOperation = 'media-update-second'
+    await reserveMedia('seller', {
+      operationId: firstOperation,
+      kind: 'update',
+      listingId: 'listing-media-update',
+      expectedListingVersion: 1,
+      mutation: mediaMutation({ title: 'First edit' }),
+    })
+    await reserveMedia('seller', {
+      operationId: secondOperation,
+      kind: 'update',
+      listingId: 'listing-media-update',
+      expectedListingVersion: 1,
+      mutation: mediaMutation({ title: 'Second edit' }),
+    })
+
+    const settled = await Promise.allSettled([
+      finalizeMedia('seller', firstOperation),
+      finalizeMedia('seller', secondOperation),
+    ])
+    const fulfilled = settled.filter((result) => result.status === 'fulfilled')
+    const rejected = settled.filter((result) => result.status === 'rejected')
+    const listingSnap = await db.collection('listings').doc('listing-media-update').get()
+
+    assert.equal(fulfilled.length, 1)
+    assert.equal(rejected.length, 1)
+    assert.equal(rejected[0].reason?.code, 'aborted')
+    assert.equal(listingSnap.data()?.listing_version, 2)
+    assert.ok(['First edit', 'Second edit'].includes(listingSnap.data()?.title))
+
+    const conflictOperations = await db
+      .collection('listing_media_operations')
+      .where('state', '==', 'conflict')
+      .get()
+    assert.equal(conflictOperations.size, 1)
+    const conflictId = conflictOperations.docs[0].id
+    const cleanupSnap = await db.collection('media_cleanup_jobs').doc(`media-${conflictId}`).get()
+    const conflictPaths = cleanupSnap.data()?.paths ?? []
+    assert.equal(conflictPaths.length, 0)
+  })
+
+  test('queues both original and thumbnail paths for a conflicting update', async () => {
+    await seedProfile('seller')
+    await seedListing('listing-media-photo-conflict', 'seller', {
+      listing_version: 1,
+      photos: [],
+      media_paths: [],
+      photo_schema_version: 0,
+    })
+    const firstOperation = 'media-photo-update-first'
+    const secondOperation = 'media-photo-update-second'
+    const first = await reserveMedia('seller', {
+      operationId: firstOperation,
+      kind: 'update',
+      listingId: 'listing-media-photo-conflict',
+      expectedListingVersion: 1,
+      mutation: mediaMutation({ title: 'First photo edit' }),
+      photos: [
+        {
+          id: 'photo-first',
+          contentType: 'image/jpeg',
+          sizeBytes: JPEG_BYTES.length,
+          sortOrder: 0,
+        },
+      ],
+    })
+    const second = await reserveMedia('seller', {
+      operationId: secondOperation,
+      kind: 'update',
+      listingId: 'listing-media-photo-conflict',
+      expectedListingVersion: 1,
+      mutation: mediaMutation({ title: 'Second photo edit' }),
+      photos: [
+        {
+          id: 'photo-second',
+          contentType: 'image/jpeg',
+          sizeBytes: JPEG_BYTES.length,
+          sortOrder: 0,
+        },
+      ],
+    })
+    await Promise.all([uploadReserved(first), uploadReserved(second)])
+
+    const settled = await Promise.allSettled([
+      finalizeMedia('seller', firstOperation),
+      finalizeMedia('seller', secondOperation),
+    ])
+    const rejected = settled.find((result) => result.status === 'rejected')
+    assert.equal(rejected?.reason?.code, 'aborted')
+
+    const conflictOperations = await db
+      .collection('listing_media_operations')
+      .where('state', '==', 'conflict')
+      .get()
+    assert.equal(conflictOperations.size, 1)
+    const conflictId = conflictOperations.docs[0].id
+    const conflictPhotoId = conflictId === firstOperation ? 'photo-first' : 'photo-second'
+    const cleanupSnap = await db.collection('media_cleanup_jobs').doc(`media-${conflictId}`).get()
+    assert.deepEqual(cleanupSnap.data()?.paths, [
+      `item_photos/seller/listing-media-photo-conflict/${conflictId}/${conflictPhotoId}.jpg`,
+      `item_photos/seller/listing-media-photo-conflict/${conflictId}/thumb-${conflictPhotoId}.webp`,
+    ])
+  })
+
+  test('deleting a listing atomically creates durable cleanup work', async () => {
+    await seedProfile('seller')
+    await seedListing('listing-media-delete', 'seller', {
+      listing_version: 3,
+      media_paths: ['item_photos/seller/listing-media-delete/op/photo.jpg'],
+    })
+    await callDeleteListingMedia({
+      data: {
+        listingId: 'listing-media-delete',
+        expectedListingVersion: 3,
+        operationId: 'delete-operation-12345678',
+      },
+      auth: authData('seller'),
+    })
+    const listingSnap = await db.collection('listings').doc('listing-media-delete').get()
+    const jobs = await db.collection('media_cleanup_jobs').get()
+
+    assert.equal(listingSnap.exists, false)
+    assert.equal(jobs.size, 1)
+    assert.deepEqual(jobs.docs[0].data().paths, ['item_photos/seller/listing-media-delete/op/photo.jpg'])
+  })
+})
+
+describe('listing media cleanup', () => {
+  test('expires reservations and idempotently removes uploaded objects', async () => {
+    const operationId = 'media-expired-reservation'
+    const listingId = 'listing-expired-reservation'
+    const fileName = 'photo-expired.jpg'
+    const storagePath = `item_photos/seller/${listingId}/${operationId}/${fileName}`
+    await bucket.file(storagePath).save(JPEG_BYTES, { contentType: 'image/jpeg' })
+    await db.collection('listing_media_operations').doc(operationId).set({
+      schema_version: 1,
+      owner_id: 'seller',
+      listing_id: listingId,
+      state: 'reserved',
+      file_specs: {
+        [fileName]: {
+          photo_id: 'expired',
+          content_type: 'image/jpeg',
+          size_bytes: JPEG_BYTES.length,
+          sort_order: 0,
+        },
+      },
+      expires_at: Timestamp.fromMillis(Date.now() - 60_000),
+    })
+
+    await runMediaCleanup(db, bucket)
+    await runMediaCleanup(db, bucket)
+    await runMediaCleanup(db, bucket)
+
+    const operationSnap = await db.collection('listing_media_operations').doc(operationId).get()
+    const jobSnap = await db.collection('media_cleanup_jobs').doc(`expired-${operationId}`).get()
+    const [exists] = await bucket.file(storagePath).exists()
+    assert.equal(operationSnap.data()?.state, 'expired')
+    assert.equal(jobSnap.data()?.state, 'done')
+    assert.equal(exists, false)
+  })
+
+  test('retries deletion failures and succeeds when the object is already absent', async () => {
+    const jobRef = db.collection('media_cleanup_jobs').doc('cleanup-retry')
+    const storagePath = 'item_photos/seller/listing-retry/op/photo.jpg'
+    await jobRef.set({
+      schema_version: 1,
+      state: 'pending',
+      listing_id: 'listing-retry',
+      operation_id: 'op',
+      paths: [storagePath],
+      attempts: 0,
+      not_before: Timestamp.fromMillis(0),
+      created_at: FieldValue.serverTimestamp(),
+    })
+    const failingBucket = {
+      file: () => ({
+        delete: async () => {
+          throw new Error('temporary storage failure')
+        },
+      }),
+    }
+
+    await runMediaCleanup(db, failingBucket)
+    let jobSnap = await jobRef.get()
+    assert.equal(jobSnap.data()?.state, 'pending')
+    assert.equal(jobSnap.data()?.attempts, 1)
+    assert.equal(jobSnap.data()?.last_error, '1 object deletion(s) failed')
+
+    await jobRef.update({ not_before: Timestamp.fromMillis(0) })
+    await runMediaCleanup(db, bucket)
+    jobSnap = await jobRef.get()
+    assert.equal(jobSnap.data()?.state, 'done')
+    assert.equal(jobSnap.data()?.attempts, 1)
+    assert.equal(jobSnap.data()?.last_error, undefined)
+  })
+
+  test('rechecks listing references immediately before each deletion', async () => {
+    const listingId = 'listing-reference-recheck'
+    const firstPath = `item_photos/seller/${listingId}/op/first.jpg`
+    const secondPath = `item_photos/seller/${listingId}/op/second.jpg`
+    const listingRef = db.collection('listings').doc(listingId)
+    await listingRef.set({ seller_id: 'seller', media_paths: [] })
+    await db.collection('media_cleanup_jobs').doc('cleanup-reference-recheck').set({
+      schema_version: 1,
+      state: 'pending',
+      listing_id: listingId,
+      operation_id: 'op',
+      paths: [firstPath, secondPath],
+      attempts: 0,
+      not_before: Timestamp.fromMillis(0),
+      created_at: FieldValue.serverTimestamp(),
+    })
+    const deleted = []
+    const changingBucket = {
+      file: (storagePath) => ({
+        delete: async () => {
+          deleted.push(storagePath)
+          if (storagePath === firstPath) {
+            await listingRef.update({ media_paths: [secondPath] })
+          }
+        },
+      }),
+    }
+
+    await runMediaCleanup(db, changingBucket)
+
+    const jobSnap = await db
+      .collection('media_cleanup_jobs')
+      .doc('cleanup-reference-recheck')
+      .get()
+    assert.deepEqual(deleted, [firstPath])
+    assert.equal(jobSnap.data()?.state, 'done')
+  })
 })
 
 describe('submitReport callable', () => {
