@@ -29,6 +29,7 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `3bc0471` | Polished the admin console UI/UX: defined the six animation utilities the components already referenced, added a drawer exit animation, inline confirm states with aria-labels on destructive moderation actions, and clear-filters recovery in every section's empty state. |
 | `6ac8808` | Gave `BottomSheet` the exit animation `SlideOver` already had, and fixed both overlays painting a stale exit frame when reopened. |
 | `28d9a10` | Defined the admin shell's missing `w-sidebar`, `max-w-content`, and `skip-link` classes; the unpositioned skip link was rendering as a full-height flex child and collapsing the console layout. |
+| `6110c7e` | Defined the admin console's nine missing design tokens (`text-cell`, `text-cell-strong`, `text-metric`, `text-section`, `text-th`, `text-page`, `gap-2xs`, `bg-scrim`, `text-on-scrim`) derived by a 30-agent workflow; all reuse existing type/space scales, cells stay 16px so the 84 cell usages are a no-op except weight emphasis. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
@@ -129,6 +130,26 @@ Verified in the running app with DOM assertions (no layout screenshots):
 - Both overlays verified in the running app: `SlideOver` plays `tip-drawer-in` (260 ms) and `tip-drawer-out` (200 ms); `BottomSheet` plays `tip-sheet-in` (200 ms) and `tip-sheet-out` (180 ms) with the scrim fading in and out. Each unmounts after its exit and replays the entrance on reopen.
 
 Known upstream defect, not patched: Astra's `SelectField` hardcodes `id="select-list"` and `aria-controls="select-list"`, so the three Reports filters produce duplicate IDs. It also renders `label` as a visible `<span>` rather than an accessible name.
+
+## Admin design tokens (committed in `6110c7e`)
+
+The Figma Make export referenced nine utility classes that were never defined, so they silently did nothing across 97 usages in 20 files. A 30-agent workflow (six evidence lenses, three independent proposals, a three-judge panel, then two adversarial verifiers per token) derived each value from the repo's own type/space scales and the Astra kit. The regression verifiers overrode the judges' winning 14px `text-cell` to keep cells at the inherited 16px — the 84 cell usages are a strict no-op except for the intended weight emphasis.
+
+Final mapping (all reuse existing tokens; no new values, no palette change):
+
+| Class | Value | Renders |
+| --- | --- | --- |
+| `text-cell` | `--type-label-size` / 1.4 / 400 | 16px/400 (no-op) |
+| `text-cell-strong` | `--type-label-size` / 1.4 / 600 | 16px/600 |
+| `text-metric` | `--type-title-size` / 1.4 / 600 | 24px/600 |
+| `text-section` | `--type-heading-size` / 1.4 / 500 | 20px/500 |
+| `text-th` | `--type-meta-size` / normal / 500 | 12px/500 |
+| `text-page` | `--type-title-size` / 1.4 / 600 | 24px/600 |
+| `gap-2xs` | `--space-xs` | 4px |
+| `bg-scrim` | `--overlay-control-bg` | dark scrim |
+| `text-on-scrim` | `--on-overlay` | white |
+
+Verified: typecheck, tests, and build pass; all nine classes generate in the built CSS; DOM assertions on the running console confirm `text-cell` 16/400, `text-cell-strong` 16/600, `text-metric` 24/600, `text-section` 20/500, `text-th` 12/500.
 
 ## Exact next action
 
