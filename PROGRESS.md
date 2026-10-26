@@ -24,12 +24,13 @@ Portfolio/demo prototype — fix blockers and core demo journeys only; defer pro
 | `7bb207f` | Moved administrator authority, report submission, moderation, account state, and meetup settings behind trusted callable Functions with atomic audit writes. |
 | `d83aff7` | Added real callable/Firestore emulator coverage for authoritative reports and moderation concurrency; added a no-write-by-default administrator-claim tool. |
 | `1cdf3f4` | Secured listing media for emulator demos: trusted reservation/finalization/deletion, canonical photo metadata and thumbnails, durable cleanup, local rules/callable coverage, and emulator-only migration verification. |
+| `e45f895` | Completed the student and admin demo journeys: emulator connectors and lazy adapter initialization, mobile listing edit mode and owner-facing edit action, required moderation audit notes, trusted `removeListingAsAdmin`, and emulator-aware media URLs. |
 
 Machine-specific provider settings and `switch-provider.ps1` are intentionally ignored rather than shipped. Any real token previously stored in local `.claude` settings should be rotated outside this repository.
 
-## Demo journey fixes (uncommitted working tree)
+## Demo journey fixes (committed in `e45f895`)
 
-The working tree carries the student, admin, emulator, and media-URL fixes that make the demo journeys runnable:
+The student, admin, emulator, and media-URL fixes that make the demo journeys runnable are committed in `e45f895`; the working tree is clean:
 
 - Lazy shared-service adapter initialization, so host bootstraps configure the adapter before first use.
 - Auth, Firestore, Functions, and Storage emulator connectors, plus web and Expo emulator opt-in environment variables.

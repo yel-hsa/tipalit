@@ -12,9 +12,9 @@ Preserve the current monorepo, working behavior, and TIPalit visual identity. Do
 
 - Repository: `TIPalit_Handoff_Frontend`
 - Active branch: `milestone-0-preserve-and-stabilize`
-- Latest checkpoint: `1cdf3f4 Secure listing media for emulator demos`
+- Latest checkpoint: `e45f895 Complete the student and admin demo journeys`
 - Main branch: `main`
-- The working tree intentionally contains uncommitted student, admin, emulator, and media URL fixes. **Inspect and preserve these changes; do not reset or overwrite them.**
+- The student, admin, emulator, and media URL fixes are committed in `e45f895`; the working tree is clean. Do not reset or rewrite that commit.
 - Read `CLAUDE.md`, `AGENTS.md`, `PROGRESS.md`, and the active plan at `C:\Users\LeeBonus\.claude\plans\plan-and-improve-the-inherited-jellyfish.md` before editing.
 
 Start by reconciling state:
@@ -121,9 +121,9 @@ Do not replace the existing marketplace identity.
 
 No broad redesign and no new design-system package.
 
-## Existing uncommitted implementation to preserve and verify
+## Implementation committed in `e45f895` to preserve and verify
 
-The working tree currently includes these intended changes:
+That commit includes these intended changes:
 
 - Lazy shared-service adapter initialization so host bootstraps configure the adapter before first use.
 - Auth, Firestore, Functions, and Storage emulator connectors.
@@ -258,19 +258,19 @@ Known non-blocking warnings:
 
 Document these warnings; do not expand scope to optimize or replace dependencies unless one becomes a blocker.
 
-## Remaining task sequence
+## Task sequence (complete)
 
-Work in this order:
+All steps below were completed and committed in `e45f895`:
 
-1. Inspect and preserve the current uncommitted diff.
-2. Complete browser verification of the student journey.
-3. Fix only blockers found in that journey.
-4. Verify the mobile edit overlay and mock journey on an available Expo target.
-5. Complete browser verification of admin report, listing, and member moderation.
-6. Fix only blockers found in those admin flows.
-7. Check the demonstrated screens at common phone and desktop widths.
-8. Apply only focused responsive, state, accessibility, and branding fixes supported by observed defects.
-9. Re-run final validation:
+1. Inspected and preserved the then-uncommitted diff.
+2. Completed browser verification of the student journey.
+3. Fixed only blockers found in that journey.
+4. Verified the mobile edit overlay and mock journey on the Expo web target.
+5. Completed browser verification of admin report, listing, and member moderation.
+6. Fixed only blockers found in those admin flows.
+7. Checked the demonstrated screens at common phone and desktop widths.
+8. Applied only focused responsive, state, accessibility, and branding fixes supported by observed defects.
+9. Re-ran final validation:
 
    ```text
    corepack pnpm run typecheck
@@ -279,15 +279,10 @@ Work in this order:
    git diff --check
    ```
 
-10. Update `PROGRESS.md` with:
-    - Checkpoint `1cdf3f4`.
-    - Student/admin/emulator fixes completed.
-    - Actual browser/device verification performed.
-    - Current test counts and build status.
-    - Known non-blocking warnings and limitations.
-    - Exact local launch instructions.
-    - The exact next action, if anything remains.
-11. Create a local checkpoint commit only after the journey and final checks pass.
+10. Updated `PROGRESS.md` with the checkpoint, completed fixes, verification performed, test counts, build status, known warnings, launch instructions, and next action.
+11. Created the local checkpoint commit after the journey and final checks passed.
+
+`corepack pnpm run typecheck` was re-confirmed green at `e45f895` on 2026-10-26.
 
 ## Local launch commands
 
