@@ -197,6 +197,7 @@
   --shadow-raised: var(--elevation-raised);
   --animate-shimmer: tip-shimmer 1.4s ease-in-out infinite;
   --animate-sheet-in: tip-sheet-in 200ms ease-out;
+  --animate-sheet-out: tip-sheet-out 180ms cubic-bezier(0.4, 0, 1, 1);
   --animate-fade-in: tip-fade-in 240ms ease-out;
   --animate-fade-out: tip-fade-out 180ms ease-in;
   --animate-drawer-in: tip-drawer-in 260ms cubic-bezier(0.32, 0.72, 0, 1);
@@ -299,6 +300,15 @@
   }
 }
 
+@keyframes tip-sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
 @keyframes tip-fade-in {
   from {
     opacity: 0;
@@ -375,6 +385,7 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-shimmer,
   .animate-sheet-in,
+  .animate-sheet-out,
   .animate-fade-in,
   .animate-fade-out,
   .animate-drawer-in,

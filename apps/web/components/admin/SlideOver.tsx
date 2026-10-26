@@ -1,7 +1,8 @@
 import { IconButton } from '@figma/astraui'
 import { X } from 'lucide-react'
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import useDialogFocus from '../useDialogFocus'
+import useOverlayExit from '../useOverlayExit'
 
 type SlideOverProps = {
   isOpen: boolean
@@ -18,23 +19,7 @@ const EXIT_MS = 200
 export default function SlideOver({ isOpen, onClose, title, subtitle, children, footer }: SlideOverProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  const [closing, setClosing] = useState(false)
-  const closingRef = useRef(false)
-  const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
-
-  // stable identity: useDialogFocus re-runs its effect when onClose changes, which
-  // would steal focus back to the first control on every parent re-render
-  const requestClose = useCallback(() => {
-    if (closingRef.current) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      onCloseRef.current()
-      return
-    }
-    closingRef.current = true
-    setClosing(true)
-    window.setTimeout(() => onCloseRef.current(), EXIT_MS)
-  }, [])
+  const { closing, requestClose } = useOverlayExit(isOpen, onClose, EXIT_MS)
 
   useDialogFocus(isOpen, bodyRef, { onClose: requestClose })
 
