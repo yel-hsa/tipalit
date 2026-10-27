@@ -163,7 +163,11 @@ export function createFirebaseAuth(): AuthService {
 
     async signInWithGoogle(): Promise<AuthResult> {
       if (!isFirebaseConfigured()) {
-        return { ok: false, reason: 'network' }
+        return {
+          ok: false,
+          reason: 'network',
+          message: 'Firebase credentials missing. Check .env configuration.',
+        }
       }
 
       const provider = new GoogleAuthProvider()
@@ -207,7 +211,15 @@ export function createFirebaseAuth(): AuthService {
           return { ok: false, reason: 'cancelled' }
         }
 
-        return { ok: false, reason: 'network' }
+        let message = firebaseErr.message || 'Could not connect to Google sign-in service.'
+        if (firebaseErr.code === 'auth/unauthorized-domain') {
+          const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+          message = `Domain '${host}' is not authorized in Firebase Console > Authentication > Settings > Authorized Domains.`
+        } else if (firebaseErr.code === 'auth/operation-not-allowed') {
+          message = 'Google sign-in is not enabled in Firebase Console (Authentication > Sign-in method).'
+        }
+
+        return { ok: false, reason: 'network', message, code: firebaseErr.code }
       }
     },
 

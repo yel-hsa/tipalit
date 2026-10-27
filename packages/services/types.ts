@@ -146,6 +146,8 @@ export type AuthResult =
         | 'too-many-attempts'
         | 'forbidden'
       email?: string
+      message?: string
+      code?: string
     }
 
 export type Theme = 'light' | 'dark'

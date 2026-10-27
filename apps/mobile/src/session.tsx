@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { services } from '@tipalit/services'
 import { isProfileComplete } from '@tipalit/services/profile'
-import type { Profile, Session } from '@tipalit/services/types'
+import type { AuthResult, Profile, Session } from '@tipalit/services/types'
 
 type SessionState = {
   session: Session | null
@@ -9,8 +9,8 @@ type SessionState = {
   loading: boolean
   // admins get the moderation drawer alongside the student tabs
   isAdmin: boolean
-  signIn: () => Promise<string | null>
-  signInWithEmail: (email: string, password: string) => Promise<string | null>
+  signIn: () => Promise<AuthResult>
+  signInWithEmail: (email: string, password: string) => Promise<AuthResult>
   signOut: () => Promise<void>
   saveProfile: (profile: Profile) => Promise<void>
   refreshProfile: () => Promise<void>
@@ -46,22 +46,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadProfile])
 
-  const signIn = useCallback(async () => {
+  const signIn = useCallback(async (): Promise<AuthResult> => {
     const result = await services.auth.signInWithGoogle()
-    if (!result.ok) return result.reason
+    if (!result.ok) return result
     setSession(result.session)
     await loadProfile(result.session.userId)
-    return null
+    return result
   }, [loadProfile])
 
   // admin path: Firebase Email/Password — same gates as the web admin console
   const signInWithEmail = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string): Promise<AuthResult> => {
       const result = await services.auth.signInWithEmail(email, password)
-      if (!result.ok) return result.reason
+      if (!result.ok) return result
       setSession(result.session)
       await loadProfile(result.session.userId)
-      return null
+      return result
     },
     [loadProfile],
   )

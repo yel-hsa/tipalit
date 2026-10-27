@@ -22,7 +22,7 @@ type AuthState =
   | { kind: 'domain'; email: string }
   | { kind: 'unverified'; email: string }
   | { kind: 'suspended'; email: string }
-  | { kind: 'network' }
+  | { kind: 'network'; message?: string }
 
 export default function SignInScreen() {
   const { signIn } = useSession()
@@ -41,17 +41,17 @@ export default function SignInScreen() {
   const signInPress = async () => {
     if (pending) return
     setState({ kind: 'pending' })
-    let reason: string | null
+    let result: import('@tipalit/services/types').AuthResult
     try {
-      reason = await signIn()
-    } catch {
-      reason = 'network'
+      result = await signIn()
+    } catch (err) {
+      result = { ok: false, reason: 'network', message: String(err) }
     }
     // success unmounts this screen, so only failures need state
-    if (!reason || !mounted.current) return
-    if (reason === 'domain') setState({ kind: 'domain', email: 'That account' })
-    else if (reason === 'suspended') setState({ kind: 'suspended', email: 'This account' })
-    else if (reason === 'network') setState({ kind: 'network' })
+    if (result.ok || !mounted.current) return
+    if (result.reason === 'domain') setState({ kind: 'domain', email: result.email ?? 'That account' })
+    else if (result.reason === 'suspended') setState({ kind: 'suspended', email: result.email ?? 'This account' })
+    else if (result.reason === 'network') setState({ kind: 'network', message: result.message })
     else setState({ kind: 'idle' })
   }
 
@@ -94,7 +94,9 @@ export default function SignInScreen() {
           </InlineAlert>
         )}
         {state.kind === 'network' && (
-          <InlineAlert icon="wifi-off">Couldn&apos;t reach Google. Check your connection and try again.</InlineAlert>
+          <InlineAlert icon="wifi-off">
+            {state.message || "Couldn't reach Google. Check your connection and try again."}
+          </InlineAlert>
         )}
         {state.kind === 'suspended' && (
           <InlineAlert icon="ban">

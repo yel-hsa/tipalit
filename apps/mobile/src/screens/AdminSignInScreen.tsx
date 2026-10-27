@@ -31,8 +31,8 @@ export default function AdminSignInScreen({ onBack }: { onBack: () => void }) {
     setBusy(true)
     setError(null)
     try {
-      const reason = await signInWithEmail(email.trim(), password)
-      if (reason) setError(REASONS[reason] ?? 'Sign-in failed. Try again.')
+      const res = await signInWithEmail(email.trim(), password)
+      if (!res.ok) setError(res.message || (REASONS[res.reason] ?? 'Sign-in failed. Try again.'))
     } catch {
       setError('Sign-in failed. Try again.')
     } finally {
