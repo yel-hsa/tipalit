@@ -41,7 +41,6 @@ if (typeof localStorage !== 'undefined' && searchParams?.get('emulators') !== 't
 if (useEmulators) {
   setFirebaseEmulatorConfig({
     host: import.meta.env.VITE_FIREBASE_EMULATOR_HOST ?? '127.0.0.1',
-    authPort: 9099,
     firestorePort: 8080,
     functionsPort: 5001,
     storagePort: 9199,
@@ -51,6 +50,6 @@ if (useEmulators) {
 const adapter =
   import.meta.env.VITE_DATA_ADAPTER ||
   (searchParams?.get('adapter') as string | undefined) ||
-  (useEmulators ? 'firebase' : undefined)
+  'firebase'
 
 setDataAdapter(adapter)

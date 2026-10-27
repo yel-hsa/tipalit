@@ -27,10 +27,17 @@ if (typeof localStorage !== 'undefined' && searchParams?.get('emulators') !== 't
   } catch {}
 }
 
+import { Platform } from 'react-native'
+import * as WebBrowser from 'expo-web-browser'
+import * as AuthSession from 'expo-auth-session'
+
+if (Platform.OS !== 'web') {
+  WebBrowser.maybeCompleteAuthSession()
+}
+
 if (useEmulators) {
   setFirebaseEmulatorConfig({
     host: process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST ?? '127.0.0.1',
-    authPort: 9099,
     firestorePort: 8080,
     functionsPort: 5001,
     storagePort: 9199,
@@ -40,7 +47,7 @@ if (useEmulators) {
 const adapter =
   process.env.EXPO_PUBLIC_DATA_ADAPTER ||
   (searchParams?.get('adapter') as string | undefined) ||
-  (useEmulators ? 'firebase' : undefined)
+  'firebase'
 
 setDataAdapter(adapter)
 
@@ -63,13 +70,55 @@ setPlatform({
   },
   setTimeout: (fn, ms) => setTimeout(fn, ms),
   clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
-  // TODO(native-google-auth): signInWithPopup cannot run on Expo native. Wire a
-  // real handler here once Google OAuth client IDs are configured (expo-auth-
-  // session's useAuthRequest with EXPO_PUBLIC_GOOGLE_* client IDs, exchanged
-  // for a Firebase credential). It must resolve { idToken } or null on cancel:
-  //   googleSignIn: async () => { ... return { idToken } }
-  // Until then the firebase adapter's signInWithGoogle surfaces a network
-  // failure on native; students should sign in on web or via the handler above.
+  googleSignIn:
+    Platform.OS === 'web'
+      ? undefined
+      : async () => {
+          try {
+            const clientId =
+              process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
+              process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
+              process.env.EXPO_PUBLIC_FIREBASE_CLIENT_ID ||
+              ''
+
+            if (!clientId) {
+              console.warn(
+                '[TIPalit Mobile] Native Google OAuth Client ID not configured in EXPO_PUBLIC_GOOGLE_CLIENT_ID.',
+              )
+              return null
+            }
+
+            const redirectUri = AuthSession.makeRedirectUri({
+              scheme: 'tipalit',
+            })
+
+            const discovery = {
+              authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+              tokenEndpoint: 'https://oauth2.googleapis.com/token',
+              revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+            }
+
+            const request = new AuthSession.AuthRequest({
+              clientId,
+              redirectUri,
+              scopes: ['openid', 'profile', 'email'],
+              responseType: AuthSession.ResponseType.IdToken,
+              extraParams: {
+                hd: 'tip.edu.ph',
+                prompt: 'select_account',
+              },
+            })
+
+            const result = await request.promptAsync(discovery)
+            if (result.type === 'success' && result.params?.id_token) {
+              return { idToken: result.params.id_token }
+            }
+            return null
+          } catch (err) {
+            console.error('[TIPalit Mobile] Native Google sign in error:', err)
+            return null
+          }
+        },
 })
 
 // inject Google Fonts for Instrument Sans when running in browser / Expo web

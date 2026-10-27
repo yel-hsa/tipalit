@@ -9,11 +9,11 @@ import { SessionProvider, useSession } from './session'
 import './index.css'
 
 function AdminGate() {
-  const { status, session, expiresAt, signIn, signOut, registerAccountPicker, signOutReason } = useSession()
+  const { status, session, expiresAt, signIn, signOut, signOutReason } = useSession()
 
   if (status === 'loading') return null
   if (!session) {
-    return <AdminSignInScreen onSignIn={signIn} registerAccountPicker={registerAccountPicker} signOutReason={signOutReason} />
+    return <AdminSignInScreen onSignIn={signIn} signOutReason={signOutReason} />
   }
   return <AdminConsole session={session} expiresAt={expiresAt} onSignOut={() => void signOut()} />
 }

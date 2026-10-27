@@ -144,6 +144,7 @@ export type AuthResult =
         // email/password sign-in failures
         | 'invalid-credentials'
         | 'too-many-attempts'
+        | 'forbidden'
       email?: string
     }
 

@@ -1,6 +1,8 @@
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   signInWithCredential,
   signOut as firebaseSignOut,
@@ -58,7 +60,11 @@ export function createFirebaseAuth(): AuthService {
       return { ok: false, reason: 'domain', email }
     }
 
-    if (!user.emailVerified) {
+    const token = await user.getIdTokenResult().catch(() => null)
+    const claims = token?.claims ?? {}
+    const isAdmin = claims.admin === true
+
+    if (!user.emailVerified && !isAdmin) {
       await firebaseSignOut(auth).catch(() => {})
       return { ok: false, reason: 'unverified', email }
     }
@@ -66,28 +72,24 @@ export function createFirebaseAuth(): AuthService {
     const userDocRef = doc(db, 'users_profile', user.uid)
     const userSnapshot = await getDoc(userDocRef)
 
-    let role: Role = 'member'
+    let role: Role = roleFromClaims(claims)
     if (userSnapshot.exists()) {
       const profileData = userSnapshot.data()
       if (profileData.status !== 'active') {
         await firebaseSignOut(auth).catch(() => {})
         return { ok: false, reason: 'suspended', email }
       }
-      const token = await user.getIdTokenResult()
-      role = roleFromClaims(token.claims)
     } else {
       // rules pin create to role 'member'; leaving campus unset keeps onboarding running
       await setDoc(userDocRef, {
         user_id: user.uid,
         email,
         full_name: nameFromUser(user),
-        is_verified: user.emailVerified,
-        role: 'member',
+        is_verified: user.emailVerified || isAdmin,
+        role: isAdmin ? 'admin' : 'member',
         status: 'active',
         joinedAt: new Date().toISOString(),
       })
-      const token = await user.getIdTokenResult()
-      role = roleFromClaims(token.claims)
     }
 
     return { ok: true, session: sessionFromUser(user, role) }
@@ -97,6 +99,17 @@ export function createFirebaseAuth(): AuthService {
     async getSession(): Promise<Session | null> {
       if (!isFirebaseConfigured()) {
         return null
+      }
+
+      // check if returning from a redirect sign-in
+      try {
+        const redirectResult = await getRedirectResult(auth).catch(() => null)
+        if (redirectResult?.user) {
+          const res = await completeSignIn(redirectResult.user)
+          if (res.ok) return res.session
+        }
+      } catch (err) {
+        console.warn('[TIPalit Firebase Auth] Redirect auth error:', err)
       }
 
       const currentUser = await new Promise<User | null>((resolve) => {
@@ -170,8 +183,17 @@ export function createFirebaseAuth(): AuthService {
           const result = await signInWithCredential(auth, GoogleAuthProvider.credential(credential.idToken))
           user = result.user
         } else {
-          const result = await signInWithPopup(auth, provider)
-          user = result.user
+          try {
+            const result = await signInWithPopup(auth, provider)
+            user = result.user
+          } catch (popupErr: unknown) {
+            const err = popupErr as { code?: string }
+            if (err?.code === 'auth/popup-blocked') {
+              await signInWithRedirect(auth, provider)
+              return { ok: false, reason: 'cancelled' }
+            }
+            throw popupErr
+          }
         }
         return await completeSignIn(user)
       } catch (error: unknown) {

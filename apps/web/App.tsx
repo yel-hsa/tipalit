@@ -9,7 +9,6 @@ import DemoStatesPanel, {
   type UiFlags,
 } from './components/DemoStatesPanel'
 import EmptyState from './components/EmptyState'
-import GoogleAccountChooser from './components/GoogleAccountChooser'
 import MeetupPickerSheet from './components/MeetupPickerSheet'
 import PhoneShell, { type ToastOffset } from './components/PhoneShell'
 import { draftFromProfile, type ProfileDraft } from './components/ProfileFields'
@@ -179,8 +178,6 @@ function TipalitApp() {
   const [demoVersion, setDemoVersion] = useState(0)
   const [controls, setControls] = useState<DemoControls>(() => services.demo?.getControls() ?? DEFAULT_CONTROLS)
   const [uiFlags, setUiFlags] = useState<UiFlags>(UI_FLAGS_OFF)
-  const [chooserOpen, setChooserOpen] = useState(false)
-  const chooserResolve = useRef<((account: GoogleAccount | null) => void) | null>(null)
 
   const counters = useRef({ toast: 0, init: 0 })
   const messageToastThread = useRef<string | null>(null)
@@ -272,25 +269,6 @@ function TipalitApp() {
       cancelled = true
     }
   }, [bootNonce, setTheme])
-
-  useEffect(() => {
-    const demo = services.demo
-    if (!demo) return
-    demo.registerAccountPicker(
-      () =>
-        new Promise<GoogleAccount | null>((resolve) => {
-          chooserResolve.current = resolve
-          setChooserOpen(true)
-        }),
-    )
-    return () => demo.registerAccountPicker(null)
-  }, [])
-
-  const closeChooser = (account: GoogleAccount | null) => {
-    setChooserOpen(false)
-    chooserResolve.current?.(account)
-    chooserResolve.current = null
-  }
 
   useEffect(
     () =>
@@ -1274,16 +1252,6 @@ function TipalitApp() {
       }
       overlay={
         <>
-          {services.demo && (
-            <GoogleAccountChooser
-              key={chooserOpen ? 'open' : 'closed'}
-              isOpen={chooserOpen}
-              accounts={chooserAccounts}
-              onSelect={(account) => closeChooser(account)}
-              onClose={() => closeChooser(null)}
-            />
-          )}
-
           {pickerThread && (
             <MeetupPickerSheet
               key={pickerThread.id}

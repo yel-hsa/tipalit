@@ -1,10 +1,8 @@
 import { Button, InputField } from '@figma/astraui'
 import { Ban, Clock, RotateCcw, ShieldCheck, WifiOff } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { ADMIN_ACCOUNT } from '@tipalit/services/seed'
-import type { AuthResult, GoogleAccount } from '@tipalit/services/types'
+import type { AuthResult } from '@tipalit/services/types'
 import googleMark from '../assets/google-g.svg'
-import AccountChooser from '../components/admin/AccountChooser'
 import InlineAlert from '../components/InlineAlert'
 import Spinner from '../components/Spinner'
 import Wordmark from '../components/Wordmark'
@@ -31,8 +29,6 @@ const EMAIL_ERRORS: Partial<Record<Extract<AuthResult, { ok: false }>['reason'],
 
 type AdminSignInScreenProps = {
   onSignIn: () => Promise<AuthResult>
-  // the mock adapter has no Google popup; it asks this picker for an account
-  registerAccountPicker: (picker: (() => Promise<GoogleAccount | null>) | null) => void
   // why the previous session ended, when it wasn't a deliberate sign-out
   signOutReason: SignOutReason | null
 }
@@ -42,15 +38,13 @@ const ENDED_NOTICE: Partial<Record<SignOutReason, { icon: typeof Clock; text: st
   revoked: { icon: ShieldCheck, text: 'Your session was ended elsewhere. Sign in again to continue.' },
 }
 
-export default function AdminSignInScreen({ onSignIn, registerAccountPicker, signOutReason }: AdminSignInScreenProps) {
+export default function AdminSignInScreen({ onSignIn, signOutReason }: AdminSignInScreenProps) {
   const { signInWithEmail } = useSession()
   const [state, setState] = useState<AuthState>({ kind: 'idle' })
-  const [choosing, setChoosing] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [emailError, setEmailError] = useState<string | null>(null)
   const mounted = useRef(true)
-  const pickerResolve = useRef<((account: GoogleAccount | null) => void) | null>(null)
   const pending = state.kind === 'pending'
   const emailPending = state.kind === 'email-pending'
   const ended = signOutReason ? ENDED_NOTICE[signOutReason] : undefined
@@ -61,23 +55,6 @@ export default function AdminSignInScreen({ onSignIn, registerAccountPicker, sig
       mounted.current = false
     }
   }, [])
-
-  useEffect(() => {
-    registerAccountPicker(
-      () =>
-        new Promise<GoogleAccount | null>((resolve) => {
-          pickerResolve.current = resolve
-          setChoosing(true)
-        }),
-    )
-    return () => registerAccountPicker(null)
-  }, [registerAccountPicker])
-
-  const settlePicker = (account: GoogleAccount | null) => {
-    setChoosing(false)
-    pickerResolve.current?.(account)
-    pickerResolve.current = null
-  }
 
   const signIn = async () => {
     if (pending) return
@@ -132,10 +109,6 @@ export default function AdminSignInScreen({ onSignIn, registerAccountPicker, sig
 
   return (
     <div className="flex min-h-dvh bg-surface-bg">
-      {choosing && (
-        <AccountChooser accounts={[ADMIN_ACCOUNT]} onPick={settlePicker} onCancel={() => settlePicker(null)} />
-      )}
-
       <aside className="relative hidden w-[46%] max-w-[720px] shrink-0 flex-col justify-between overflow-hidden border-r border-border-secondary/80 bg-surface-darkest px-2xl py-2xl text-on-brand lg:flex">
         <div className="relative z-10">
           <Wordmark size="lg" />

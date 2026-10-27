@@ -1,7 +1,7 @@
 import './src/bootstrap'
 import { StatusBar } from 'expo-status-bar'
-import { Platform, SafeAreaView, StyleSheet, View } from 'react-native'
-import { useEffect, useRef, useState } from 'react'
+import { SafeAreaView, StyleSheet } from 'react-native'
+import { useEffect, useState } from 'react'
 import {
   useFonts,
   InstrumentSans_400Regular,
@@ -10,14 +10,11 @@ import {
   InstrumentSans_700Bold,
 } from '@expo-google-fonts/instrument-sans'
 import { services } from '@tipalit/services'
-import { GOOGLE_TEST_ACCOUNTS } from '@tipalit/services/seed'
-import type { GoogleAccount } from '@tipalit/services/types'
 import AppShell from './src/AppShell'
 import { SessionProvider, needsOnboarding, useSession } from './src/session'
 import IntroScreen from './src/screens/IntroScreen'
 import OnboardingScreen from './src/screens/OnboardingScreen'
 import SignInScreen from './src/screens/SignInScreen'
-import GoogleAccountChooser from './src/components/GoogleAccountChooser'
 import { Loading } from './src/components/ui'
 import { colors } from './src/theme'
 
@@ -69,28 +66,6 @@ export default function App() {
     InstrumentSans_700Bold,
   })
 
-  const [chooserOpen, setChooserOpen] = useState(false)
-  const chooserResolve = useRef<((account: GoogleAccount | null) => void) | null>(null)
-
-  useEffect(() => {
-    const demo = services.demo
-    if (!demo) return
-    demo.registerAccountPicker(
-      () =>
-        new Promise<GoogleAccount | null>((resolve) => {
-          chooserResolve.current = resolve
-          setChooserOpen(true)
-        }),
-    )
-    return () => demo.registerAccountPicker(null)
-  }, [])
-
-  const closeChooser = (account: GoogleAccount | null) => {
-    setChooserOpen(false)
-    chooserResolve.current?.(account)
-    chooserResolve.current = null
-  }
-
   if (!fontsLoaded) {
     return <Loading />
   }
@@ -101,12 +76,6 @@ export default function App() {
       <SessionProvider>
         <Gate />
       </SessionProvider>
-      <GoogleAccountChooser
-        isOpen={chooserOpen}
-        accounts={GOOGLE_TEST_ACCOUNTS}
-        onSelect={(account) => closeChooser(account)}
-        onClose={() => closeChooser(null)}
-      />
     </SafeAreaView>
   )
 }

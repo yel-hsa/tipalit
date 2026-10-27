@@ -1,10 +1,9 @@
 import type { Services } from '../types'
+import { createFirebaseAuth } from '../firebase/auth'
 import { createMockAdmin } from './admin'
 import { createMockAnalytics } from './analytics'
-import { createMockAuth } from './auth'
 import { createMockChat } from './chat'
 import { DEFAULT_CONTROLS, mockControls } from './controls'
-import { registerAccountPicker } from './googleAccountPicker'
 import { createMockListings } from './listings'
 import { createMockPrefs } from './prefs'
 import { createMockProfiles } from './profiles'
@@ -18,7 +17,7 @@ export function createMockServices(): Services {
   const chat = createMockChat()
 
   return {
-    auth: createMockAuth({ onSignOut: chat.cancelPending }),
+    auth: createFirebaseAuth(),
     profiles: createMockProfiles(),
     listings: createMockListings(),
     chat: chat.service,
@@ -38,7 +37,7 @@ export function createMockServices(): Services {
         clearAll()
         Object.assign(mockControls, DEFAULT_CONTROLS)
       },
-      registerAccountPicker,
+      registerAccountPicker: () => {},
     },
   }
 }

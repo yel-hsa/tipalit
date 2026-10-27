@@ -19,7 +19,6 @@ type SessionContextValue = {
   signIn: () => Promise<AuthResult>
   signInWithEmail: (email: string, password: string) => Promise<AuthResult>
   signOut: (reason?: SignOutReason) => Promise<void>
-  registerAccountPicker: (picker: (() => Promise<GoogleAccount | null>) | null) => void
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null)
@@ -122,7 +121,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (result.ok) {
       if (result.session.role !== 'admin') {
         await services.auth.signOut().catch(() => undefined)
-        return result
+        return { ok: false as const, reason: 'forbidden' as const, email: result.session.email }
       }
       if (mounted.current) {
         setSession(result.session)
@@ -133,19 +132,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return result
   }, [])
 
-  const registerAccountPicker = useCallback(
-    (picker: (() => Promise<GoogleAccount | null>) | null) => {
-      services.demo?.registerAccountPicker(picker)
-    },
-    [],
-  )
-
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
+  const signInWithEmail = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     const result = await services.auth.signInWithEmail(email, password)
     if (result.ok) {
       if (result.session.role !== 'admin') {
         await services.auth.signOut().catch(() => undefined)
-        return result
+        return { ok: false as const, reason: 'forbidden' as const, email: result.session.email }
       }
       if (mounted.current) {
         setSession(result.session)
@@ -165,9 +157,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       signIn,
       signInWithEmail,
       signOut,
-      registerAccountPicker,
     }),
-    [status, session, signOutReason, signIn, signInWithEmail, signOut, registerAccountPicker],
+    [status, session, signOutReason, signIn, signInWithEmail, signOut],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

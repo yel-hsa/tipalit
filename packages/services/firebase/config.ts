@@ -1,6 +1,5 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
 import {
-  connectAuthEmulator,
   getAuth,
   type Auth,
 } from 'firebase/auth'
@@ -31,7 +30,6 @@ export interface FirebaseConfig {
 
 export interface FirebaseEmulatorConfig {
   host: string
-  authPort?: number
   firestorePort?: number
   functionsPort?: number
   storagePort?: number
@@ -101,13 +99,6 @@ export const getFirebaseApp = (): FirebaseApp => {
 export const getFirebaseAuth = (): Auth => {
   if (!authInstance) {
     authInstance = getAuth(getFirebaseApp())
-    if (emulatorConfig?.authPort) {
-      connectAuthEmulator(
-        authInstance,
-        `http://${emulatorConfig.host}:${emulatorConfig.authPort}`,
-        { disableWarnings: true },
-      )
-    }
   }
   return authInstance
 }
