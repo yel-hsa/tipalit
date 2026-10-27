@@ -68,13 +68,16 @@ export default function ChatThreadScreen({ threadId, onBack, onOpenListing }: Ch
       // spots resolve per listing campus once the listing is known
       setSpots(all.qc)
     })
-    return services.chat.subscribe((event) => {
+    const unsubscribe = services.chat.subscribe((event) => {
       if (event.type === 'typing') {
         setSellerTyping(event.threadId === threadId ? event.typing : false)
         return
       }
       if (event.threadId === threadId) void load()
     })
+    return () => {
+      unsubscribe()
+    }
   }, [load, threadId])
 
   // the picker uses the listing's campus spots, like App.tsx does

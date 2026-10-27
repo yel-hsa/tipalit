@@ -158,7 +158,10 @@ export default function ChatListScreen({ onOpen }: { onOpen: (threadId: string) 
 
   useEffect(() => {
     void load()
-    return services.chat.subscribe(() => void load())
+    const unsubscribe = services.chat.subscribe(() => void load())
+    return () => {
+      unsubscribe()
+    }
   }, [load])
 
   const listingsById = useMemo(() => new Map(listings.map((listing) => [listing.id, listing])), [listings])

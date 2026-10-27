@@ -1,6 +1,6 @@
 import './src/bootstrap'
 import { StatusBar } from 'expo-status-bar'
-import { SafeAreaView, StyleSheet } from 'react-native'
+import { Platform, SafeAreaView, StatusBar as RNStatusBar, StyleSheet } from 'react-native'
 import { useEffect, useState } from 'react'
 import {
   useFonts,
@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: colors.bg,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
 })
 

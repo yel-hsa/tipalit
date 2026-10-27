@@ -218,7 +218,7 @@ export default function FeedScreen({ onOpen, onSell, onOpenProfile, onOpenPromot
             style={styles.skeletonGrid}
           >
             {Array.from({ length: PAGE_SIZE }, (_, index) => (
-              <ProductCardSkeleton key={index} />
+              <ProductCardSkeleton key={`feed-skeleton-${index}`} />
             ))}
           </View>
         ) : error ? (
