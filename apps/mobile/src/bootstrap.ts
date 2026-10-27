@@ -16,21 +16,16 @@ setFirebaseConfig({
 })
 
 const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-const urlEmulators = searchParams?.get('emulators')
-if (urlEmulators === 'true') {
-  try {
-    localStorage.setItem('tipalit_emulators', 'true')
-  } catch {}
-} else if (urlEmulators === 'false') {
+const useEmulators =
+  process.env.EXPO_PUBLIC_FIREBASE_EMULATORS === 'true' ||
+  searchParams?.get('emulators') === 'true'
+
+// clear legacy localStorage flag
+if (typeof localStorage !== 'undefined' && searchParams?.get('emulators') !== 'true') {
   try {
     localStorage.removeItem('tipalit_emulators')
   } catch {}
 }
-
-const useEmulators =
-  process.env.EXPO_PUBLIC_FIREBASE_EMULATORS === 'true' ||
-  urlEmulators === 'true' ||
-  (typeof localStorage !== 'undefined' && localStorage.getItem('tipalit_emulators') === 'true')
 
 if (useEmulators) {
   setFirebaseEmulatorConfig({
