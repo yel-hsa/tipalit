@@ -55,7 +55,8 @@ service cloud.firestore {
         && request.resource.data.user_id == request.auth.uid
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.is_verified == true
-        && request.resource.data.role == 'member'
+        && (request.resource.data.role == 'member' ||
+            (request.auth.token.admin == true && request.resource.data.role == 'admin'))
         && request.resource.data.status == 'active';
       // Owners may edit their card, but never role, status, is_verified,
       // average_rating, or total_reviews — those belong to the server/admin.

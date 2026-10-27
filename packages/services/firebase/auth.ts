@@ -239,6 +239,7 @@ export function createFirebaseAuth(): AuthService {
           case 'auth/invalid-credential':
           case 'auth/wrong-password':
           case 'auth/user-not-found':
+          case 'auth/invalid-email':
             return { ok: false, reason: 'invalid-credentials', email }
           case 'auth/too-many-requests':
             return { ok: false, reason: 'too-many-attempts', email }
