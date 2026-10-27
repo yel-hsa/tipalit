@@ -1,4 +1,4 @@
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
+import { initializeApp, getApps, deleteApp, type FirebaseApp } from 'firebase/app'
 import {
   getAuth,
   type Auth,
@@ -35,21 +35,60 @@ export interface FirebaseEmulatorConfig {
   storagePort?: number
 }
 
-const EMPTY_CONFIG: FirebaseConfig = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
+export const DEFAULT_FIREBASE_CONFIG: FirebaseConfig = {
+  apiKey: 'AIzaSyCN9VA0PrVQ6H4To99DQk4Q2eY-kU8cyHE',
+  authDomain: 'tipalit-firebase.firebaseapp.com',
+  projectId: 'tipalit-firebase',
+  storageBucket: 'tipalit-firebase.firebasestorage.app',
+  messagingSenderId: '783597964977',
+  appId: '1:783597964977:web:99410091ea244b88f25c90',
 }
 
 // host apps inject their config; vite reads import.meta.env, expo reads process.env
-let injectedConfig: FirebaseConfig | null = null
+let injectedConfig: Partial<FirebaseConfig> | null = null
 let emulatorConfig: FirebaseEmulatorConfig | null = null
 
+export const resetFirebaseInstances = async (): Promise<void> => {
+  authInstance = null
+  dbInstance = null
+  functionsInstance = null
+  storageInstance = null
+  if (appInstance) {
+    try {
+      await deleteApp(appInstance)
+    } catch {}
+    appInstance = null
+  }
+}
+
 export const setFirebaseConfig = (config: FirebaseConfig): void => {
-  injectedConfig = config
+  const filtered: Partial<FirebaseConfig> = {}
+  for (const [key, val] of Object.entries(config)) {
+    if (val && typeof val === 'string' && val.trim() !== '') {
+      filtered[key as keyof FirebaseConfig] = val.trim()
+    }
+  }
+
+  // If appInstance already exists with a different apiKey/projectId, reset it so new config takes effect
+  if (appInstance && (filtered.apiKey || filtered.projectId)) {
+    const currentOptions = appInstance.options
+    if (
+      (filtered.apiKey && filtered.apiKey !== currentOptions.apiKey) ||
+      (filtered.projectId && filtered.projectId !== currentOptions.projectId)
+    ) {
+      deleteApp(appInstance).catch(() => {})
+      appInstance = null
+      authInstance = null
+      dbInstance = null
+      functionsInstance = null
+      storageInstance = null
+    }
+  }
+
+  injectedConfig = {
+    ...injectedConfig,
+    ...filtered,
+  }
 }
 
 export const setFirebaseEmulatorConfig = (
@@ -58,7 +97,54 @@ export const setFirebaseEmulatorConfig = (
   emulatorConfig = config
 }
 
-export const getFirebaseConfig = (): FirebaseConfig => injectedConfig ?? EMPTY_CONFIG
+export const getFirebaseConfig = (): FirebaseConfig => {
+  const env = (typeof process !== 'undefined' ? (process.env as Record<string, string | undefined> | undefined) : undefined) ?? {}
+
+  const apiKey =
+    injectedConfig?.apiKey ||
+    env.EXPO_PUBLIC_FIREBASE_API_KEY ||
+    env.VITE_FIREBASE_API_KEY ||
+    DEFAULT_FIREBASE_CONFIG.apiKey
+
+  const authDomain =
+    injectedConfig?.authDomain ||
+    env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ||
+    env.VITE_FIREBASE_AUTH_DOMAIN ||
+    DEFAULT_FIREBASE_CONFIG.authDomain
+
+  const projectId =
+    injectedConfig?.projectId ||
+    env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ||
+    env.VITE_FIREBASE_PROJECT_ID ||
+    DEFAULT_FIREBASE_CONFIG.projectId
+
+  const storageBucket =
+    injectedConfig?.storageBucket ||
+    env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+    env.VITE_FIREBASE_STORAGE_BUCKET ||
+    DEFAULT_FIREBASE_CONFIG.storageBucket
+
+  const messagingSenderId =
+    injectedConfig?.messagingSenderId ||
+    env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ||
+    env.VITE_FIREBASE_MESSAGING_SENDER_ID ||
+    DEFAULT_FIREBASE_CONFIG.messagingSenderId
+
+  const appId =
+    injectedConfig?.appId ||
+    env.EXPO_PUBLIC_FIREBASE_APP_ID ||
+    env.VITE_FIREBASE_APP_ID ||
+    DEFAULT_FIREBASE_CONFIG.appId
+
+  return {
+    apiKey,
+    authDomain,
+    projectId,
+    storageBucket,
+    messagingSenderId,
+    appId,
+  }
+}
 
 export const isFirebaseConfigured = (): boolean => {
   const config = getFirebaseConfig()
@@ -73,26 +159,25 @@ let storageInstance: FirebaseStorage | null = null
 
 export const getFirebaseApp = (): FirebaseApp => {
   if (appInstance) return appInstance
-  const existingApps = getApps()
-  if (existingApps.length > 0) {
-    appInstance = existingApps[0]
-    return appInstance
-  }
 
   const config = getFirebaseConfig()
-  // placeholder config keeps the app from crashing when env vars are missing
-  const effectiveConfig = (config.apiKey && config.projectId)
-    ? config
-    : {
-        apiKey: config.apiKey || 'AIzaSyDemoPlaceholderKeyForTIPalitApp',
-        authDomain: config.authDomain || (emulatorConfig ? 'demo-tipalit.firebaseapp.com' : 'tipalit-campus.firebaseapp.com'),
-        projectId: config.projectId || (emulatorConfig ? 'demo-tipalit' : 'tipalit-campus'),
-        storageBucket: config.storageBucket || (emulatorConfig ? 'demo-tipalit.appspot.com' : 'tipalit-campus.appspot.com'),
-        messagingSenderId: config.messagingSenderId || '123456789012',
-        appId: config.appId || '1:123456789012:web:abcdef1234567890',
-      }
 
-  appInstance = initializeApp(effectiveConfig)
+  const existingApps = getApps()
+  if (existingApps.length > 0) {
+    const existing = existingApps[0]
+    // Clean up any stale placeholder or mismatched app
+    if (
+      existing.options.apiKey === 'AIzaSyDemoPlaceholderKeyForTIPalitApp' ||
+      (config.apiKey && existing.options.apiKey !== config.apiKey)
+    ) {
+      deleteApp(existing).catch(() => {})
+    } else {
+      appInstance = existing
+      return appInstance
+    }
+  }
+
+  appInstance = initializeApp(config)
   return appInstance
 }
 

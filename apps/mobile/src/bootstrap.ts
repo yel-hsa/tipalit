@@ -7,12 +7,12 @@ import { setPlatform } from '@tipalit/services/platform'
 
 // expo inlines EXPO_PUBLIC_* at build time; unset vars fall back to the mock adapter
 setFirebaseConfig({
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? '',
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ?? '',
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? '',
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET ?? '',
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '',
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? '',
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCN9VA0PrVQ6H4To99DQk4Q2eY-kU8cyHE',
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'tipalit-firebase.firebaseapp.com',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'tipalit-firebase',
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || 'tipalit-firebase.firebasestorage.app',
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '783597964977',
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '1:783597964977:web:99410091ea244b88f25c90',
 })
 
 const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
@@ -79,7 +79,7 @@ setPlatform({
               process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
               process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
               process.env.EXPO_PUBLIC_FIREBASE_CLIENT_ID ||
-              ''
+              '783597964977-vhoapsg5np6car8p6u9opct704bt4cfo.apps.googleusercontent.com'
 
             if (!clientId) {
               console.warn(

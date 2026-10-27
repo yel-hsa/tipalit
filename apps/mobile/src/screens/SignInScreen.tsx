@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacePx['2xl'],
   },
   // flex flex-col items-center gap-lg text-center
-  hero: { alignItems: 'center', gap: spacePx.lg },
+  hero: { alignItems: 'center', gap: spacePx.lg, maxWidth: 440, width: '100%', alignSelf: 'center' },
   // flex items-center gap-xs
   trustRow: { flexDirection: 'row', alignItems: 'center', gap: spacePx.xs },
   // flex flex-col gap-lg rounded-corner-lg bg-surface-bg p-xl
@@ -162,9 +162,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.surface,
     padding: spacePx.xl,
+    maxWidth: 440,
+    width: '100%',
+    alignSelf: 'center',
   },
   // w-full
   fullWidth: { alignSelf: 'stretch', width: '100%' },
   // flex flex-col items-center gap-xs text-center
-  footer: { alignItems: 'center', gap: spacePx.xs },
+  footer: { alignItems: 'center', gap: spacePx.xs, maxWidth: 440, width: '100%', alignSelf: 'center' },
 })

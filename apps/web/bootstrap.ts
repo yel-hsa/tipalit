@@ -18,12 +18,12 @@ setPlatform({
 })
 
 setFirebaseConfig({
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCN9VA0PrVQ6H4To99DQk4Q2eY-kU8cyHE',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'tipalit-firebase.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'tipalit-firebase',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'tipalit-firebase.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '783597964977',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:783597964977:web:99410091ea244b88f25c90',
 })
 
 const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
