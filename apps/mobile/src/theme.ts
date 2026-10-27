@@ -1,16 +1,7 @@
-/**
- * Mobile theme — mirrors the web design system in apps/web/styles/global.css :root.
- * Values are copied 1:1 from the web tokens; only the names are adapted to RN.
- *
- * TODO(font): the web app uses "Instrument Sans". On mobile it is NOT loaded —
- * we fall back to system fonts. To match web exactly, add expo-font +
- * @expo-google-fonts/instrument-sans (or a bundled .ttf via useFonts) and set
- * fontFamily below. Intentionally NOT added in this pass.
- */
+// mobile design tokens
 
-// --font-family-base: 'Instrument Sans', system-ui, sans-serif
-// TODO(font): load Instrument Sans via expo-font and replace this fallback.
-export const fontFamily = undefined as string | undefined
+
+export const fontFamily = 'Instrument Sans'
 
 export const colors = {
   // brand
@@ -98,16 +89,16 @@ export const space = (n: number): number => {
 const lh = (size: number) => Math.round(size * 1.4 * 10) / 10
 
 export const typography = {
-  title: { fontSize: 24, fontWeight: '600', lineHeight: lh(24) }, // --type-title
-  heading: { fontSize: 20, fontWeight: '500', lineHeight: lh(20) }, // --type-heading
-  section: { fontSize: 20, fontWeight: '500', lineHeight: lh(20) }, // --type-caption
-  label: { fontSize: 16, fontWeight: '500', lineHeight: lh(16) }, // --type-label
-  labelSm: { fontSize: 14, fontWeight: '500', lineHeight: lh(14) }, // --type-label-sm
-  input: { fontSize: 16, fontWeight: '400', lineHeight: lh(16) }, // --type-input
-  inputSm: { fontSize: 14, fontWeight: '500', lineHeight: lh(14) }, // --type-input-sm
-  meta: { fontSize: 12, fontWeight: '400', lineHeight: lh(12) }, // --type-meta
-  cell: { fontSize: 16, fontWeight: '400', lineHeight: lh(16) },
-  cellStrong: { fontSize: 16, fontWeight: '600', lineHeight: lh(16) },
-  metric: { fontSize: 24, fontWeight: '600', lineHeight: lh(24) },
-  page: { fontSize: 24, fontWeight: '600', lineHeight: lh(24) },
+  title: { fontFamily, fontSize: 24, fontWeight: '600', lineHeight: lh(24) }, // --type-title
+  heading: { fontFamily, fontSize: 20, fontWeight: '500', lineHeight: lh(20) }, // --type-heading
+  section: { fontFamily, fontSize: 20, fontWeight: '500', lineHeight: lh(20) }, // --type-caption
+  label: { fontFamily, fontSize: 16, fontWeight: '500', lineHeight: lh(16) }, // --type-label
+  labelSm: { fontFamily, fontSize: 14, fontWeight: '500', lineHeight: lh(14) }, // --type-label-sm
+  input: { fontFamily, fontSize: 16, fontWeight: '400', lineHeight: lh(16) }, // --type-input
+  inputSm: { fontFamily, fontSize: 14, fontWeight: '500', lineHeight: lh(14) }, // --type-input-sm
+  meta: { fontFamily, fontSize: 12, fontWeight: '400', lineHeight: lh(12) }, // --type-meta
+  cell: { fontFamily, fontSize: 16, fontWeight: '400', lineHeight: lh(16) },
+  cellStrong: { fontFamily, fontSize: 16, fontWeight: '600', lineHeight: lh(16) },
+  metric: { fontFamily, fontSize: 24, fontWeight: '600', lineHeight: lh(24) },
+  page: { fontFamily, fontSize: 24, fontWeight: '600', lineHeight: lh(24) },
 } as const

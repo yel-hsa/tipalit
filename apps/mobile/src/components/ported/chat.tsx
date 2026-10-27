@@ -1,9 +1,6 @@
-/**
- * Web shared components ported 1:1 from apps/web/components/*.tsx (chat flow).
- * Each export names its web source file. All px values are the exact
- * translation of the Tailwind classes in the source.
- */
-import { useMemo, useState } from 'react'
+// chat meetup and interaction components
+
+import { useEffect, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors, typography } from '../../theme'
 import { Button } from './kit'
@@ -67,9 +64,17 @@ export function MeetupPickerSheet({
   const isPast = (dayOffset: number, hour: number) => dayOffset === 0 && hour <= now.getHours()
   const todayOpen = HOURS.some((hour) => !isPast(0, hour))
 
-  const [location, setLocation] = useState(spots.includes(defaultLocation) ? defaultLocation : spots[0])
+  const [location, setLocation] = useState(
+    spots.includes(defaultLocation) ? defaultLocation : (spots[0] ?? defaultLocation ?? ''),
+  )
   const [dayOffset, setDayOffset] = useState<number>(todayOpen ? 0 : 1)
   const [hour, setHour] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!location && spots.length > 0) {
+      setLocation(spots.includes(defaultLocation) ? defaultLocation : spots[0])
+    }
+  }, [spots, defaultLocation, location])
 
   const day = days.find((d) => d.offset === dayOffset) ?? days[1]
   const time = hour === null ? null : `${day.prefix}, ${formatHour(hour)}`
@@ -102,8 +107,8 @@ export function MeetupPickerSheet({
           <Button
             label="Send proposal"
             variant="primary"
-            disabled={!time}
-            onPress={() => time && onSubmit({ location, time })}
+            disabled={!time || !location}
+            onPress={() => time && location && onSubmit({ location, time })}
           />
         </View>
       }

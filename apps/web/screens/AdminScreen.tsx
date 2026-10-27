@@ -48,15 +48,33 @@ type AdminScreenProps = {
 type ReportFilter = 'open' | 'closed'
 type MemberFilter = 'all' | 'flagged' | 'suspended'
 
-function Stat({ value, label, highlight }: { value: number; label: string; highlight?: boolean }) {
+function Stat({
+  value,
+  label,
+  highlight,
+}: {
+  value: number | string
+  label: string
+  highlight?: boolean
+}) {
   return (
     <div
-      className={`flex flex-col items-center gap-xs rounded-corner-lg px-md py-lg text-center ${
-        highlight ? 'bg-accent-soft' : 'bg-surface-bg'
+      className={`group relative flex flex-col items-center justify-center gap-1 rounded-2xl p-4 text-center border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs cursor-default ${
+        highlight
+          ? 'bg-accent-soft/90 border-accent/40 shadow-xs'
+          : 'bg-surface-bg border-border-secondary/80 hover:border-border-primary/60'
       }`}
     >
-      <span className="text-title text-text-primary">{value}</span>
-      <span className="text-caption-sm text-text-secondary">{label}</span>
+      <span
+        className={`text-2xl font-bold tracking-tight font-sans ${
+          highlight ? 'text-brand-dark' : 'text-text-primary'
+        }`}
+      >
+        {value}
+      </span>
+      <span className={`text-xs font-medium ${highlight ? 'text-brand-secondary' : 'text-text-secondary'}`}>
+        {label}
+      </span>
     </div>
   )
 }
@@ -142,27 +160,27 @@ export default function AdminScreen({
           }
         />
       ) : (
-        <ul className="overflow-hidden rounded-corner-lg bg-surface-bg">
+        <ul className="overflow-hidden rounded-2xl border border-border-secondary/80 bg-surface-bg shadow-xs divide-y divide-border-secondary">
           {reportList.map((report) => {
             const badge = reportBadge(report)
             const open = report.status === 'open'
             return (
-              <li key={report.id} className="border-b border-border-secondary last:border-b-0">
+              <li key={report.id}>
                 <Pressable
                   onPress={() => setSelectedReportId(report.id)}
                   aria-label={`${KIND_LABEL[report.target.kind]} report: ${report.target.label}. ${report.reason}. ${badge.label}.`}
-                  className="flex items-center gap-lg p-lg hover:bg-surface-hover"
+                  className="group flex items-center gap-lg p-lg hover:bg-surface-hover/80 active:bg-surface-hover transition-colors duration-150"
                 >
                   <span
                     aria-hidden="true"
-                    className={`flex size-10 shrink-0 items-center justify-center rounded-corner-full ${
-                      open ? 'bg-danger-soft text-danger' : 'bg-bg-subtle text-text-secondary'
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-full transition-transform duration-150 group-hover:scale-105 ${
+                      open ? 'bg-danger-soft text-danger ring-1 ring-danger/20' : 'bg-bg-subtle text-text-secondary'
                     }`}
                   >
                     {report.target.kind === 'listing' ? <Package size={20} /> : <UserRound size={20} />}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-xs">
-                    <p className="truncate text-label-sm text-text-primary">{report.target.label}</p>
+                    <p className="truncate text-label-sm font-semibold text-text-primary">{report.target.label}</p>
                     <p className="truncate text-caption-sm text-text-secondary">{report.reason}</p>
                     <div className="flex flex-wrap items-center gap-sm">
                       <Badge variant={badge.variant} label={badge.label} />
@@ -171,7 +189,7 @@ export default function AdminScreen({
                       </span>
                     </div>
                   </div>
-                  <ChevronRight size={16} className="shrink-0 text-text-secondary" aria-hidden="true" />
+                  <ChevronRight size={16} className="shrink-0 text-text-secondary transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
                 </Pressable>
               </li>
             )
@@ -208,20 +226,22 @@ export default function AdminScreen({
           body={memberQuery.trim() ? 'Try another name or email.' : 'Nobody is in this group right now.'}
         />
       ) : (
-        <ul className="overflow-hidden rounded-corner-lg bg-surface-bg" aria-live="polite">
+        <ul className="overflow-hidden rounded-2xl border border-border-secondary/80 bg-surface-bg shadow-xs divide-y divide-border-secondary" aria-live="polite">
           {visibleMembers.map((member) => (
-            <li key={member.userId} className="border-b border-border-secondary last:border-b-0">
+            <li key={member.userId}>
               <Pressable
                 onPress={() => setSelectedMemberId(member.userId)}
                 aria-label={`${member.name}, ${member.status === 'suspended' ? 'suspended' : 'active'}${
                   member.openReports ? `, ${member.openReports} open reports` : ''
                 }`}
-                className="flex items-center gap-lg p-lg hover:bg-surface-hover"
+                className="group flex items-center gap-lg p-lg hover:bg-surface-hover/80 active:bg-surface-hover transition-colors duration-150"
               >
-                <Avatar type="initial" initials={initialsOf(member.name)} size="large" />
+                <div className="transition-transform duration-150 group-hover:scale-105">
+                  <Avatar type="initial" initials={initialsOf(member.name)} size="large" />
+                </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-xs">
                   <div className="flex flex-wrap items-center gap-sm">
-                    <p className="truncate text-label-sm text-text-primary">{member.name}</p>
+                    <p className="truncate text-label-sm font-semibold text-text-primary">{member.name}</p>
                     {member.role === 'admin' && <Badge variant="secondary" label="Admin" />}
                     {member.status === 'suspended' && <Badge variant="danger" label="Suspended" />}
                     {member.openReports > 0 && (
@@ -233,7 +253,7 @@ export default function AdminScreen({
                     {member.campus ? campusLabel(member.campus) : 'No campus yet'} &middot; {member.program || 'Setup not finished'}
                   </p>
                 </div>
-                <ChevronRight size={16} className="shrink-0 text-text-secondary" aria-hidden="true" />
+                <ChevronRight size={16} className="shrink-0 text-text-secondary transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
               </Pressable>
             </li>
           ))}
@@ -246,23 +266,27 @@ export default function AdminScreen({
     audit.length === 0 ? (
       <EmptyState icon={History} title="No admin actions yet" body="Every decision, suspension, and settings change is recorded here." />
     ) : (
-      <ul className="overflow-hidden rounded-corner-lg bg-surface-bg">
+      <ul className="overflow-hidden rounded-2xl border border-border-secondary/80 bg-surface-bg shadow-xs divide-y divide-border-secondary">
         {audit.map((entry) => {
           const Icon = AUDIT_ICON[entry.action] ?? History
           return (
-            <li key={entry.id} className="flex items-start gap-md border-b border-border-secondary p-lg last:border-b-0">
+            <li key={entry.id} className="flex items-start gap-md p-lg hover:bg-surface-hover/50 transition-colors duration-150">
               <span
                 aria-hidden="true"
-                className="flex size-8 shrink-0 items-center justify-center rounded-corner-full bg-bg-subtle text-text-primary"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-bg-subtle text-text-primary ring-1 ring-border-secondary/60"
               >
                 <Icon size={16} />
               </span>
               <div className="flex min-w-0 flex-1 flex-col gap-xs">
-                <p className="text-label-sm text-text-primary">{entry.summary}</p>
+                <p className="text-label-sm font-semibold text-text-primary">{entry.summary}</p>
                 <p className="text-caption-sm text-text-secondary">
                   {entry.actorName} &middot; {timeAgo(entry.at)}
                 </p>
-                {entry.note && <p className="text-label-sm text-text-secondary">&ldquo;{entry.note}&rdquo;</p>}
+                {entry.note && (
+                  <p className="text-label-sm text-text-secondary rounded-lg bg-bg-subtle/80 px-2.5 py-1.5 mt-0.5 border border-border-secondary/40 italic">
+                    &ldquo;{entry.note}&rdquo;
+                  </p>
+                )}
               </div>
             </li>
           )
@@ -295,26 +319,24 @@ export default function AdminScreen({
             </section>
 
             {overview && (
-              <section aria-labelledby="market-title" className="flex flex-col gap-md">
-                <p id="market-title" role="heading" aria-level={2} className="text-label font-semibold text-text-primary">
-                  Marketplace
-                </p>
+              <section aria-labelledby="market-title" className="flex flex-col gap-sm">
+                <div className="flex items-center justify-between px-0.5">
+                  <p id="market-title" role="heading" aria-level={2} className="text-xs font-semibold tracking-wider uppercase text-text-tertiary">
+                    Marketplace health
+                  </p>
+                  <span className="text-xs text-text-tertiary">Live stats</span>
+                </div>
                 <div className="grid grid-cols-3 gap-md">
                   <Stat value={overview.members} label="Members" />
-                  <Stat value={overview.activeListings} label="Active listings" />
-                  <Stat value={overview.completedExchanges} label="Exchanges done" />
+                  <Stat value={overview.activeListings} label="Active items" />
+                  <Stat value={overview.completedExchanges} label="Exchanges" />
                 </div>
                 <div className="grid grid-cols-2 gap-md">
-                  <div className="flex flex-col items-center gap-xs rounded-corner-lg bg-surface-bg px-md py-lg text-center">
-                    <span className="text-title text-text-primary">
-                      {overview.averageRating > 0 ? overview.averageRating.toFixed(1) : '&ndash;'}
-                    </span>
-                    <span className="text-caption-sm text-text-secondary">Avg. rating</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-xs rounded-corner-lg bg-surface-bg px-md py-lg text-center">
-                    <span className="text-title text-text-primary">{overview.openReports}</span>
-                    <span className="text-caption-sm text-text-secondary">Open reports (all)</span>
-                  </div>
+                  <Stat
+                    value={overview.averageRating > 0 ? `${overview.averageRating.toFixed(1)} ★` : '—'}
+                    label="Avg. rating"
+                  />
+                  <Stat value={overview.openReports} label="Open reports (all)" highlight={overview.openReports > 0} />
                 </div>
               </section>
             )}

@@ -437,6 +437,132 @@
   animation-delay: calc(var(--i, 0) * 28ms);
 }
 
+/* --------------------------------------------- mobile color & motion adaptation ---- */
+
+/* Badge alignment with mobile soft tints and pill radius */
+.box-border.rounded-\[8px\].w-fit,
+[class*='box-border'][class*='rounded-\[8px\]'][class*='w-fit'] {
+  border-radius: 9999px !important;
+  padding: 3px 10px !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+
+[class*='box-border'].bg-warning.text-surface-darkest,
+.bg-warning.text-surface-darkest.rounded-\[8px\] {
+  background-color: var(--warning-soft) !important;
+  color: #b26b00 !important;
+  border: 1px solid rgba(245, 165, 36, 0.3) !important;
+}
+
+[class*='box-border'].bg-danger.text-surface-darkest,
+.bg-danger.text-surface-darkest.rounded-\[8px\] {
+  background-color: var(--danger-soft) !important;
+  color: var(--danger) !important;
+  border: 1px solid rgba(229, 72, 77, 0.25) !important;
+}
+
+[class*='box-border'].bg-success.text-surface-darkest,
+.bg-success.text-surface-darkest.rounded-\[8px\] {
+  background-color: var(--success-soft) !important;
+  color: #2b9e59 !important;
+  border: 1px solid rgba(60, 199, 116, 0.25) !important;
+}
+
+.badge,
+[class*='astra-badge'],
+[class*='badge'] {
+  border-radius: 9999px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  padding: 2px 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 150ms ease !important;
+}
+
+[class*='astra-badge--warning'],
+.badge-warning {
+  background-color: var(--warning-soft) !important;
+  color: #b26b00 !important;
+  border: 1px solid rgba(245, 165, 36, 0.28) !important;
+}
+
+[class*='astra-badge--danger'],
+.badge-danger {
+  background-color: var(--danger-soft) !important;
+  color: var(--danger) !important;
+  border: 1px solid rgba(229, 72, 77, 0.25) !important;
+}
+
+[class*='astra-badge--success'],
+.badge-success {
+  background-color: var(--success-soft) !important;
+  color: #2b9e59 !important;
+  border: 1px solid rgba(60, 199, 116, 0.25) !important;
+}
+
+[class*='astra-badge--brand'],
+.badge-brand {
+  background-color: var(--brand-tertiary) !important;
+  color: var(--brand-primary) !important;
+  border: 1px solid var(--border-secondary) !important;
+}
+
+[class*='astra-badge--secondary'],
+.badge-secondary {
+  background-color: var(--bg-subtle) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-secondary) !important;
+}
+
+/* Button & interactive press physics matching mobile */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), opacity 120ms ease, background-color 150ms ease, box-shadow 150ms ease !important;
+}
+
+button:active:not(:disabled),
+[role='button']:active:not([aria-disabled='true']) {
+  transform: scale(0.97) !important;
+  opacity: 0.88 !important;
+}
+
+/* Tabs: smooth indicator and hover */
+[role='tablist'] {
+  gap: 8px !important;
+}
+
+[role='tab'] {
+  font-family: var(--font-family-base) !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  padding: 8px 16px !important;
+  border-radius: 8px 8px 0 0 !important;
+  color: var(--text-secondary) !important;
+  transition: all 150ms ease !important;
+  position: relative !important;
+}
+
+[role='tab']:hover {
+  color: var(--text-primary) !important;
+  background-color: var(--bg-subtle) !important;
+}
+
+[role='tab'][aria-selected='true'] {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+
+[role='tab'] > .bg-brand-primary,
+[role='tab'] > [class*='bg-brand-primary'] {
+  height: 2.5px !important;
+  border-radius: 9999px !important;
+  background-color: var(--brand-primary) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-shimmer,
   .animate-sheet-in,

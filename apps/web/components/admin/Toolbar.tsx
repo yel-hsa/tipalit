@@ -66,7 +66,7 @@ export default function Toolbar({
                 options={filter.options}
                 value={filter.value}
                 onChange={filter.onChange}
-                className={active ? 'rounded-corner-md ring-1 ring-brand-primary/40' : undefined}
+                className={active ? 'rounded-xl ring-1 ring-brand-primary/50' : undefined}
               />
             </div>
           )
@@ -75,7 +75,7 @@ export default function Toolbar({
           <button
             type="button"
             onClick={clearAll}
-            className="mb-xs inline-flex items-center gap-xs rounded-corner-full border border-border-primary px-md py-xs text-caption-sm text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
+            className="mb-xs inline-flex items-center gap-xs rounded-full border border-border-secondary/80 bg-surface-bg px-md py-xs text-caption-sm text-text-secondary transition-all hover:bg-surface-hover/80 hover:text-text-primary active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
           >
             <X size={12} aria-hidden="true" />
             Clear {activeFilters.length + (hasQuery ? 1 : 0) === 1 ? 'filter' : 'filters'}

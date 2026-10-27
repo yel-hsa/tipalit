@@ -307,7 +307,7 @@ export const resolveReport = onCall(async (request) => {
       )
     }
 
-    tx.create(auditRef, {
+    tx.set(auditRef, {
       at,
       actor_id: admin.uid,
       actorName,

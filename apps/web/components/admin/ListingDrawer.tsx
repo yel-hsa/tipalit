@@ -20,9 +20,9 @@ type ListingDrawerProps = {
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-xs rounded-corner-md bg-bg-faint p-md">
+    <div className="flex flex-col gap-xs rounded-xl border border-border-secondary/80 bg-surface-bg p-md shadow-xs">
       <span className="text-caption-sm text-text-secondary">{label}</span>
-      <span className="text-cell-strong text-text-primary">{value}</span>
+      <span className="text-cell-strong font-semibold text-text-primary">{value}</span>
     </div>
   )
 }
@@ -96,7 +96,7 @@ export default function ListingDrawer({
               key={`${url}-${index}`}
               src={url}
               alt={index === 0 ? `${listing.title} photo` : ''}
-              className="aspect-square w-full rounded-corner-md bg-bg-subtle object-cover"
+              className="aspect-square w-full rounded-2xl border border-border-secondary/60 bg-bg-subtle object-cover shadow-2xs"
             />
           ))}
         </div>

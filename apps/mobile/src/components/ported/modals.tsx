@@ -1,8 +1,5 @@
-/**
- * Web modals ported 1:1 from apps/web/components/RateModal.tsx and
- * ReportModal.tsx. All px values are the exact translation of the Tailwind
- * classes in the source; kit Modal (small 360) carries the chrome.
- */
+// feedback and report modals
+
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { colors, typography } from '../../theme'

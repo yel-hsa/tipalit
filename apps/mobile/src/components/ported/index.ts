@@ -1,9 +1,5 @@
-/**
- * Ported shared-component layer — 1:1 ports of the web student app's shared
- * components (apps/web/components/*) plus the Astra kit primitives it uses.
- * Screen agents: import from here, not from ../ui (the legacy green-theme
- * primitives stay only until every screen is ported).
- */
+// shared mobile ui components
+
 export * from './tokens'
 export * from './kit'
 export * from './Icon'

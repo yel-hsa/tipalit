@@ -26,7 +26,24 @@ setFirebaseConfig({
   appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
 })
 
-if (import.meta.env.VITE_FIREBASE_EMULATORS === 'true') {
+const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+const urlEmulators = searchParams?.get('emulators')
+if (urlEmulators === 'true') {
+  try {
+    localStorage.setItem('tipalit_emulators', 'true')
+  } catch {}
+} else if (urlEmulators === 'false') {
+  try {
+    localStorage.removeItem('tipalit_emulators')
+  } catch {}
+}
+
+const useEmulators =
+  import.meta.env.VITE_FIREBASE_EMULATORS === 'true' ||
+  urlEmulators === 'true' ||
+  (typeof localStorage !== 'undefined' && localStorage.getItem('tipalit_emulators') === 'true')
+
+if (useEmulators) {
   setFirebaseEmulatorConfig({
     host: import.meta.env.VITE_FIREBASE_EMULATOR_HOST ?? '127.0.0.1',
     authPort: 9099,
@@ -36,4 +53,9 @@ if (import.meta.env.VITE_FIREBASE_EMULATORS === 'true') {
   })
 }
 
-setDataAdapter(import.meta.env.VITE_DATA_ADAPTER)
+const adapter =
+  import.meta.env.VITE_DATA_ADAPTER ||
+  (searchParams?.get('adapter') as string | undefined) ||
+  (useEmulators ? 'firebase' : undefined)
+
+setDataAdapter(adapter)

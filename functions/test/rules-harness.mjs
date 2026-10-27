@@ -1,7 +1,7 @@
 export const PROJECT_ID = 'demo-tipalit'
 export const HOST = process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080'
 export const BASE = `http://${HOST}/v1/projects/${PROJECT_ID}/databases/(default)/documents`
-// the literal "owner" token is the emulator's review agent and bypasses rules
+// the literal "owner" token is the emulator's review service and bypasses rules
 export const OWNER_TOKEN = 'owner'
 
 // unsigned jwt; the emulator reads its claims as request.auth.token

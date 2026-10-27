@@ -1,9 +1,21 @@
-/**
- * Web shared components ported 1:1 from apps/web/components/*.tsx.
- * Each export names its web source file. All px values are the exact
- * translation of the Tailwind classes in the source.
- */
-import { Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native'
+// shared ui components
+
+import { useEffect, useRef, useState } from 'react'
+import {
+  Animated,
+  Easing,
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native'
 import type { CampusId, Promotion } from '@tipalit/services/types'
 import { colors, radius, typography } from '../../theme'
 import { Badge, Button, IconButton, InputField, RadioGroup, Spinner } from './kit'
@@ -136,17 +148,21 @@ export function InlineAlert({
 export function FormField({
   error,
   children,
+  style,
 }: {
   error?: string
   children: React.ReactNode
+  style?: StyleProp<ViewStyle>
 }) {
   return (
-    <View style={[styles.formField, error ? styles.formFieldError : null]}>
+    <View style={[styles.formField, error ? styles.formFieldError : null, style]}>
       {children}
       {error && (
         <View style={styles.formErrorRow}>
-          <Icon name="alert-circle" size={16} color={colors.danger} />
-          <Text style={[typography.labelSm, { color: colors.danger }]}>{error}</Text>
+          <Icon name="alert-circle" size={14} color={colors.danger} />
+          <Text style={[typography.labelSm, { color: colors.danger, flex: 1, fontSize: 12, lineHeight: 16 }]}>
+            {error}
+          </Text>
         </View>
       )}
     </View>
@@ -198,7 +214,7 @@ export function ProductCard({
             <Text style={[typography.meta, { color: colors.text, fontWeight: '600', lineHeight: undefined }]}>Reserved</Text>
           </View>
         )}
-        {isFresh(listingAny) && !reserved && (
+        {isFresh(listing.createdAt as never) && !reserved && (
           <View style={styles.productNew}>
             <Text style={[typography.meta, { color: colors.text, lineHeight: undefined }]}>New</Text>
           </View>
@@ -217,7 +233,7 @@ export function ProductCard({
         <View style={styles.productFooter}>
           <Badge label={listing.courseCode} />
           <Text numberOfLines={1} style={[typography.meta, { color: colors.textTertiary }]}>
-            {timeAgo(listingAny)}
+            {timeAgo(listing.createdAt as never)}
           </Text>
         </View>
       </View>
@@ -336,7 +352,10 @@ export function BottomTabBar({
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={showDot ? `${label}, ${dotLabel}` : label}
               onPress={() => onSelect(id)}
-              style={[styles.tabItem, { backgroundColor: isActive ? 'transparent' : 'transparent' }]}
+              style={({ pressed }) => [
+                styles.tabItem,
+                pressed && { opacity: 0.75, transform: [{ scale: 0.92 }] },
+              ]}
             >
               <View style={[styles.tabChip, isActive && styles.tabChipActive]}>
                 <Icon name={icon} size={20} color={isActive ? colors.onBrand : colors.textSecondary} />
@@ -374,11 +393,42 @@ export function BottomSheet({
   children: React.ReactNode
   footer?: React.ReactNode
 }) {
-  if (!isOpen) return null
+  const [mounted, setMounted] = useState(isOpen)
+  const anim = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (isOpen) {
+      setMounted(true)
+      Animated.spring(anim, {
+        toValue: 1,
+        damping: 24,
+        stiffness: 260,
+        mass: 0.8,
+        useNativeDriver: true,
+      }).start()
+    } else {
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start(() => setMounted(false))
+    }
+  }, [isOpen, anim])
+
+  if (!mounted) return null
+
+  const translateY = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [380, 0],
+  })
+
   return (
     <View style={StyleSheet.absoluteFill} accessibilityViewIsModal>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.modalScrim }]} onPress={onClose} />
-      <View style={styles.sheet}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.modalScrim, opacity: anim }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      </Animated.View>
+      <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
         <View style={styles.sheetGrabberWrap}>
           <View style={styles.sheetGrabber} />
         </View>
@@ -401,7 +451,7 @@ export function BottomSheet({
           {children}
         </ScrollView>
         {footer && <View style={styles.sheetFooter}>{footer}</View>}
-      </View>
+      </Animated.View>
     </View>
   )
 }
@@ -430,14 +480,46 @@ export function ConfirmModal({
   onConfirm: () => void
   onClose: () => void
 }) {
+  const [mounted, setMounted] = useState(isOpen)
+  const anim = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (isOpen) {
+      setMounted(true)
+      Animated.spring(anim, {
+        toValue: 1,
+        damping: 24,
+        stiffness: 280,
+        mass: 0.8,
+        useNativeDriver: true,
+      }).start()
+    } else {
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 160,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start(() => setMounted(false))
+    }
+  }, [isOpen, anim])
+
+  if (!mounted) return null
+
+  const scale = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.93, 1],
+  })
+
   return (
-    <View style={isOpen ? StyleSheet.absoluteFill : { display: 'none' }} accessibilityViewIsModal>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.modalScrim }]} onPress={pending ? undefined : onClose} />
-      <View style={styles.confirmPanel}>
+    <View style={StyleSheet.absoluteFill} accessibilityViewIsModal>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.modalScrim, opacity: anim }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={pending ? undefined : onClose} />
+      </Animated.View>
+      <Animated.View style={[styles.confirmPanel, { opacity: anim, transform: [{ scale }] }]}>
         <View style={styles.modalHeader}>
           <Text style={[typography.heading, { color: colors.text }]}>{title}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8} style={styles.modalClose}>
-            <Text style={styles.modalCloseGlyph}>×</Text>
+            <Icon name="x" size={16} color={colors.textSecondary} />
           </Pressable>
         </View>
         <View style={styles.modalBody}>
@@ -454,7 +536,7 @@ export function ConfirmModal({
             iconStart={pending ? <Spinner color="#ffffff" /> : confirmIcon}
           />
         </View>
-      </View>
+      </Animated.View>
     </View>
   )
 }
@@ -482,38 +564,101 @@ export function SelectField({
   description?: string
   disabled?: boolean
 }) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (!open) return
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return
+    const onDown = (e: MouseEvent) => {
+      const node = rootRef.current as unknown as HTMLElement | null
+      if (node && !node.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
   const selected = options.find((o) => o.value === value)
+  const displayText = selected ? selected.label : placeholder
+
   return (
-    <View style={styles.fieldCol}>
+    <View ref={rootRef} style={[styles.fieldCol, open && { zIndex: 1000 }]}>
       {label ? <Text style={[typography.labelSm, { color: colors.text, fontWeight: '500' }]}>{label}</Text> : null}
-      <View style={styles.selectStack}>
-        {options.map((option) => (
-          <Pressable
-            key={option.value}
-            accessibilityRole="button"
-            accessibilityState={{ selected: option.value === value }}
-            disabled={disabled}
-            onPress={() => onChange(option.value)}
-            style={({ pressed }) => [
-              styles.selectOption,
-              option.value === value && styles.selectOptionActive,
-              pressed && styles.pressed,
+      <View style={styles.selectWrapper}>
+        <Pressable
+          accessibilityRole="combobox"
+          accessibilityState={{ expanded: open, disabled: !!disabled }}
+          accessibilityLabel={label || placeholder}
+          disabled={disabled}
+          onPress={() => setOpen((prev) => !prev)}
+          style={({ pressed }) => [
+            styles.selectTrigger,
+            disabled && styles.selectTriggerDisabled,
+            pressed && !disabled && styles.selectTriggerPressed,
+          ]}
+        >
+          <Text
+            style={[
+              typography.inputSm,
+              styles.selectTriggerText,
+              selected ? { color: colors.text } : { color: colors.textSecondary },
             ]}
+            numberOfLines={1}
           >
-            <Text
+            {displayText}
+          </Text>
+          <View style={[styles.selectChevron, open && styles.selectChevronOpen]}>
+            <Icon name="chevron-down" size={16} color={colors.textSecondary} />
+          </View>
+        </Pressable>
+
+        {open && !disabled && (
+          <View style={styles.dropdownMenu}>
+            <ScrollView
+              nestedScrollEnabled
               style={[
-                typography.inputSm,
-                option.value === value
-                  ? { color: colors.brandPrimary, fontWeight: '500', lineHeight: undefined }
-                  : { color: colors.text, lineHeight: undefined },
+                styles.dropdownScroll,
+                { maxHeight: 36 * Math.min(5, Math.max(1, options.length)) },
               ]}
+              showsVerticalScrollIndicator={options.length > 5}
+              keyboardShouldPersistTaps="handled"
             >
-              {option.value === value ? option.label : selected ? option.label : option.label}
-            </Text>
-          </Pressable>
-        ))}
-        {options.length === 0 && (
-          <Text style={[typography.inputSm, { color: colors.textSecondary }]}>{placeholder}</Text>
+              {options.map((opt) => {
+                const isSelected = opt.value === value
+                return (
+                  <Pressable
+                    key={opt.value}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    onPress={() => {
+                      onChange(opt.value)
+                      setOpen(false)
+                    }}
+                    style={({ pressed }) => [
+                      styles.dropdownOption,
+                      isSelected && styles.dropdownOptionSelected,
+                      pressed && styles.dropdownOptionPressed,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        typography.inputSm,
+                        styles.dropdownOptionText,
+                        isSelected
+                          ? { color: colors.brandPrimary, fontWeight: '500' }
+                          : { color: colors.text, fontWeight: '400' },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                )
+              })}
+            </ScrollView>
+          </View>
         )}
       </View>
       {description ? <Text style={[typography.meta, { color: colors.textSecondary }]}>{description}</Text> : null}
@@ -1125,26 +1270,30 @@ export function ProfileFields({
         />
       </FormField>
       <View style={styles.profileGrid}>
-        <FormField error={errors.program}>
-          <SelectField
-            label="Program"
-            placeholder="Choose"
-            options={programs.map((p) => ({ value: p, label: p }))}
-            value={value.program}
-            disabled={disabled}
-            onChange={(program) => onChange({ program })}
-          />
-        </FormField>
-        <FormField error={errors.year}>
-          <SelectField
-            label="Year level"
-            placeholder="Choose"
-            options={yearLevels.map((y) => ({ value: y, label: y }))}
-            value={value.year}
-            disabled={disabled}
-            onChange={(year) => onChange({ year })}
-          />
-        </FormField>
+        <View style={styles.profileCol}>
+          <FormField error={errors.program} style={styles.flex1}>
+            <SelectField
+              label="Program"
+              placeholder="Choose"
+              options={programs.map((p) => ({ value: p, label: p }))}
+              value={value.program}
+              disabled={disabled}
+              onChange={(program) => onChange({ program })}
+            />
+          </FormField>
+        </View>
+        <View style={styles.profileCol}>
+          <FormField error={errors.year} style={styles.flex1}>
+            <SelectField
+              label="Year level"
+              placeholder="Choose"
+              options={yearLevels.map((y) => ({ value: y, label: y }))}
+              value={value.year}
+              disabled={disabled}
+              onChange={(year) => onChange({ year })}
+            />
+          </FormField>
+        </View>
       </View>
     </View>
   )
@@ -1154,7 +1303,7 @@ export function ProfileFields({
 export const __tokens = { touchTarget, typePx }
 
 const styles = StyleSheet.create({
-  pressed: { opacity: 0.9 },
+  pressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   // ScreenHeader: px-16 pt-16 pb-12 gap-8, bg-brand-tertiary
   header: {
     backgroundColor: colors.brandTertiary,
@@ -1289,16 +1438,52 @@ const styles = StyleSheet.create({
     borderTopColor: colors.borderSecondary,
   },
   // SelectField
-  fieldCol: { gap: 6 },
-  selectStack: {
+  fieldCol: { gap: 6, position: 'relative' },
+  selectWrapper: { position: 'relative', zIndex: 100 },
+  selectTrigger: {
+    minHeight: 40,
     backgroundColor: colors.bgSubtle,
     borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    gap: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  selectOption: { paddingVertical: 8, paddingHorizontal: 0 },
-  selectOptionActive: { backgroundColor: colors.brandTertiary, marginHorizontal: -12, paddingHorizontal: 12, borderRadius: radius.md },
+  selectTriggerDisabled: { opacity: 0.5 },
+  selectTriggerPressed: { backgroundColor: colors.bgHover },
+  selectTriggerText: { flex: 1, lineHeight: 20 },
+  selectChevron: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
+  selectChevronOpen: { transform: [{ rotate: '180deg' }] },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    zIndex: 1000,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+  dropdownScroll: { maxHeight: 180 },
+  dropdownOption: {
+    minHeight: 36,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+  },
+  dropdownOptionSelected: { backgroundColor: colors.brandTertiary },
+  dropdownOptionPressed: { backgroundColor: colors.bgHover },
+  dropdownOptionText: { lineHeight: 20 },
   // SwitchRow: min-h-44 gap-12 radius-8
   switchRow: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: radius.md },
   switchIconChip: { width: 40, height: 40, borderRadius: 999, backgroundColor: colors.bgSubtle, alignItems: 'center', justifyContent: 'center' },
@@ -1428,5 +1613,7 @@ const styles = StyleSheet.create({
   dropEmptyChip: { width: 48, height: 48, borderRadius: 999, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   // ProfileFields: gap-12; grid 2 cols gap-12
   profileFields: { gap: 12 },
-  profileGrid: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  profileGrid: { flexDirection: 'row', gap: 12, alignItems: 'stretch', zIndex: 50 },
+  profileCol: { flex: 1, minWidth: 0 },
+  flex1: { flex: 1 },
 })

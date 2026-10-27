@@ -1,11 +1,9 @@
-/**
- * Astra kit primitives ported 1:1 from node_modules/@figma/astraui (web).
- * Every style value below is the exact px translation of the kit's Tailwind
- * classes; hover/focus states collapse into pressed/disabled states on RN.
- */
+// core ui primitives
+
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native'
 import { colors, radius, typography } from '../../theme'
 import { shadowModal, shadowRaised, shadowToast, typePx } from './tokens'
+import { Icon } from './Icon'
 
 // ---------------------------------------------------------------- Button ----
 // kit: inline-flex items-center justify-center gap-2 rounded-full font-sans
@@ -54,7 +52,7 @@ export function Button({
         small ? styles.btnSmall : subtleMedium ? styles.btnMediumSubtle : styles.btnMedium,
         variant === 'primary' && styles.btnPrimary,
         variant === 'neutral' && styles.btnNeutral,
-        (pressed || inactive) && styles.btnDim,
+        inactive ? styles.btnDisabled : pressed ? styles.btnPressed : null,
         style,
       ]}
     >
@@ -107,8 +105,7 @@ export function IconButton({
         size === 'small' ? styles.iconBtnSmall : styles.iconBtnMedium,
         variant === 'primary' && styles.iconBtnPrimary,
         variant === 'neutral' && styles.iconBtnNeutral,
-        variant === 'subtle' && styles.iconBtnSubtle,
-        (pressed || disabled) && styles.btnDim,
+        disabled ? styles.btnDisabled : pressed ? styles.iconBtnPressed : null,
         style,
       ]}
     >
@@ -386,7 +383,7 @@ export function Checkbox({
             : { backgroundColor: 'transparent', borderColor: colors.border },
         ]}
       >
-        {checked && <Text style={styles.checkboxCheck}>✓</Text>}
+        {checked && <Icon name="check" size={12} color="#ffffff" strokeWidth={3} />}
       </View>
       {(label || description) && (
         <View style={styles.radioTextCol}>
@@ -426,7 +423,7 @@ export function Modal({
         <View style={styles.modalHeader}>
           <Text style={typography.heading}>{title}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onPressClose(onClose)} hitSlop={8} style={styles.modalClose}>
-            <Text style={styles.modalCloseGlyph}>×</Text>
+            <Icon name="x" size={16} color={colors.textSecondary} />
           </Pressable>
         </View>
         <View style={styles.modalBody}>{children}</View>
@@ -586,7 +583,9 @@ const styles = StyleSheet.create({
   btnSmall: { minHeight: 32, paddingHorizontal: 8, paddingVertical: 8 },
   btnPrimary: { backgroundColor: colors.brandPrimary, borderWidth: 1, borderColor: colors.brandPrimary },
   btnNeutral: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.brandPrimary },
-  btnDim: { opacity: 0.4 },
+  btnDisabled: { opacity: 0.5 },
+  btnPressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
+  iconBtnPressed: { opacity: 0.82, transform: [{ scale: 0.92 }] },
   btnLabel: { color: colors.brandPrimary, lineHeight: undefined },
   btnLabelPrimary: { color: '#ffffff' },
   // IconButton
@@ -629,7 +628,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   radioDot: { width: 10, height: 10, borderRadius: 999, backgroundColor: colors.brandPrimary },
-  radioTextCol: { gap: 4, minWidth: 0 },
+  radioTextCol: { flex: 1, gap: 4, minWidth: 0 },
   // Checkbox: row gap-12 items-start; box 20px radius-4 (rounded, not full)
   // mt-2; check 12px white
   checkboxRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },

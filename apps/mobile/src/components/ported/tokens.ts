@@ -1,14 +1,8 @@
-/**
- * Tailwind-value cheat-sheet — the exact px values behind every web utility a
- * screen port will encounter. Source of truth: apps/web/styles/global.css and
- * node_modules/@figma/astraui/dist/styles.css. Screen agents: use these values
- * verbatim; do not approximate.
- *
- * Spacing and radius are re-exported from ../theme so there is one import site.
- */
-import { colors, radius, spacing, typography } from '../../theme'
+// layout and design token scales
 
-export { colors, radius, spacing, typography }
+import { colors, fontFamily, radius, spacing, typography } from '../../theme'
+
+export { colors, fontFamily, radius, spacing, typography }
 
 // --space-* (astraui styles.css :root)
 export const spacePx = {
@@ -33,17 +27,17 @@ export const tw = (units: number) => units * 4
 
 // Type utilities rendered by the kit (font-size / line-height / weight)
 export const typePx = {
-  title: { fontSize: 24, lineHeight: 33.6, fontWeight: '600' }, // text-title
-  heading: { fontSize: 20, lineHeight: 28, fontWeight: '500' }, // text-heading
-  caption: { fontSize: 20, lineHeight: 28, fontWeight: '600' }, // text-caption
-  label: { fontSize: 16, lineHeight: 22.4, fontWeight: '500' }, // text-label
-  labelSm: { fontSize: 14, lineHeight: 19.6, fontWeight: '500' }, // text-label-sm
-  input: { fontSize: 16, lineHeight: 22.4, fontWeight: '400' }, // text-input
-  inputSm: { fontSize: 14, lineHeight: 19.6, fontWeight: '500' }, // text-input-sm
-  meta: { fontSize: 12, lineHeight: undefined, fontWeight: '400' }, // text-caption-sm (line-height normal)
-  videoTitle: { fontSize: 12, lineHeight: undefined, fontWeight: '600' }, // text-video-title
-  base: { fontSize: 16, lineHeight: 24, fontWeight: '400' }, // text-base (kit buttons)
-  xs: { fontSize: 12, lineHeight: 16, fontWeight: '400' }, // text-xs (kit small buttons)
+  title: { fontFamily, fontSize: 24, lineHeight: 33.6, fontWeight: '600' }, // text-title
+  heading: { fontFamily, fontSize: 20, lineHeight: 28, fontWeight: '500' }, // text-heading
+  caption: { fontFamily, fontSize: 20, lineHeight: 28, fontWeight: '600' }, // text-caption
+  label: { fontFamily, fontSize: 16, lineHeight: 22.4, fontWeight: '500' }, // text-label
+  labelSm: { fontFamily, fontSize: 14, lineHeight: 19.6, fontWeight: '500' }, // text-label-sm
+  input: { fontFamily, fontSize: 16, lineHeight: 22.4, fontWeight: '400' }, // text-input
+  inputSm: { fontFamily, fontSize: 14, lineHeight: 19.6, fontWeight: '500' }, // text-input-sm
+  meta: { fontFamily, fontSize: 12, lineHeight: undefined, fontWeight: '400' }, // text-caption-sm (line-height normal)
+  videoTitle: { fontFamily, fontSize: 12, lineHeight: undefined, fontWeight: '600' }, // text-video-title
+  base: { fontFamily, fontSize: 16, lineHeight: 24, fontWeight: '400' }, // text-base (kit buttons)
+  xs: { fontFamily, fontSize: 12, lineHeight: 16, fontWeight: '400' }, // text-xs (kit small buttons)
 } as const
 
 // --elevation-raised: 0 4px 6px -1px #0000001a

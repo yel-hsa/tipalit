@@ -1,8 +1,5 @@
-/**
- * 1:1 port of apps/web/components/EditProfileSheet.tsx.
- * BottomSheet + InlineAlert + ProfileFields + kit Buttons; the campus-change
- * confirm footer and pending spinner states are reproduced exactly.
- */
+// edit profile bottom sheet
+
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { CAMPUSES, PROGRAMS, YEAR_LEVELS, campusLabel } from '@tipalit/services/seed'

@@ -14,9 +14,8 @@ import {
   Wordmark,
 } from '../components/ported'
 
-// 1:1 port of apps/web/screens/AuthScreen.tsx — same JSX tree, same copy,
-// same Tailwind values. The real signInWithGoogle() call comes from the
-// existing mobile session context; only the visuals are ported.
+// sign-in state
+
 type AuthState =
   | { kind: 'idle' }
   | { kind: 'pending' }
@@ -65,7 +64,7 @@ export default function SignInScreen() {
     <View style={styles.screen}>
       <View style={styles.hero}>
         <Wordmark size="lg" />
-        <Text role="heading" accessibilityRole="header" style={[typography.heading, { color: colors.text }]}>
+        <Text role="heading" accessibilityRole="header" style={[typography.heading, { color: colors.text, textAlign: 'center' }]}>
           Buy and sell campus essentials with fellow TIP students.
         </Text>
         <View style={styles.trustRow}>
@@ -121,7 +120,7 @@ export default function SignInScreen() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={[typography.meta, { color: colors.textSecondary }]}>
+        <Text style={[typography.meta, { color: colors.textSecondary, textAlign: 'center' }]}>
           By continuing you agree to TIPalit&apos;s
         </Text>
         <Button variant="subtle" size="small" label="community rules" onPress={() => setRulesOpen(true)} />
@@ -147,9 +146,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     justifyContent: 'center',
-    gap: space(6),
-    paddingHorizontal: space(4),
-    paddingVertical: space(6),
+    gap: spacePx['2xl'],
+    paddingHorizontal: spacePx.xl,
+    paddingVertical: spacePx['2xl'],
   },
   // flex flex-col items-center gap-lg text-center
   hero: { alignItems: 'center', gap: spacePx.lg },
@@ -165,5 +164,5 @@ const styles = StyleSheet.create({
   // w-full
   fullWidth: { alignSelf: 'stretch', width: '100%' },
   // flex flex-col items-center gap-xs text-center
-  footer: { alignItems: 'center', gap: space(1) },
+  footer: { alignItems: 'center', gap: spacePx.xs },
 })

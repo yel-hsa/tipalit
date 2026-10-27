@@ -1247,6 +1247,7 @@ function TipalitApp() {
 
   return (
     <PhoneShell
+      wide={route.name === 'admin'}
       tabBar={
         showTabs && activeTab ? (
           <BottomTabBar

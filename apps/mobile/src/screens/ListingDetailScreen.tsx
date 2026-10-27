@@ -1,13 +1,9 @@
-/**
- * 1:1 port of apps/web/screens/ProductDetailScreen.tsx.
- * Element order, nesting, copy, and style values match the web source exactly.
- * Mobile prop contract with AppShell is preserved (listing/onBack/onEdit/onMessage);
- * the extra web props (onShare/onReport/onSetStatus/onDelete) are wired to the
- * same handlers AppShell already exposes for the listing overlay.
- */
-import { useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+// listing detail screen
+
+import { useEffect, useState } from 'react'
+import { Image, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { CONDITION_BADGE, STATUS_BADGE, campusLabel, priceLabel, timeAgo } from '@tipalit/services/seed'
+import { createId } from '@tipalit/services/ids'
 import type { Listing, ListingStatus, Seller } from '@tipalit/services/types'
 import { useSession } from '../session'
 import { services } from '@tipalit/services'
@@ -24,6 +20,7 @@ import {
   spacePx,
   typePx,
 } from '../components/ported'
+import { ReportModal } from '../components/ported/modals'
 
 type Props = {
   listing: Listing
@@ -34,34 +31,45 @@ type Props = {
 
 export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage }: Props) {
   const { session } = useSession()
+  const [currentListing, setCurrentListing] = useState<Listing>(listing)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const [photoIndex, setPhotoIndex] = useState(0)
   const [busy, setBusy] = useState(false)
-  // error text is captured for the action handlers but not rendered, matching
-  // the web screen which surfaces these failures through the parent, not inline
   const [, setError] = useState<string | null>(null)
   const [seller, setSeller] = useState<Seller | null>(null)
 
-  // seller lookup (mobile keeps its existing data flow; web receives seller as a prop)
-  useState(() => {
-    services.profiles
-      .getSellers([listing.sellerId])
-      .then(([found]) => setSeller(found ?? null))
-      .catch(() => setSeller(null))
-  })
+  useEffect(() => {
+    setCurrentListing(listing)
+  }, [listing])
 
-  const isOwn = listing.sellerId === session?.userId
-  const photos = listing.imageUrls.length > 0 ? listing.imageUrls : [listing.imageUrl]
+  useEffect(() => {
+    let active = true
+    services.profiles
+      .getSellers([currentListing.sellerId])
+      .then(([found]) => {
+        if (active) setSeller(found ?? null)
+      })
+      .catch(() => {
+        if (active) setSeller(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [currentListing.sellerId])
+
+  const isOwn = currentListing.sellerId === session?.userId
+  const photos = currentListing.imageUrls.length > 0 ? currentListing.imageUrls : [currentListing.imageUrl]
   const current = Math.min(photoIndex, photos.length - 1)
-  const sold = listing.status === 'sold'
-  const reserved = listing.status === 'reserved'
+  const sold = currentListing.status === 'sold'
+  const reserved = currentListing.status === 'reserved'
   const unavailable = sold || reserved
 
   const message = async () => {
     setBusy(true)
     setError(null)
     try {
-      const thread = await services.chat.openThread({ id: listing.id, sellerId: listing.sellerId })
+      const thread = await services.chat.openThread({ id: currentListing.id, sellerId: currentListing.sellerId })
       onMessage(thread.id)
     } catch {
       setError('We could not open the chat. Try again.')
@@ -71,16 +79,53 @@ export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage
   }
 
   const onSetStatus = (status: ListingStatus) => {
-    services.listings.setStatus(listing.id, status).catch(() => setError('We could not update the listing. Try again.'))
+    const prevStatus = currentListing.status
+    setCurrentListing((prev) => ({ ...prev, status }))
+    services.listings.setStatus(currentListing.id, status).catch(() => {
+      setCurrentListing((prev) => ({ ...prev, status: prevStatus }))
+      setError('We could not update the listing. Try again.')
+    })
   }
 
   const onDelete = () => {
-    services.listings.remove(listing.id).catch(() => setError('We could not delete the listing. Try again.'))
+    services.listings.remove(currentListing.id).catch(() => setError('We could not delete the listing. Try again.'))
     onBack()
   }
 
-  const onShare = () => setError('Sharing is not available on this device yet.')
-  const onReport = () => setError('Reporting is not available on this device yet.')
+  const onShare = async () => {
+    try {
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'share' in navigator) {
+        await (navigator as Navigator & { share: (d: { title: string; text: string }) => Promise<void> }).share({
+          title: currentListing.title,
+          text: `${currentListing.title} - ${priceLabel(currentListing)} on TIPalit`,
+        })
+      } else {
+        await Share.share({
+          message: `${currentListing.title} - ${priceLabel(currentListing)} on TIPalit`,
+        })
+      }
+    } catch {
+      // dismissed
+    }
+  }
+
+  const onReport = () => setReportOpen(true)
+
+  const submitReport = async (reason: string, details: string) => {
+    try {
+      await services.reports.submit({
+        id: createId('r'),
+        target: { kind: 'listing', id: currentListing.id },
+        reason,
+        details,
+      })
+      setReportOpen(false)
+      return true
+    } catch {
+      return false
+    }
+  }
+
 
   return (
     <View style={styles.screen}>
@@ -91,7 +136,7 @@ export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage
             source={{ uri: photos[current] }}
             style={[styles.photo, unavailable && styles.photoUnavailable]}
             accessibilityIgnoresInvertColors
-            accessibilityLabel={listing.title}
+            accessibilityLabel={currentListing.title}
           />
           {photos.length > 1 && (
             <>
@@ -110,7 +155,7 @@ export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage
               <View style={styles.arrowsRow} pointerEvents="box-none">
                 <IconButton
                   variant="subtle"
-                  icon={<Icon name="arrow-right" size={16} color={colors.onOverlay} />}
+                  icon={<Icon name="arrow-left" size={16} color={colors.onOverlay} />}
                   accessibilityLabel="Previous photo"
                   disabled={current === 0}
                   onPress={() => setPhotoIndex((index) => Math.max(0, index - 1))}
@@ -118,7 +163,7 @@ export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage
                 />
                 <IconButton
                   variant="subtle"
-                  icon={<Icon name="arrow-left" size={16} color={colors.onOverlay} />}
+                  icon={<Icon name="arrow-right" size={16} color={colors.onOverlay} />}
                   accessibilityLabel="Next photo"
                   disabled={current === photos.length - 1}
                   onPress={() => setPhotoIndex((index) => Math.min(photos.length - 1, index + 1))}
@@ -170,30 +215,30 @@ export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage
           <View style={styles.card}>
             <View style={styles.badgeRow}>
               {(() => {
-                const statusBadge = STATUS_BADGE[listing.status]
+                const statusBadge = STATUS_BADGE[currentListing.status]
                 return statusBadge ? <Badge variant={statusBadge.variant} label={statusBadge.label} /> : null
               })()}
-              <Badge variant={CONDITION_BADGE[listing.condition]} label={listing.condition} />
-              <Badge variant="brand" label={listing.courseCode} />
-              <Badge variant="default" label={listing.category} />
+              <Badge variant={CONDITION_BADGE[currentListing.condition]} label={currentListing.condition} />
+              <Badge variant="brand" label={currentListing.courseCode} />
+              <Badge variant="default" label={currentListing.category} />
             </View>
             <View style={styles.titleCol}>
               <Text accessibilityRole="header" aria-level={1} style={[typePx.heading, styles.textPrimary]}>
-                {listing.title}
+                {currentListing.title}
               </Text>
               <Text style={[typePx.title, unavailable ? styles.priceUnavailable : styles.textPrimary]}>
-                {priceLabel(listing)}
+                {priceLabel(currentListing)}
               </Text>
               <View style={styles.metaRow}>
                 <Icon name="clock" size={12} color={colors.textSecondary} />
                 <Text style={[typePx.meta, { color: colors.textSecondary }]}>
-                  Posted {timeAgo(listing.createdAt)} · {listing.department}
+                  Posted {timeAgo(currentListing.createdAt)} · {currentListing.department}
                 </Text>
               </View>
             </View>
             <View style={styles.titleCol}>
               <Text style={[typePx.label, styles.descriptionLabel, styles.textPrimary]}>Description</Text>
-              <Text style={[typePx.labelSm, { color: colors.textSecondary }]}>{listing.description}</Text>
+              <Text style={[typePx.labelSm, { color: colors.textSecondary }]}>{currentListing.description}</Text>
             </View>
           </View>
 
@@ -207,7 +252,7 @@ export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage
               reviews: seller?.reviews,
             }}
           />
-          <MeetupLocationBlock spot={listing.meetupSpot} campusLabel={campusLabel(listing.campus)} />
+          <MeetupLocationBlock spot={currentListing.meetupSpot} campusLabel={campusLabel(currentListing.campus)} />
         </View>
       </ScrollView>
 
@@ -215,7 +260,7 @@ export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage
       <View style={styles.footer}>
         {isOwn ? (
           <View style={styles.footerOwn}>
-            <Button label="Edit" variant="neutral" iconStart={<Icon name="pencil" size={16} color={colors.brandPrimary} />} onPress={() => onEdit(listing)} style={styles.footerBtn} />
+            <Button label="Edit" variant="neutral" iconStart={<Icon name="pencil" size={16} color={colors.brandPrimary} />} onPress={() => onEdit(currentListing)} style={styles.footerBtn} />
             <View style={styles.footerGrid}>
               <Button
                 label={reserved ? 'Mark as available' : 'Reserve'}
@@ -252,7 +297,7 @@ export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage
         title="Delete this listing?"
         body={
           <Text style={[typePx.labelSm, { color: colors.textSecondary }]}>
-            <Text style={{ color: colors.text }}>{listing.title}</Text> will be removed from the feed and your profile.
+            <Text style={{ color: colors.text }}>{currentListing.title}</Text> will be removed from the feed and your profile.
             Chats about it stay, marked “Listing removed”.
           </Text>
         }
@@ -263,6 +308,13 @@ export default function ListingDetailScreen({ listing, onBack, onEdit, onMessage
           setConfirmDelete(false)
           onDelete()
         }}
+      />
+
+      <ReportModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        target={{ kind: 'listing', id: currentListing.id, name: currentListing.title }}
+        onSubmit={submitReport}
       />
     </View>
   )

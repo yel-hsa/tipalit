@@ -74,7 +74,7 @@ export default function DataTable<T>({
   }
 
   return (
-    <div className="overflow-hidden rounded-corner-lg border border-border-primary bg-surface-bg">
+    <div className="overflow-hidden rounded-2xl border border-border-secondary/80 bg-surface-bg shadow-xs">
       <div className="max-h-[calc(100dvh-19rem)] overflow-auto">
         <table className="w-full table-fixed border-collapse text-left">
           <caption className="sr-only">{label}</caption>
@@ -90,7 +90,7 @@ export default function DataTable<T>({
                     aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
                     // sticky on the cell (not thead/tr) so it works with border-collapse; the opaque
                     // surface bg + z-10 keep scrolling rows from showing through the header
-                    className={`sticky top-0 z-10 border-b border-border-primary bg-surface-bg px-lg py-md text-th uppercase tracking-wide text-text-secondary ${column.width ?? ''} ${
+                    className={`sticky top-0 z-10 border-b border-border-secondary/80 bg-surface-bg px-lg py-md text-th font-semibold uppercase tracking-wider text-text-secondary ${column.width ?? ''} ${
                       column.align === 'right' ? 'text-right' : ''
                     }`}
                   >
@@ -142,9 +142,9 @@ export default function DataTable<T>({
                   }
                   tabIndex={interactive ? 0 : undefined}
                   aria-label={interactive ? rowLabel?.(row) : undefined}
-                  className={`stagger animate-rise-in border-b border-border-secondary last:border-b-0 transition-colors ${
+                  className={`stagger animate-rise-in border-b border-border-secondary/70 last:border-b-0 transition-all duration-150 ${
                     interactive
-                      ? 'cursor-pointer hover:bg-bg-hover focus-visible:bg-bg-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-primary'
+                      ? 'cursor-pointer hover:bg-surface-hover/70 active:scale-[0.999] focus-visible:bg-surface-hover/70 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-primary'
                       : ''
                   } ${muted ? 'opacity-60' : ''}`}
                 >
@@ -166,7 +166,7 @@ export default function DataTable<T>({
       </div>
 
       {pageSize && sorted.length > pageSize && (
-        <div className="flex items-center justify-between gap-md border-t border-border-secondary px-lg py-sm">
+        <div className="flex items-center justify-between gap-md border-t border-border-secondary/80 px-lg py-sm">
           <span className="text-caption-sm text-text-secondary tabular-nums">
             {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, sorted.length)} of {sorted.length}
           </span>

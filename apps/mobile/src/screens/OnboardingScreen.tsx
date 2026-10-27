@@ -1,19 +1,8 @@
-/**
- * 1:1 port of apps/web/screens/OnboardingScreen.tsx.
- * Structure, copy, and styling match the web screen element-by-element:
- * sticky header (back IconButton + "Step N of 2" + progress bar), profile
- * form (ProfileFields in a surface card + primary Continue pinned with
- * mt-auto), safety pledge (SafetyRulesList card + Checkbox card + Finish),
- * and the "Leave setup?" ConfirmModal.
- *
- * Mobile deviation (flow only): the web screen receives step/onSaveProfile/
- * onFinish/onBack/onSignOut props from its parent; the mobile gate renders
- * <OnboardingScreen /> bare, so the same two-step state machine lives inside
- * this component on top of useSession — the rendered output is identical and
- * the App.tsx contract is unchanged.
- */
+// student onboarding screen
+
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { isProfileComplete } from '@tipalit/services/profile'
 import { CAMPUSES, PROGRAMS, SAFETY_RULES, YEAR_LEVELS } from '@tipalit/services/seed'
 import type { Profile } from '@tipalit/services/types'
 import { useSession } from '../session'
@@ -42,7 +31,9 @@ const STEPS: OnboardingStep[] = ['profile', 'safety']
 
 export default function OnboardingScreen() {
   const { session, profile, saveProfile, signOut } = useSession()
-  const [step, setStep] = useState<OnboardingStep>('profile')
+  const [step, setStep] = useState<OnboardingStep>(() =>
+    isProfileComplete(profile) ? 'safety' : 'profile',
+  )
   const [draft, setDraft] = useState<ProfileDraft>(() =>
     draftFromProfile(profile, session?.name ?? ''),
   )
@@ -61,7 +52,7 @@ export default function OnboardingScreen() {
   // no-op on mobile (accessibilityRole="header" is kept on the heading).
 
   const continueToSafety = async () => {
-    if (pending) return
+    if (pending || !session) return
     setSubmitted(true)
     const nextErrors = validateProfile(draft)
     const first = PROFILE_FIELD_ORDER.find((key) => nextErrors[key])
@@ -69,7 +60,14 @@ export default function OnboardingScreen() {
     setPending(true)
     // partial save keeps needsOnboarding true, so the gate keeps this screen
     // mounted for the pledge step — same as the web's onSaveProfile contract
-    await saveProfile(partialProfile(draft))
+    await saveProfile({
+      ...(profile ?? { userId: session.userId, joinedAt: new Date().toISOString() }),
+      name: draft.name.trim(),
+      email: session.email,
+      campus: (draft.campus || undefined) as Profile['campus'],
+      program: draft.program,
+      year: draft.year,
+    })
     // screen stays mounted for the pledge step, so clear pending on success too
     setPending(false)
     setStep('safety')
@@ -89,14 +87,16 @@ export default function OnboardingScreen() {
   const saveCompleteProfile = async (next: ProfileDraft): Promise<boolean> => {
     if (!session) return false
     try {
+      const now = new Date().toISOString()
       await saveProfile({
-        ...(profile ?? { userId: session.userId, joinedAt: new Date().toISOString() }),
+        ...(profile ?? { userId: session.userId, joinedAt: now }),
         name: next.name.trim(),
         email: session.email,
         campus: next.campus as Profile['campus'],
         program: next.program,
         year: next.year,
-        onboardedAt: new Date().toISOString(),
+        safetyAcceptedAt: now,
+        onboardedAt: now,
       })
       return true
     } catch {
@@ -230,20 +230,6 @@ export default function OnboardingScreen() {
   )
 }
 
-// partial profile: everything except onboardedAt, so the gate keeps onboarding
-const partialProfile = (draft: ProfileDraft): Profile => {
-  // the session gate guarantees a session here; a placeholder userId keeps the
-  // type satisfied if a race removes it
-  return {
-    userId: '',
-    joinedAt: new Date().toISOString(),
-    name: draft.name.trim(),
-    email: '',
-    campus: (draft.campus || undefined) as Profile['campus'],
-    program: draft.program,
-    year: draft.year,
-  } as Profile
-}
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },

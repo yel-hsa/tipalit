@@ -1,8 +1,5 @@
-/**
- * 1:1 port of apps/web/screens/ProfileScreen.tsx — same JSX tree, same order,
- * same copy; every Tailwind class translated to exact RN values from the
- * ported token tables. Hover states collapse into pressed opacity (touch).
- */
+// user profile screen
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { services } from '@tipalit/services'
@@ -107,7 +104,7 @@ export default function ProfileScreen({
   reviewerMode = false,
   onToggleReviewerMode = () => undefined,
 }: ProfileScreenProps) {
-  const { session, profile, isAdmin, signOut } = useSession()
+  const { session, profile, isAdmin, saveProfile, signOut } = useSession()
   const [theme, setTheme] = useState<Theme>('light')
   const [editing, setEditing] = useState(false)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
@@ -161,13 +158,14 @@ export default function ProfileScreen({
     if (listing) onOpen(listing)
   }
   const onSaveProfile = async (draft: import('../components/ported').ProfileDraft) => {
-    await services.profiles.save({
+    const next = {
       ...profile,
       name: draft.name,
       campus: draft.campus || profile.campus,
       program: draft.program,
       year: draft.year,
-    })
+    }
+    await saveProfile(next)
     return true
   }
   const onThemeChange = () => undefined
@@ -530,7 +528,7 @@ const styles = StyleSheet.create({
   rowItemLast: { borderBottomWidth: 0 },
   // row Pressable: items-center gap-lg p-lg (hover:bg-surface-hover -> pressed)
   rowPress: { flexDirection: 'row', alignItems: 'center', gap: spacePx.lg, padding: spacePx.lg },
-  rowPressed: { backgroundColor: colors.surfaceHover },
+  rowPressed: { backgroundColor: colors.surfaceHover, opacity: 0.9, transform: [{ scale: 0.99 }] },
   // img size-14 (56) radius-md; sold: opacity-60 grayscale
   rowImage: { width: 56, height: 56, borderRadius: radius.md, flexShrink: 0, backgroundColor: colors.bgSubtle },
   rowImageSold: { opacity: 0.6 },

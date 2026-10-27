@@ -22,9 +22,9 @@ const NOTE_LIMIT = 300
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-xs rounded-corner-md bg-bg-faint p-md">
-      <span className="text-caption-sm text-text-secondary">{label}</span>
-      <span className="text-label-sm text-text-primary">{value}</span>
+    <div className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-surface-bg border border-border-secondary/80 p-3 text-center shadow-xs">
+      <span className="text-xl font-bold tracking-tight text-text-primary font-sans">{value}</span>
+      <span className="text-xs font-medium text-text-secondary">{label}</span>
     </div>
   )
 }

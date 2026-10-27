@@ -64,7 +64,7 @@ export const getFirebaseConfig = (): FirebaseConfig => injectedConfig ?? EMPTY_C
 
 export const isFirebaseConfigured = (): boolean => {
   const config = getFirebaseConfig()
-  return Boolean(config.apiKey && config.projectId)
+  return Boolean((config.apiKey && config.projectId) || emulatorConfig)
 }
 
 let appInstance: FirebaseApp | null = null
@@ -83,15 +83,15 @@ export const getFirebaseApp = (): FirebaseApp => {
 
   const config = getFirebaseConfig()
   // placeholder config keeps the app from crashing when env vars are missing
-  const effectiveConfig = isFirebaseConfigured()
+  const effectiveConfig = (config.apiKey && config.projectId)
     ? config
     : {
-        apiKey: 'AIzaSyDemoPlaceholderKeyForTIPalitApp',
-        authDomain: 'tipalit-campus.firebaseapp.com',
-        projectId: 'tipalit-campus',
-        storageBucket: 'tipalit-campus.appspot.com',
-        messagingSenderId: '123456789012',
-        appId: '1:123456789012:web:abcdef1234567890',
+        apiKey: config.apiKey || 'AIzaSyDemoPlaceholderKeyForTIPalitApp',
+        authDomain: config.authDomain || (emulatorConfig ? 'demo-tipalit.firebaseapp.com' : 'tipalit-campus.firebaseapp.com'),
+        projectId: config.projectId || (emulatorConfig ? 'demo-tipalit' : 'tipalit-campus'),
+        storageBucket: config.storageBucket || (emulatorConfig ? 'demo-tipalit.appspot.com' : 'tipalit-campus.appspot.com'),
+        messagingSenderId: config.messagingSenderId || '123456789012',
+        appId: config.appId || '1:123456789012:web:abcdef1234567890',
       }
 
   appInstance = initializeApp(effectiveConfig)

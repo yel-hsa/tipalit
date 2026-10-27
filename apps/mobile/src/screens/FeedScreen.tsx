@@ -1,15 +1,5 @@
-/**
- * 1:1 port of apps/web/screens/FeedScreen.tsx.
- * Element order, nesting, copy and px values match the web source exactly;
- * Tailwind classes are translated per apps/mobile/src/components/ported/tokens.ts.
- *
- * Interface note: the mobile shell owns data loading (services.listings /
- * services.promotions) and tab navigation, so the web's `listings`, `loading`,
- * `error`, `onRetry`, `userName`, `userInitials`, `campusLabel` props are
- * derived internally from the session/services, and `onSell` / `onOpenProfile`
- * / `onOpenPromotion` are optional callbacks wired by AppShell. `onOpen`
- * keeps the existing mobile contract (receives the Listing object).
- */
+// marketplace feed screen
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { services } from '@tipalit/services'

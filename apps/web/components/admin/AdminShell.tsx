@@ -44,15 +44,15 @@ export default function AdminShell({
   const current = NAV_ITEMS.find((item) => item.id === section) ?? NAV_ITEMS[0]
 
   return (
-    <div className="flex h-dvh w-full overflow-hidden bg-surface-hover">
+    <div className="flex h-dvh w-full overflow-hidden bg-bg-faint/50">
       <a href="#admin-main" className="skip-link">
         Skip to content
       </a>
       <nav
         aria-label="Admin sections"
-        className="flex w-sidebar shrink-0 flex-col border-r border-border-primary bg-surface-bg"
+        className="flex w-sidebar shrink-0 flex-col border-r border-border-secondary/80 bg-surface-bg"
       >
-        <div className="flex h-16 shrink-0 items-center border-b border-border-secondary px-xl">
+        <div className="flex h-16 shrink-0 items-center border-b border-border-secondary/80 px-xl">
           <Wordmark />
         </div>
 
@@ -66,17 +66,17 @@ export default function AdminShell({
                   type="button"
                   aria-current={active ? 'page' : undefined}
                   onClick={() => onSectionChange(item.id)}
-                  className={`flex w-full items-center gap-md rounded-corner-md px-md py-sm text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary ${
+                  className={`flex w-full items-center gap-md rounded-xl px-md py-sm text-left transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary ${
                     active
-                      ? 'bg-brand-tertiary text-brand-primary'
-                      : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+                      ? 'bg-brand-primary text-on-brand shadow-xs font-medium'
+                      : 'text-text-secondary hover:bg-surface-hover/80 hover:text-text-primary'
                   }`}
                 >
                   <item.icon size={18} className="shrink-0" aria-hidden="true" />
                   <span className="flex-1 truncate text-cell-strong">{item.label}</span>
                   {count > 0 && (
                     <Badge
-                      variant={item.id === 'reports' ? 'danger' : 'default'}
+                      variant={active ? 'warning' : item.id === 'reports' ? 'danger' : 'default'}
                       label={count}
                       className="tabular-nums"
                     />
@@ -87,7 +87,7 @@ export default function AdminShell({
           })}
         </ul>
 
-        <div className="shrink-0 border-t border-border-secondary p-md">
+        <div className="shrink-0 border-t border-border-secondary/80 p-md">
           <AccountMenu
             session={session}
             theme={theme}
@@ -99,9 +99,9 @@ export default function AdminShell({
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center justify-between gap-xl border-b border-border-primary bg-surface-bg px-2xl">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-xl border-b border-border-secondary/80 bg-surface-bg/95 backdrop-blur-sm px-2xl">
           <div className="min-w-0">
-            <h1 className="truncate text-section text-text-primary">{current.label}</h1>
+            <h1 className="truncate text-section font-semibold text-text-primary">{current.label}</h1>
             <p className="truncate text-caption-sm text-text-secondary">{current.description}</p>
           </div>
           <div className="flex shrink-0 items-center gap-md">
@@ -109,14 +109,14 @@ export default function AdminShell({
               <button
                 type="button"
                 onClick={() => onSectionChange('reports')}
-                className="flex items-center gap-xs rounded-corner-full bg-danger-soft px-md py-xs text-caption-sm font-semibold text-danger transition-colors hover:bg-danger/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
+                className="flex items-center gap-xs rounded-full bg-danger-soft border border-danger/20 px-md py-xs text-caption-sm font-semibold text-danger transition-all hover:bg-danger-soft/80 hover:scale-[1.02] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
               >
-                <span className="size-1.5 animate-pulse rounded-corner-full bg-danger motion-reduce:animate-none" aria-hidden="true" />
+                <span className="size-1.5 animate-pulse rounded-full bg-danger motion-reduce:animate-none" aria-hidden="true" />
                 {counts.reports} open {counts.reports === 1 ? 'report' : 'reports'}
               </button>
             ) : (
               <span className="flex items-center gap-xs text-caption-sm text-text-secondary">
-                <span className="size-1.5 rounded-corner-full bg-success" aria-hidden="true" />
+                <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
                 Queue clear
               </span>
             )}

@@ -62,20 +62,22 @@ function Metric({
   return (
     <div
       style={{ '--i': index } as CSSProperties}
-      className="stagger flex animate-rise-in flex-col gap-md rounded-corner-lg border border-border-primary bg-surface-bg p-xl transition-[box-shadow,border-color] duration-200 hover:border-border-selected hover:shadow-raised"
+      className="stagger flex animate-rise-in flex-col gap-md rounded-2xl border border-border-secondary/80 bg-surface-bg p-xl shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs hover:border-border-primary/60"
     >
       <div className="flex items-center justify-between">
         <span className="text-cell-strong text-text-secondary">{label}</span>
         <span
           aria-hidden="true"
-          className={`flex size-8 items-center justify-center rounded-corner-md ${
-            tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-bg-subtle text-text-secondary'
+          className={`flex size-9 items-center justify-center rounded-xl ${
+            tone === 'danger'
+              ? 'bg-danger-soft text-danger border border-danger/20'
+              : 'bg-bg-subtle text-text-secondary'
           }`}
         >
           {icon}
         </span>
       </div>
-      <span className="text-metric text-text-primary tabular-nums">
+      <span className="text-metric font-semibold text-text-primary tabular-nums tracking-tight">
         {value > 0 && !Number.isInteger(value) ? value.toFixed(1) : shown}
       </span>
       <span className="text-caption-sm text-text-tertiary">{hint}</span>
@@ -85,9 +87,9 @@ function Metric({
 
 function Panel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <section className="flex animate-rise-in flex-col rounded-corner-lg border border-border-primary bg-surface-bg [animation-delay:120ms]">
-      <div className="flex items-center justify-between gap-md border-b border-border-secondary px-xl py-md">
-        <h2 className="text-section text-text-primary">{title}</h2>
+    <section className="flex animate-rise-in flex-col rounded-2xl border border-border-secondary/80 bg-surface-bg shadow-xs overflow-hidden [animation-delay:120ms]">
+      <div className="flex items-center justify-between gap-md border-b border-border-secondary/80 px-xl py-md">
+        <h2 className="text-section font-semibold text-text-primary">{title}</h2>
         {action}
       </div>
       <div className="flex-1 p-xl">{children}</div>
@@ -248,11 +250,11 @@ export default function DashboardSection({
               {openReports.slice(0, 4).map((report) => {
                 const badge = reportBadge(report)
                 return (
-                  <li key={report.id} className="border-b border-border-secondary last:border-b-0">
+                  <li key={report.id} className="border-b border-border-secondary/80 last:border-b-0">
                     <button
                       type="button"
                       onClick={() => onOpenReport(report.id)}
-                      className="flex w-full items-center gap-md py-sm text-left hover:bg-bg-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-primary"
+                      className="flex w-full items-center gap-md py-sm px-xs rounded-xl text-left hover:bg-surface-hover/80 active:scale-[0.99] transition-all focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-primary"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-cell-strong text-text-primary">{report.target.label}</p>
@@ -294,7 +296,7 @@ export default function DashboardSection({
                   <li key={entry.id} className="flex items-start gap-md">
                     <span
                       aria-hidden="true"
-                      className="mt-xs flex size-6 shrink-0 items-center justify-center rounded-corner-full bg-bg-subtle text-text-secondary"
+                      className="mt-xs flex size-7 shrink-0 items-center justify-center rounded-xl bg-bg-subtle text-text-secondary"
                     >
                       <Icon size={12} />
                     </span>
@@ -321,7 +323,7 @@ export default function DashboardSection({
                     src={listing.imageUrl}
                     alt=""
                     loading="lazy"
-                    className="size-9 shrink-0 rounded-corner-sm object-cover"
+                    className="size-10 shrink-0 rounded-xl object-cover border border-border-secondary/60"
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-cell text-text-primary">{listing.title}</p>

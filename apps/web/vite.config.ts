@@ -270,7 +270,7 @@ function figmaErrorOverlayReplay(): Plugin {
 
 /**
  * Reload when a module that previously defined a React Refresh boundary stops
- * defining one. This happens when an agent moves a component into a new file
+ * defining one. This happens when a component is moved into a new file
  * and replaces the old module with a re-export:
  *
  *   export { default } from './app/App'

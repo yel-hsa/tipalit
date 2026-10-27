@@ -15,7 +15,24 @@ setFirebaseConfig({
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? '',
 })
 
-if (process.env.EXPO_PUBLIC_FIREBASE_EMULATORS === 'true') {
+const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+const urlEmulators = searchParams?.get('emulators')
+if (urlEmulators === 'true') {
+  try {
+    localStorage.setItem('tipalit_emulators', 'true')
+  } catch {}
+} else if (urlEmulators === 'false') {
+  try {
+    localStorage.removeItem('tipalit_emulators')
+  } catch {}
+}
+
+const useEmulators =
+  process.env.EXPO_PUBLIC_FIREBASE_EMULATORS === 'true' ||
+  urlEmulators === 'true' ||
+  (typeof localStorage !== 'undefined' && localStorage.getItem('tipalit_emulators') === 'true')
+
+if (useEmulators) {
   setFirebaseEmulatorConfig({
     host: process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST ?? '127.0.0.1',
     authPort: 9099,
@@ -25,17 +42,29 @@ if (process.env.EXPO_PUBLIC_FIREBASE_EMULATORS === 'true') {
   })
 }
 
-setDataAdapter(process.env.EXPO_PUBLIC_DATA_ADAPTER)
+const adapter =
+  process.env.EXPO_PUBLIC_DATA_ADAPTER ||
+  (searchParams?.get('adapter') as string | undefined) ||
+  (useEmulators ? 'firebase' : undefined)
 
-// in-memory until a native key-value store is wired; sessions do not survive a restart
+setDataAdapter(adapter)
+
+// in-memory until a native key-value store is wired; on web, delegate to localStorage
 const memory = new Map<string, string>()
+const hasLocalStorage = typeof localStorage !== 'undefined'
 
 setPlatform({
   storage: {
-    getItem: (key) => memory.get(key) ?? null,
-    setItem: (key, value) => void memory.set(key, value),
-    removeItem: (key) => void memory.delete(key),
-    keys: () => [...memory.keys()],
+    getItem: (key) => (hasLocalStorage ? localStorage.getItem(key) : (memory.get(key) ?? null)),
+    setItem: (key, value) => {
+      if (hasLocalStorage) localStorage.setItem(key, value)
+      else memory.set(key, value)
+    },
+    removeItem: (key) => {
+      if (hasLocalStorage) localStorage.removeItem(key)
+      else memory.delete(key)
+    },
+    keys: () => (hasLocalStorage ? Object.keys(localStorage) : [...memory.keys()]),
   },
   setTimeout: (fn, ms) => setTimeout(fn, ms),
   clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
@@ -47,3 +76,16 @@ setPlatform({
   // Until then the firebase adapter's signInWithGoogle surfaces a network
   // failure on native; students should sign in on web or via the handler above.
 })
+
+// inject Google Fonts for Instrument Sans when running in browser / Expo web
+if (typeof document !== 'undefined') {
+  const fontId = 'instrument-sans-web-font'
+  if (!document.getElementById(fontId)) {
+    const link = document.createElement('link')
+    link.id = fontId
+    link.rel = 'stylesheet'
+    link.href = 'https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;450;500;600;700&display=swap'
+    document.head?.appendChild(link)
+  }
+}
+

@@ -92,7 +92,7 @@ export default function ReportReviewSheet({
       }
     >
       <div className="flex flex-col gap-xl">
-        <section aria-label="Report" className="flex flex-col gap-md rounded-corner-md bg-bg-faint p-lg">
+        <section aria-label="Report" className="flex flex-col gap-md rounded-2xl border border-border-secondary/80 bg-surface-bg p-xl shadow-xs">
           <div className="flex items-start gap-md">
             <span
               aria-hidden="true"
@@ -192,7 +192,7 @@ export default function ReportReviewSheet({
           </>
         ) : (
           report.resolution && (
-            <section aria-label="Outcome" className="flex flex-col gap-xs rounded-corner-md border border-border-secondary p-lg">
+            <section aria-label="Outcome" className="flex flex-col gap-xs rounded-2xl border border-border-secondary/80 bg-surface-bg p-xl shadow-xs">
               <p className="text-label-sm font-semibold text-text-primary">{ACTION_COPY[report.resolution.action].label}</p>
               <p className="text-caption-sm text-text-secondary">
                 {report.resolution.byName} &middot; {timeAgo(report.resolution.at)}

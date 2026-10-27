@@ -1,18 +1,9 @@
-/**
- * 1:1 port of apps/web/screens/AddListingScreen.tsx (create/edit listing form).
- * Element order, nesting, copy, and styling values match the web source;
- * Tailwind classes are converted with the values in components/ported/tokens.ts.
- *
- * Mobile deviations (documented):
- * - Web's hidden <input type="file"> becomes expo-image-picker (image library),
- *   matching the web dropzone's "Tap to browse" affordance.
- * - Web's canvas downscale becomes expo-image-manipulator (same 900px/0.82 jpeg).
- * - focusField scrollIntoView becomes ScrollView.scrollTo + input focus.
- */
+// listing creation and edit screen
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator'
 import { services } from '@tipalit/services'
 import { CATEGORY_FALLBACK_IMAGES, CATEGORY_LIST, SUBJECT_CODES, campusLabel } from '@tipalit/services/seed'
 import type {
@@ -72,10 +63,12 @@ const MAX_PHOTOS = 5
 
 // downscale to a jpeg data url so the photo fits inside the listing document
 const toDataUrl = async (uri: string): Promise<string> => {
-  const context = ImageManipulator.manipulate(uri).resize({ width: MAX_PHOTO_EDGE })
-  const image = await context.renderAsync()
-  const result = await image.saveAsync({ compress: 0.82, format: SaveFormat.JPEG, base64: true })
-  return `data:image/jpeg;base64,${result.base64}`
+  const result = await manipulateAsync(uri, [{ resize: { width: MAX_PHOTO_EDGE } }], {
+    compress: 0.82,
+    format: SaveFormat.JPEG,
+    base64: true,
+  })
+  return result.base64 ? `data:image/jpeg;base64,${result.base64}` : result.uri
 }
 
 type SellScreenProps = {
@@ -260,7 +253,7 @@ export default function SellScreen({ listing, onPublished, onCancel, autoValidat
             </FormField>
           </View>
           <View style={styles.grid2}>
-            <View onLayout={trackField('price')}>
+            <View style={styles.grid2Col} onLayout={trackField('price')}>
               <FormField error={shown.price}>
                 {transactionType === 'sale' ? (
                   <InputField
@@ -281,7 +274,7 @@ export default function SellScreen({ listing, onPublished, onCancel, autoValidat
                 )}
               </FormField>
             </View>
-            <View onLayout={trackField('category')}>
+            <View style={styles.grid2Col} onLayout={trackField('category')}>
               <FormField error={shown.category}>
                 <SelectField
                   label="Category"
@@ -295,14 +288,16 @@ export default function SellScreen({ listing, onPublished, onCancel, autoValidat
             </View>
           </View>
           <View onLayout={trackField('subject')}>
-            <SelectField
-              label="Subject code"
-              placeholder="Choose"
-              options={toOptions(SUBJECT_CODES)}
-              value={subject}
-              onChange={setSubject}
-              disabled={pending}
-            />
+            <FormField error={shown.subject}>
+              <SelectField
+                label="Subject code"
+                placeholder="Choose"
+                options={toOptions(SUBJECT_CODES)}
+                value={subject}
+                onChange={setSubject}
+                disabled={pending}
+              />
+            </FormField>
           </View>
           <TextareaField
             label="Description"
@@ -385,6 +380,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { ...typography.label, fontWeight: '600', color: colors.text },
   grid2: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
+  grid2Col: { flex: 1 },
   prefix: { ...typography.inputSm, color: colors.textSecondary },
   noPriceBox: {
     flexGrow: 1,

@@ -1,26 +1,5 @@
-/**
- * 1:1 port of apps/web/screens/ChatListScreen.tsx.
- *
- * Web JSX tree (element-for-element):
- *   div.flex.flex-1.flex-col
- *     ScreenHeader title="Chats" subtitle="Arrange meetups with verified sellers"
- *     div.px-xl.pb-xl
- *       loading  -> div[role=status].overflow-hidden.rounded-corner-lg.bg-surface-bg > ChatRowSkeleton x4
- *       error    -> LoadError what="chats" onRetry
- *       empty    -> EmptyState icon=MessageCircle title/body copy
- *                   + Button primary small iconStart=Search(14) "Browse listings"
- *       rows     -> ul.overflow-hidden.rounded-corner-lg.bg-surface-bg
- *           li.border-b.border-border-secondary.last:border-b-0
- *             Pressable.flex.items-center.gap-lg.p-lg.hover:bg-surface-hover
- *               Avatar initial large (seller.initials)
- *               div.min-w-0.flex-1
- *                 div.flex.items-center.gap-sm
- *                   p.text-label.text-text-primary.truncate  seller.name
- *                   needsReply && Badge warning "Respond"
- *                 p.text-caption-sm.text-text-secondary.truncate  listing line
- *                 p.text-label-sm.text-text-secondary.truncate    preview
- *               listing && img.size-12.rounded-corner-md.object-cover
- */
+// chat list screen
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { services } from '@tipalit/services'
@@ -234,7 +213,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     padding: spacing.lg,
   },
-  rowPressed: { backgroundColor: colors.surfaceHover },
+  rowPressed: { backgroundColor: colors.surfaceHover, opacity: 0.9, transform: [{ scale: 0.99 }] },
   // div.min-w-0.flex-1
   rowBody: { minWidth: 0, flex: 1 },
   // div.flex.items-center.gap-sm

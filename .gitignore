@@ -1,25 +1,39 @@
+# Dependencies
 node_modules/
+.pnpm-store/
+
+# Builds and bundles
 dist/
 build/
 .cache/
+.vite/
+*.tsbuildinfo
+
+# Environment and secrets
 .env
 .env.local
 .env.*.local
-.vite/
-vite.config.*.timestamp-*
-*.tsbuildinfo
-*-debug.log*
+*.pem
+*.key
+*serviceAccount*.json
+*credentials*.json
+
+# Logs
 logs/
 *.log
+*-debug.log*
+
+# Framework and tooling caches
 .tmp-*
-/.figma/design-context/
-
-# Local Claude provider settings and credentials
-/.claude/
-/switch-provider.ps1
-
-# Playwright MCP screenshots and console logs
-.playwright-mcp/
-
-# Expo local development state
 .expo/
+.vscode/
+.idea/
+.claude/
+.gemini/
+.agents/
+.playwright-mcp/
+switch-provider.ps1
+CLAUDE.md
+.mcp.json
+vite.config.*.timestamp-*
+/.figma/design-context/

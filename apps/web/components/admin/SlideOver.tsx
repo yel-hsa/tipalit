@@ -44,13 +44,13 @@ export default function SlideOver({ isOpen, onClose, title, subtitle, children, 
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative flex h-full w-full max-w-drawer flex-col border-l border-border-primary bg-surface-bg shadow-raised ${
+        className={`relative flex h-full w-full max-w-drawer flex-col border-l border-border-secondary/80 bg-surface-bg shadow-2xl ${
           closing ? 'animate-drawer-out' : 'animate-drawer-in'
         }`}
       >
-        <div className="flex shrink-0 items-start justify-between gap-lg border-b border-border-secondary px-2xl py-xl">
+        <div className="flex shrink-0 items-start justify-between gap-lg border-b border-border-secondary/80 bg-surface-bg/95 backdrop-blur-sm px-2xl py-xl">
           <div className="min-w-0">
-            <p id={titleId} role="heading" aria-level={2} className="truncate text-section text-text-primary">
+            <p id={titleId} role="heading" aria-level={2} className="truncate text-section font-semibold text-text-primary">
               {title}
             </p>
             {subtitle && <p className="mt-xs truncate text-cell text-text-secondary">{subtitle}</p>}
@@ -68,7 +68,7 @@ export default function SlideOver({ isOpen, onClose, title, subtitle, children, 
           {children}
         </div>
         {footer && (
-          <div className="shrink-0 border-t border-border-secondary bg-surface-bg px-2xl py-lg">{footer}</div>
+          <div className="shrink-0 border-t border-border-secondary/80 bg-surface-bg px-2xl py-lg">{footer}</div>
         )}
       </div>
     </div>

@@ -1,9 +1,5 @@
-/**
- * 1:1 port of apps/web/screens/ChatThreadScreen.tsx.
- * The web screen receives thread/listing/seller as props from App.tsx; on
- * mobile the screen keeps its existing AppShell contract ({ threadId, onBack })
- * and resolves the same data itself, then renders the identical JSX tree.
- */
+// chat thread screen
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { services } from '@tipalit/services'

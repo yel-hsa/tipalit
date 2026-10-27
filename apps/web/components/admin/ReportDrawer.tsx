@@ -101,11 +101,11 @@ export default function ReportDrawer({
       }
     >
       <div className="flex flex-col gap-xl">
-        <section aria-label="Report" className="flex flex-col gap-md rounded-corner-md bg-bg-faint p-lg">
+        <section aria-label="Report" className="flex flex-col gap-md rounded-2xl border border-border-secondary/80 bg-surface-bg p-xl shadow-xs">
           <div className="flex items-start gap-md">
             <span
               aria-hidden="true"
-              className="flex size-10 shrink-0 items-center justify-center rounded-corner-full bg-danger-soft text-danger"
+              className="flex size-10 shrink-0 items-center justify-center rounded-corner-full bg-danger-soft text-danger border border-danger/20"
             >
               {isListing ? <Package size={20} /> : <UserRound size={20} />}
             </span>
@@ -131,8 +131,8 @@ export default function ReportDrawer({
         </section>
 
         {listing && (
-          <section aria-label="Reported listing" className="flex gap-md rounded-corner-md border border-border-secondary p-md">
-            <img src={listing.imageUrl} alt="" className="size-16 shrink-0 rounded-corner-sm object-cover" />
+          <section aria-label="Reported listing" className="flex gap-md rounded-2xl border border-border-secondary/80 bg-surface-bg p-md shadow-xs">
+            <img src={listing.imageUrl} alt="" className="size-16 shrink-0 rounded-xl object-cover border border-border-secondary/60" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-cell-strong text-text-primary">{listing.title}</p>
               <p className="truncate text-caption-sm text-text-secondary">
@@ -221,9 +221,9 @@ export default function ReportDrawer({
           report.resolution && (
             <section
               aria-label="Outcome"
-              className="flex flex-col gap-xs rounded-corner-md border border-border-secondary p-lg"
+              className="flex flex-col gap-xs rounded-2xl border border-border-secondary/80 bg-surface-bg p-xl shadow-xs"
             >
-              <p className="text-cell-strong text-text-primary">{ACTION_COPY[report.resolution.action].label}</p>
+              <p className="text-cell-strong font-semibold text-text-primary">{ACTION_COPY[report.resolution.action].label}</p>
               <p className="text-caption-sm text-text-secondary">
                 {report.resolution.byName} · {timeAgo(report.resolution.at)}
               </p>

@@ -10,6 +10,7 @@ type PhoneShellProps = {
   toast?: ReactNode
   // which bottom bar the toast should clear
   toastOffset?: ToastOffset
+  wide?: boolean
 }
 
 const OFFSET_CLASS: Record<ToastOffset, string> = {
@@ -19,10 +20,11 @@ const OFFSET_CLASS: Record<ToastOffset, string> = {
   none: 'bottom-xl',
 }
 
-export default function PhoneShell({ children, overlay, tabBar, toast, toastOffset = 'tabs' }: PhoneShellProps) {
+export default function PhoneShell({ children, overlay, tabBar, toast, toastOffset = 'tabs', wide }: PhoneShellProps) {
+  const widthClass = wide ? 'max-w-phone sm:max-w-2xl lg:max-w-3xl' : 'max-w-phone'
   return (
     <div className="min-h-dvh flex justify-center bg-surface-hover">
-      <div className="relative w-full max-w-phone min-h-dvh flex flex-col bg-brand-tertiary sm:border-x sm:border-border-secondary">
+      <div className={`relative w-full ${widthClass} min-h-dvh flex flex-col bg-brand-tertiary sm:border-x sm:border-border-secondary transition-all duration-300`}>
         <main className="flex-1 flex flex-col">
           <div className="flex-1 flex flex-col">{children}</div>
           {overlay}
@@ -30,7 +32,7 @@ export default function PhoneShell({ children, overlay, tabBar, toast, toastOffs
         {tabBar}
         {/* live region stays mounted so screen readers announce each new toast */}
         <div className={`fixed inset-x-0 ${OFFSET_CLASS[toastOffset]} z-40 flex justify-center pointer-events-none`}>
-          <div role="status" aria-live="polite" className="w-full max-w-phone px-xl flex justify-center">
+          <div role="status" aria-live="polite" className={`w-full ${widthClass} px-xl flex justify-center`}>
             {toast && <div className="rounded-corner-lg shadow-raised pointer-events-auto">{toast}</div>}
           </div>
         </div>
