@@ -66,7 +66,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
 ```bash
 corepack pnpm dev
 ```
-Open [http://localhost:8443/admin.html](http://localhost:8443/admin.html) in your browser.
+Open [http://localhost:8443](http://localhost:8443) in your browser.
 
 ### Student Mobile App
 

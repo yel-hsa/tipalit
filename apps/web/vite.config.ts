@@ -14,13 +14,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: process.env.FIGMA_PUBLIC_URL ? `${process.env.FIGMA_PUBLIC_URL}/` : '/',
+    envDir: path.resolve(__dirname, '../../'),
     build: {
       sourcemap: emitSourcemaps ? 'inline' : false,
       minify: !emitSourcemaps,
       rollupOptions: {
         input: {
-          marketplace: fileURLToPath(new URL('./index.html', import.meta.url)),
-          admin: fileURLToPath(new URL('./admin.html', import.meta.url)),
+          admin: fileURLToPath(new URL('./index.html', import.meta.url)),
+          adminAlt: fileURLToPath(new URL('./admin.html', import.meta.url)),
+          marketplace: fileURLToPath(new URL('./marketplace.html', import.meta.url)),
         },
       },
     },
